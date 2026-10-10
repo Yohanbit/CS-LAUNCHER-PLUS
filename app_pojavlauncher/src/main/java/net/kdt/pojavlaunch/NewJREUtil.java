@@ -69,7 +69,7 @@ public class NewJREUtil {
     }
 
     private static MathUtils.RankedValue<Runtime> getNearestInstalledRuntime(int targetVersion) {
-        List<Runtime> runtimes = MultiRTUtils.getInstalledRuntimes();
+        List<Runtime> runtimes = MultiRTUtils.getCompatibleInstalledRuntimes();
         return MathUtils.findNearestPositive(targetVersion, runtimes, (runtime)->runtime.javaVersion);
     }
 
@@ -93,7 +93,7 @@ public class NewJREUtil {
         String profileRuntime = Tools.getSelectedRuntime(minecraftProfile);
         Runtime runtime = MultiRTUtils.read(profileRuntime);
         // Partly trust the user with his own selection, if the game can even try to run in this case
-        if (runtime.javaVersion >= gameRequiredVersion) {
+        if (MultiRTUtils.isCompatible(runtime) && runtime.javaVersion >= gameRequiredVersion) {
             // Check whether the selection is an internal runtime
             InternalRuntime internalRuntime = getInternalRuntime(runtime);
             // If it is, check if updates are available from the APK file

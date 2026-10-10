@@ -1,0 +1,1308 @@
+{
+  "scope": "Android embedded JVM launch, process ABI, heap policy, renderer selection/environment, runtime metadata/loading and dependent mods/options paths",
+  "root": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work",
+  "refs": {
+    "base": "72f4b0f45fc9f44dbb771d6b6b30a38d8825eb25",
+    "v1": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+    "v2": "70ef402cf049047f1015de3d901d82b1964687e9",
+    "v3": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab"
+  },
+  "functions": [
+    {
+      "function": "Architecture.is64BitProcess/getProcessArchitecture/getDeviceArchitecture/getAddressSpaceLimit/requireCompatibleRuntimeArchitecture",
+      "origins": [
+        "v3"
+      ],
+      "files": [
+        "Architecture.java",
+        "JREUtils.java",
+        "DeviceCapability.java"
+      ],
+      "connection": "runtime downloads/native extraction use legacy selector now bound to process; relocateLibPath validates release OS_ARCH before JNI loads",
+      "status": "connected; process ABI correction preserved",
+      "tests": [
+        "Round3RuntimeCapabilityTest"
+      ],
+      "limits": [
+        "Android seams, not physical ART/ABI installation"
+      ],
+      "issues": [
+        "R01"
+      ]
+    },
+    {
+      "function": "Tools.getMaximumRamAllocation; LauncherPreferences.findBestRAMAllocation",
+      "origins": [
+        "base unchanged outside origin diff coverage"
+      ],
+      "files": [
+        "Tools.java",
+        "prefs/LauncherPreferences.java"
+      ],
+      "connection": "RAM UI/sanitizeRamAllocation, PerformancePolicy advisory ceiling and JREUtils advisory; preference default selected at initialization",
+      "status": "fixed R01: process-width ceiling/default, final selected heap remains exact",
+      "tests": [],
+      "limits": [
+        "32-bit process on 64-bit-capable hardware is still treated as wide for defaults/ceiling"
+      ],
+      "issues": [
+        "R01"
+      ]
+    },
+    {
+      "function": "RuntimeMemoryBudget.assess/suggestedMb/initialHeapMb",
+      "origins": [
+        "v1",
+        "v2"
+      ],
+      "files": [
+        "RuntimeMemoryBudget.java",
+        "Tools.java",
+        "JREUtils.java",
+        "PerformancePolicy.java"
+      ],
+      "connection": "Tools prelaunch warning offers exact original heap or explicit suggested heap/cancel; launch sets modest Xms and exact selected Xmx; policy heap number advisory only",
+      "status": "connected; no silent clamp or heap inflation",
+      "tests": [
+        "RuntimeSafetyPolicyTest",
+        "RuntimeLaunchRegressionTest"
+      ],
+      "limits": [
+        "OS/native/GPU reserve heuristic not measured GPU memory; user can accept dangerous Xmx; Java installer uses logging advice rather than game warning UI"
+      ],
+      "issues": [
+        "R01"
+      ]
+    },
+    {
+      "function": "RuntimeJvmArguments.optionKey/addDefault/removeKey/g1Experiment/gcDiagnostics; JvmPolicy.flagsFor",
+      "origins": [
+        "v1",
+        "v2"
+      ],
+      "files": [
+        "RuntimeJvmArguments.java",
+        "JvmPolicy.java",
+        "JREUtils.java",
+        "PerformancePolicy.java"
+      ],
+      "connection": "getJavaArgs exact-key defaults; heap purge; opt-in policy flags using selected runtime version; optional GC diagnostics",
+      "status": "helpers connected and preserved; user precedence only covers parsed userArgs, not all subsequently appended JVMArgs",
+      "tests": [
+        "RuntimeSafetyPolicyTest",
+        "RuntimeLaunchRegressionTest",
+        "runtime-parser-probe.py"
+      ],
+      "limits": [
+        "real flags validated on host Java21 only; Android runtimes 8/11/17/21/25 not executed"
+      ],
+      "issues": [
+        "R02",
+        "R03"
+      ]
+    },
+    {
+      "function": "JREUtils.parseJavaArguments",
+      "origins": [
+        "base inherited; byte-identical through v1/v2/v3 before authorized fix"
+      ],
+      "files": [
+        "JREUtils.java"
+      ],
+      "connection": "global or per-profile argument string -> getJavaArgs -> collector ownership checks -> final VM argv",
+      "status": "fixed R02: actual parser delegates ordered tokenizer; production-method extracted tests + reserved-key/final heap assembly",
+      "tests": [
+        "runtime-parser-probe.py"
+      ],
+      "limits": [
+        "probe compiles exact extracted method with logging shim, not entire Android JREUtils"
+      ],
+      "issues": [
+        "R02"
+      ]
+    },
+    {
+      "function": "Runtime.fromRelease/majorVersion; MultiRTUtils.read/forceReread/getRuntimeHome; RuntimeLibraryLoader.require",
+      "origins": [
+        "v2"
+      ],
+      "files": [
+        "multirt/Runtime.java",
+        "multirt/MultiRTUtils.java",
+        "multirt/RuntimeLibraryLoader.java",
+        "JREUtils.java"
+      ],
+      "connection": "Tools.pickRuntime -> reread metadata -> runtimeHome -> relocate -> required libjli/libjvm load -> VMLauncher",
+      "status": "preserved v2 fail-fast; R07 adds ABI-compatible ranking and real containment/symlink/hardlink extraction; R08 leaves optional JVM modules optional",
+      "tests": [
+        "RuntimeLaunchRegressionTest"
+      ],
+      "limits": [
+        "selection does not filter matching process ABI; optional module dlopen results remain unchecked; unknown native symbols/context not certified"
+      ],
+      "issues": [
+        "R07",
+        "R08"
+      ]
+    },
+    {
+      "function": "RuntimeRendererRules.canonical/library/candidates/routingEnvironment",
+      "origins": [
+        "v1",
+        "v3"
+      ],
+      "files": [
+        "RuntimeRendererRules.java",
+        "JREUtils.java",
+        "Tools.java"
+      ],
+      "connection": "compatible inventory -> selected route/canonical aliases -> actual ABI library file -> pre-dlopen routing env -> selected LOCAL_RENDERER -> LWJGL libname",
+      "status": "connected; canonical Kopper aliases, Gallium routes excluded and helper cannot auto-promote unverified Zink",
+      "tests": [
+        "RuntimeSafetyPolicyTest",
+        "Round3RuntimeCapabilityTest"
+      ],
+      "limits": [
+        "only dlopen fallback, not later EGL/context/mod initialization fallback; MainActivity has an independent selection fallback"
+      ],
+      "issues": [
+        "R04",
+        "R05"
+      ]
+    },
+    {
+      "function": "Tools.getCompatibleRenderers/checkVulkanSupport; RuntimeVulkanSupport; DeviceCapability.reportedVulkanVersion/ensureAsync/hasMatureVulkan",
+      "origins": [
+        "v3"
+      ],
+      "files": [
+        "Tools.java",
+        "DeviceCapability.java",
+        "RuntimeVulkanSupport.java"
+      ],
+      "connection": "PackageManager declared Vulkan metadata + installed ABI files + GLES probe -> eligible manual attempts; cache key process ABI/APK version; capability policy snapshot",
+      "status": "v3 manual Vulkan attempts preserved; R05 initial fallback never implicitly picks Mesa",
+      "tests": [
+        "Round3RuntimeCapabilityTest"
+      ],
+      "limits": [
+        "no physical-device extension enumeration or build-specific Mesa feature contract; APK currently only MobileGlues among known routes"
+      ],
+      "issues": [
+        "R05",
+        "R06"
+      ]
+    },
+    {
+      "function": "JREUtils.clearRendererEnvironment/prepareRendererEnvironment/setJavaEnvironment; PerformancePolicy.reconcileRenderer; RendererPolicy.envFor",
+      "origins": [
+        "v1",
+        "v3"
+      ],
+      "files": [
+        "JREUtils.java",
+        "PerformancePolicy.java",
+        "RendererPolicy.java"
+      ],
+      "connection": "prepare route before constructors; select loadable route; reconcile frozen policy; rebuild environment; last custom_env.txt overrides; launch diagnostics record effective env",
+      "status": "connected; Mesa-only bounded shader cache and optional glthread; no automatic mailbox/descriptors/conformance bypass",
+      "tests": [
+        "RuntimeSafetyPolicyTest"
+      ],
+      "limits": [
+        "custom environment can deliberately contradict selected route; only enumerated engine renderer keys reset; loaded native state not undone"
+      ],
+      "issues": [
+        "R04"
+      ]
+    },
+    {
+      "function": "ExtremeLaunchOptions.apply; Tools affectedByLTWRenderDistanceIssue; McContext.mcOption",
+      "origins": [
+        "v1"
+      ],
+      "files": [
+        "ExtremeLaunchOptions.java",
+        "Tools.java",
+        "MainActivity.java",
+        "McContext.java"
+      ],
+      "connection": "MainActivity applies reversible FPS/VSync before Tools policy freeze; LTW warns only; McContext reads options for diagnostics/policy",
+      "status": "v1 reversible pacing preserved; R09 McContext uses last duplicate read-only",
+      "tests": [
+        "existing ExtremeOptionsTest not rerun here"
+      ],
+      "limits": [
+        "260 vanilla sentinel not universal modded unlimited API; McContext reads first duplicate while apply reads last; warning occurs before possible native renderer fallback"
+      ],
+      "issues": [
+        "R09"
+      ]
+    },
+    {
+      "function": "Tools.hasMods/LaunchSnapshot.create; Sodium mixin config and safety property",
+      "origins": [
+        "base inherited, not introduced in the three prereleases",
+        "v1 removed JREUtils unconditional disable but Tools conditional disable survived",
+        "authorized consolidation fix R03"
+      ],
+      "files": [
+        "Tools.java",
+        "LaunchSnapshot.java",
+        "JREUtils.java"
+      ],
+      "connection": "snapshot scans current profile mods once; filename match -> mixin file edits and automatic -Dsodium.checks.issue2561=false appended after userArgs",
+      "status": "fixed R03: default-off experimentalModWorkarounds, explicit user JVM key wins, ownership-aware backup/restoration; old unowned edits retained",
+      "tests": [
+        "source inspection; parser probe confirms true survives parser"
+      ],
+      "limits": [
+        "filenames not loaded mod identity/version; no actual Sodium/Embeddium/Rubidium/Xenon game executed"
+      ],
+      "issues": [
+        "R03"
+      ]
+    },
+    {
+      "function": "JavaGUILauncherActivity.launchJavaRuntime -> JREUtils.launchJavaVM null renderer",
+      "origins": [
+        "v2 installer regression protection",
+        "v3 preserved"
+      ],
+      "files": [
+        "JavaGUILauncherActivity.java",
+        "JREUtils.java",
+        "RuntimeRendererRules.java"
+      ],
+      "connection": "Cacio/sandbox/JAR installer uses common launch path; null renderer returns without compatible-list probe/native graphics load or renderer mutation",
+      "status": "null-renderer contract preserved; R08 now omits LWJGL Freetype property on non-game route",
+      "tests": [
+        "RuntimeSafetyPolicyTest",
+        "Round3RuntimeCapabilityTest"
+      ],
+      "limits": [
+        "entire installer not run; LWJGL freetype property still constructed from potentially null lwjglNativesDir"
+      ],
+      "issues": [
+        "R08"
+      ]
+    },
+    {
+      "function": "MultiRTUtils.uncompressTarXZ/installRuntimeNamed/installRuntimeNamedBinpack",
+      "origins": [
+        "inherited installer logic; v2 metadata changes"
+      ],
+      "files": [
+        "multirt/MultiRTUtils.java"
+      ],
+      "connection": "external runtime archives -> runtime directory -> release parsing/postPrepare -> future launch",
+      "status": "preserved v2 fail-fast; R07 adds ABI-compatible ranking and real containment/symlink/hardlink extraction; R08 leaves optional JVM modules optional",
+      "tests": [],
+      "limits": [
+        "no canonical path containment check; symlink target/link arguments appear reversed and not rooted at extraction destination"
+      ],
+      "issues": [
+        "R07"
+      ]
+    },
+    {
+      "function": "RuntimeArchiveExtractor.extract/runtimeDirectory/checkedPath",
+      "origins": [
+        "authorized R07 fix"
+      ],
+      "files": [
+        "multirt/RuntimeArchiveExtractor.java",
+        "multirt/MultiRTUtils.java"
+      ],
+      "connection": "MultiRTUtils.uncompressTarXZ delegates actual tar.xz extraction and Android Os target/linkpath adapters; installed/imported runtime roots checked before deletion; postPrepare native-copy paths constrained",
+      "status": "connected",
+      "tests": [
+        "RuntimeArchiveExtractionTest 24 host tar/link checks",
+        "runtime_consolidation_extract.py route guards"
+      ],
+      "limits": [
+        "host commons-compress1.27.1/xz1.9, exact repo versions required in CI",
+        "Android Os adapter not physically executed",
+        "private app-directory assumption; no concurrent adversary/openat guarantee",
+        "partial failed installs not transactional and archive size quota not added"
+      ]
+    },
+    {
+      "function": "NewJREUtil.getNearestInstalledRuntime/installNewJreIfNeeded; MultiRTUtils.isCompatible",
+      "origins": [
+        "inherited download paths",
+        "authorized R07 fix"
+      ],
+      "files": [
+        "NewJREUtil.java",
+        "multirt/MultiRTUtils.java",
+        "Tools.java"
+      ],
+      "connection": "prelaunch install/autopick and Tools final pick exclude wrong process ABI; JREUtils final relocation guard remains",
+      "status": "connected; viable external runtime download/import remains",
+      "tests": [
+        "actual extracted isCompatible + route guards"
+      ],
+      "limits": [
+        "download source existence and installed JVM execution not tested"
+      ]
+    },
+    {
+      "function": "RuntimeNativeProperties.freetypePath",
+      "origins": [
+        "authorized partial R08 fix"
+      ],
+      "files": [
+        "performance/RuntimeNativeProperties.java",
+        "utils/JREUtils.java",
+        "Tools.java"
+      ],
+      "connection": "non-game null renderer omits Freetype property; game directory validates real Freetype file; generateLibClasspath fails early on missing/zero core LWJGL",
+      "status": "connected; optional runtime modules remain optional",
+      "tests": [
+        "ConsolidationRuntimeTest"
+      ],
+      "limits": [
+        "file presence is not dlopen/symbol/context certification"
+      ]
+    }
+  ],
+  "issues": [
+    {
+      "id": "R01",
+      "priority": "P1",
+      "title": "RAM ceiling/default still hardware-width based",
+      "evidence": [
+        "Tools.java:1576 uses Architecture.is32BitsDevice()",
+        "LauncherPreferences.java:211 uses is32BitsDevice()"
+      ],
+      "minimalFix": "Use Architecture.is32BitProcess() consistently for ceiling/default and test 32-bit process on 64-bit hardware; retain explicit user heap warning contract.",
+      "finalTreatment": "fixed"
+    },
+    {
+      "id": "R02",
+      "priority": "P1",
+      "title": "User JVM parser discards/reorders valid arguments",
+      "evidence": [
+        "audit/runtime-parser-probe.txt",
+        "JREUtils.java:675-717"
+      ],
+      "minimalFix": "Ordered tokenizer with quotes and spaces; do not reject multiple '=' or reorder prefixes; validate only prohibited exact keys after parsing.",
+      "finalTreatment": "fixed"
+    },
+    {
+      "id": "R03",
+      "priority": "P1",
+      "title": "Sodium safety property forced off after user arguments",
+      "evidence": [
+        "Tools.java:568",
+        "JREUtils.java comment says safety checks enabled",
+        "Tools.java:545-565 permanent mixin config edits"
+      ],
+      "minimalFix": "Remove forced safety disable by default or expose explicit, version-scoped compatibility opt-in; merge by exact key so explicit true wins; make existing mixin edits explicit/reversible.",
+      "finalTreatment": "fixed; legacy unowned config edits preserved"
+    },
+    {
+      "id": "R04",
+      "priority": "P2",
+      "title": "Successful dlopen is not successful backend/context initialization",
+      "evidence": [
+        "JREUtils.loadGraphicsLibrary uses JNI RTLD_LAZY and returns before pojavInitOpenGL",
+        "egl_bridge.c:339 later br_init failure returns0",
+        "ctxbridges/egl_loader.c primary EGL may fall back to system EGL"
+      ],
+      "minimalFix": "Do not promise context-safe fallback; if required, implement transactional preflight of matching backend + mandatory symbols/context before starting JVM, or surface actionable native failure and explicit retry.",
+      "finalTreatment": "diagnostic clarified; EGL/context fallback remains unimplemented"
+    },
+    {
+      "id": "R05",
+      "priority": "P2 conditional",
+      "title": "MainActivity independent fallback can automatically choose only remaining Zink",
+      "evidence": [
+        "MainActivity.java:938 else rendererIds.get(0)",
+        "RuntimeRendererRules excludes non-explicit Mesa candidates"
+      ],
+      "minimalFix": "Use unified candidate rules for MainActivity; when only unverified Zink remains require explicit user attempt or fail closed.",
+      "finalTreatment": "fixed"
+    },
+    {
+      "id": "R06",
+      "priority": "release constraint",
+      "title": "APK does not contain alternative renderer or Zink driver stacks",
+      "evidence": [
+        "audit/runtime-apk-native-libraries.json",
+        "audit/runtime-apk-needed.json"
+      ],
+      "minimalFix": "Ship ABI-correct complete backends and required drivers or state MobileGlues-only honestly; no env/JVM flag can replace absent Mesa/Zink/Turnip or guarantee Vulkan1.1 support.",
+      "finalTreatment": "artifact constraint remains; no fake backend/driver"
+    },
+    {
+      "id": "R07",
+      "priority": "P2 inherited",
+      "title": "Runtime selection/extraction trust boundaries incomplete",
+      "evidence": [
+        "MultiRTUtils.getExactJreName/getNearestJreName do not filter process ABI",
+        "MultiRTUtils.uncompressTarXZ constructs archive paths without containment; Os.symlink(name,linkName)"
+      ],
+      "minimalFix": "Filter metadata against process ABI before ranking; validate canonical extraction destination for every entry; resolve safe relative symlink targets and create links rooted inside destination.",
+      "finalTreatment": "fixed containment/links/process ABI; exact dependency CI + Android Os validation pending"
+    },
+    {
+      "id": "R08",
+      "priority": "P2 diagnostic",
+      "title": "Native module completeness checks limited",
+      "evidence": [
+        "JREUtils.initJavaRuntime optional dlopen results ignored",
+        "Tools.generateLibClasspath logs missing liblwjgl but continues",
+        "JREUtils adds freetype path even when installer lwjglNativesDir is null"
+      ],
+      "minimalFix": "Validate required per-route/per-Java modules and report precise missing ABI/path before VM start; do not inject null LWJGL paths into non-LWJGL installer launches.",
+      "finalTreatment": "partial fix: invalid LWJGL paths/core fail-fast; optional VM modules not made mandatory"
+    },
+    {
+      "id": "R09",
+      "priority": "P3",
+      "title": "Options diagnostics disagree on duplicate keys",
+      "evidence": [
+        "McContext.mcOption returns first match",
+        "ExtremeLaunchOptions.value reads last match"
+      ],
+      "minimalFix": "Read last occurrence consistently for read-only diagnostics; test duplicate vsync/maxFps in Original mode.",
+      "finalTreatment": "fixed"
+    }
+  ],
+  "tests": {
+    "runtimeSafety": {
+      "checks": 184,
+      "result": "pass"
+    },
+    "runtimeLaunchRegression": {
+      "checks": 71,
+      "result": "pass",
+      "host": "Java21, not Android"
+    },
+    "round3RuntimeCapability": {
+      "checks": 286,
+      "result": "pass",
+      "environment": "controlled API seams"
+    },
+    "parserProbe": {
+      "result": "reproduced destructive parsing and order reversal",
+      "file": "audit/runtime-parser-probe.txt"
+    },
+    "log": "audit/runtime-test-log.txt",
+    "physicalDeviceTests": "not performed",
+    "realMods": "not executed",
+    "consolidationRuntime": {
+      "checks": 55,
+      "result": "pass",
+      "method": "exact extracted production methods + connected helpers + API seams"
+    },
+    "runtimeArchiveExtraction": {
+      "checks": 24,
+      "result": "pass",
+      "method": "real production tar.xz extractor + host actual symlink/hardlink filesystem",
+      "hostDependencies": {
+        "commons-compress": "1.27.1",
+        "xz": "1.9"
+      },
+      "declaredAndroidDependencies": {
+        "commons-compress": "1.24.0",
+        "xz": "1.8"
+      },
+      "exactDependencyCITest": "provided via RUNTIME_TAR_TEST_CP or local Gradle cache; CI fails if unavailable or versions mismatch; not executed here"
+    },
+    "integratedScript": "tools/test-consolidation-runtime.sh",
+    "integratedLog": "audit/runtime-consolidation-test-log.txt",
+    "integratedFinal": {
+      "result": "PASS",
+      "exitCode": 0,
+      "checks": 620,
+      "input": "unchanged copies of source/tools and relevant Java source under /tmp/runtime-final-source; bypassed cloud filesystem latency",
+      "log": "audit/runtime-consolidation-test-log.txt",
+      "fullAndroidBuild": false
+    }
+  },
+  "historicalFiles": [
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/Architecture.java",
+      "versions": [
+        {
+          "origin": "base",
+          "not_in_manifest": true,
+          "transitionStatus": "existing_base",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/f3dd46bf4fb0-Architecture.java",
+          "resolvedSha256": "505242b6caf643fb2b793bdcb6564ddc0168cbeb6430950f45c9dd5b8de897b5",
+          "resolvedStatus": "unchanged_full_file_list_carry"
+        },
+        {
+          "origin": "v1",
+          "not_in_manifest": true,
+          "transitionStatus": "unchanged",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/f3dd46bf4fb0-Architecture.java",
+          "resolvedSha256": "505242b6caf643fb2b793bdcb6564ddc0168cbeb6430950f45c9dd5b8de897b5",
+          "resolvedStatus": "unchanged_full_file_list_carry"
+        },
+        {
+          "origin": "v2",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/f3dd46bf4fb0-Architecture.java",
+          "sha256": "505242b6caf643fb2b793bdcb6564ddc0168cbeb6430950f45c9dd5b8de897b5",
+          "transitionStatus": "unchanged",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/f3dd46bf4fb0-Architecture.java",
+          "resolvedSha256": "505242b6caf643fb2b793bdcb6564ddc0168cbeb6430950f45c9dd5b8de897b5",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v3",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v3/f3dd46bf4fb0-Architecture.java",
+          "sha256": "c39d4c2368417b97ab484d7dcea63efd497c66a92200f36804a32f1318f8648f",
+          "transitionStatus": "modified",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v3/f3dd46bf4fb0-Architecture.java",
+          "resolvedSha256": "c39d4c2368417b97ab484d7dcea63efd497c66a92200f36804a32f1318f8648f",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "current",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/current/f3dd46bf4fb0-Architecture.java",
+          "sha256": "c39d4c2368417b97ab484d7dcea63efd497c66a92200f36804a32f1318f8648f",
+          "equals_last_historical": true,
+          "equals_source": true
+        }
+      ],
+      "snapshotMatchesLastHistorical": true,
+      "sourceBeforeFixMatchesSnapshot": true,
+      "finalSourceSha256": "c39d4c2368417b97ab484d7dcea63efd497c66a92200f36804a32f1318f8648f",
+      "sourceAfterFixMatchesSnapshot": true
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/Tools.java",
+      "versions": [
+        {
+          "origin": "base",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/base/2e7d2c34af1e-Tools.java",
+          "sha256": "b7101c37084d7481ce02a7ed4c6accc5a9a2608fce96799b556ad5579db7f1ad",
+          "transitionStatus": "existing_base",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/base/2e7d2c34af1e-Tools.java",
+          "resolvedSha256": "b7101c37084d7481ce02a7ed4c6accc5a9a2608fce96799b556ad5579db7f1ad",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v1",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/2e7d2c34af1e-Tools.java",
+          "sha256": "4cc1841198d7d98fc99b4d5a822370ccd05f2855c8b7e3077d4587b0ce958f86",
+          "transitionStatus": "modified",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/2e7d2c34af1e-Tools.java",
+          "resolvedSha256": "4cc1841198d7d98fc99b4d5a822370ccd05f2855c8b7e3077d4587b0ce958f86",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v2",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/2e7d2c34af1e-Tools.java",
+          "sha256": "ce0e47f0e2ef9a16f472f35eded555a9a3c122c32137f2382d560bedc68fec2d",
+          "transitionStatus": "modified",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/2e7d2c34af1e-Tools.java",
+          "resolvedSha256": "ce0e47f0e2ef9a16f472f35eded555a9a3c122c32137f2382d560bedc68fec2d",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v3",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v3/2e7d2c34af1e-Tools.java",
+          "sha256": "e862fd73195318c6b866784c73cc68a9e80753f08c7d9716b2b947438dd0693f",
+          "transitionStatus": "modified",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v3/2e7d2c34af1e-Tools.java",
+          "resolvedSha256": "e862fd73195318c6b866784c73cc68a9e80753f08c7d9716b2b947438dd0693f",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "current",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/current/2e7d2c34af1e-Tools.java",
+          "sha256": "e862fd73195318c6b866784c73cc68a9e80753f08c7d9716b2b947438dd0693f",
+          "equals_last_historical": true,
+          "equals_source": true
+        }
+      ],
+      "snapshotMatchesLastHistorical": true,
+      "sourceBeforeFixMatchesSnapshot": true,
+      "finalSourceSha256": "64db26b2ebfaa40a5e68c63ab377529ab9cbac5d4a2ef27e538640fc8f2e999d",
+      "sourceAfterFixMatchesSnapshot": false
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/multirt/MultiRTUtils.java",
+      "versions": [
+        {
+          "origin": "base",
+          "not_in_manifest": true,
+          "transitionStatus": "existing_base",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/c7b101d6f99a-MultiRTUtils.java",
+          "resolvedSha256": "bd66ca4e0485fc73792c4cbb10ee132d44b1011531b803dbe154706dbc2307fd",
+          "resolvedStatus": "unchanged_full_file_list_carry"
+        },
+        {
+          "origin": "v1",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/c7b101d6f99a-MultiRTUtils.java",
+          "sha256": "bd66ca4e0485fc73792c4cbb10ee132d44b1011531b803dbe154706dbc2307fd",
+          "transitionStatus": "unchanged",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/c7b101d6f99a-MultiRTUtils.java",
+          "resolvedSha256": "bd66ca4e0485fc73792c4cbb10ee132d44b1011531b803dbe154706dbc2307fd",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v2",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/c7b101d6f99a-MultiRTUtils.java",
+          "sha256": "c6258149a07dc6af05f3c6ef4b292f5daeef17ea4b40617376b6bd3f4b5b862f",
+          "transitionStatus": "modified",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/c7b101d6f99a-MultiRTUtils.java",
+          "resolvedSha256": "c6258149a07dc6af05f3c6ef4b292f5daeef17ea4b40617376b6bd3f4b5b862f",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v3",
+          "not_in_manifest": true,
+          "transitionStatus": "unchanged",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/c7b101d6f99a-MultiRTUtils.java",
+          "resolvedSha256": "c6258149a07dc6af05f3c6ef4b292f5daeef17ea4b40617376b6bd3f4b5b862f",
+          "resolvedStatus": "unchanged_full_file_list_carry"
+        },
+        {
+          "origin": "current",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/current/c7b101d6f99a-MultiRTUtils.java",
+          "sha256": "c6258149a07dc6af05f3c6ef4b292f5daeef17ea4b40617376b6bd3f4b5b862f",
+          "equals_last_historical": true,
+          "equals_source": true
+        }
+      ],
+      "snapshotMatchesLastHistorical": true,
+      "sourceBeforeFixMatchesSnapshot": true,
+      "finalSourceSha256": "4859f589f56c8349e83903809422aa8132b9e36a9bf0e5bec4b253b9773c15c6",
+      "sourceAfterFixMatchesSnapshot": false
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/multirt/Runtime.java",
+      "versions": [
+        {
+          "origin": "base",
+          "not_in_manifest": true,
+          "transitionStatus": "existing_base",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/a6a9e702ff51-Runtime.java",
+          "resolvedSha256": "5510767706ebcd150402362e7ca4319c8a545653e5ddb1b8db9026c13a86ffb8",
+          "resolvedStatus": "unchanged_full_file_list_carry"
+        },
+        {
+          "origin": "v1",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/a6a9e702ff51-Runtime.java",
+          "sha256": "5510767706ebcd150402362e7ca4319c8a545653e5ddb1b8db9026c13a86ffb8",
+          "transitionStatus": "unchanged",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/a6a9e702ff51-Runtime.java",
+          "resolvedSha256": "5510767706ebcd150402362e7ca4319c8a545653e5ddb1b8db9026c13a86ffb8",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v2",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/a6a9e702ff51-Runtime.java",
+          "sha256": "c05cdc152a54ee1eda2bfbd44749232755af2e5ea16c34d59730e37eb46e154a",
+          "transitionStatus": "modified",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/a6a9e702ff51-Runtime.java",
+          "resolvedSha256": "c05cdc152a54ee1eda2bfbd44749232755af2e5ea16c34d59730e37eb46e154a",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v3",
+          "not_in_manifest": true,
+          "transitionStatus": "unchanged",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/a6a9e702ff51-Runtime.java",
+          "resolvedSha256": "c05cdc152a54ee1eda2bfbd44749232755af2e5ea16c34d59730e37eb46e154a",
+          "resolvedStatus": "unchanged_full_file_list_carry"
+        },
+        {
+          "origin": "current",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/current/a6a9e702ff51-Runtime.java",
+          "sha256": "c05cdc152a54ee1eda2bfbd44749232755af2e5ea16c34d59730e37eb46e154a",
+          "equals_last_historical": true,
+          "equals_source": true
+        }
+      ],
+      "snapshotMatchesLastHistorical": true,
+      "sourceBeforeFixMatchesSnapshot": true,
+      "finalSourceSha256": "c05cdc152a54ee1eda2bfbd44749232755af2e5ea16c34d59730e37eb46e154a",
+      "sourceAfterFixMatchesSnapshot": true
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/multirt/RuntimeLibraryLoader.java",
+      "versions": [
+        {
+          "origin": "base",
+          "not_in_manifest": true,
+          "transitionStatus": "absent_before_addition",
+          "resolvedStatus": "absent_proven_by_added_file_record"
+        },
+        {
+          "origin": "v1",
+          "not_in_manifest": true,
+          "transitionStatus": "unchanged",
+          "resolvedStatus": "absent_proven_by_added_file_record"
+        },
+        {
+          "origin": "v2",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/ca344538eabe-RuntimeLibraryLoader.java",
+          "sha256": "33c08d1c6220a3f1040ab215d874659f6ef61cecc8ae0de6be6fb3f659fafa15",
+          "transitionStatus": "added",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/ca344538eabe-RuntimeLibraryLoader.java",
+          "resolvedSha256": "33c08d1c6220a3f1040ab215d874659f6ef61cecc8ae0de6be6fb3f659fafa15",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v3",
+          "not_in_manifest": true,
+          "transitionStatus": "unchanged",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/ca344538eabe-RuntimeLibraryLoader.java",
+          "resolvedSha256": "33c08d1c6220a3f1040ab215d874659f6ef61cecc8ae0de6be6fb3f659fafa15",
+          "resolvedStatus": "unchanged_full_file_list_carry"
+        },
+        {
+          "origin": "current",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/current/ca344538eabe-RuntimeLibraryLoader.java",
+          "sha256": "33c08d1c6220a3f1040ab215d874659f6ef61cecc8ae0de6be6fb3f659fafa15",
+          "equals_last_historical": true,
+          "equals_source": true
+        }
+      ],
+      "snapshotMatchesLastHistorical": true,
+      "sourceBeforeFixMatchesSnapshot": true,
+      "finalSourceSha256": "33c08d1c6220a3f1040ab215d874659f6ef61cecc8ae0de6be6fb3f659fafa15",
+      "sourceAfterFixMatchesSnapshot": true
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/DeviceCapability.java",
+      "versions": [
+        {
+          "origin": "base",
+          "not_in_manifest": true,
+          "transitionStatus": "existing_base",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/386054552e42-DeviceCapability.java",
+          "resolvedSha256": "ff776c05f1b75153fbba728f423bc50d45403466e1a15ffb19f50be80a08468d",
+          "resolvedStatus": "unchanged_full_file_list_carry"
+        },
+        {
+          "origin": "v1",
+          "not_in_manifest": true,
+          "transitionStatus": "unchanged",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/386054552e42-DeviceCapability.java",
+          "resolvedSha256": "ff776c05f1b75153fbba728f423bc50d45403466e1a15ffb19f50be80a08468d",
+          "resolvedStatus": "unchanged_full_file_list_carry"
+        },
+        {
+          "origin": "v2",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/386054552e42-DeviceCapability.java",
+          "sha256": "ff776c05f1b75153fbba728f423bc50d45403466e1a15ffb19f50be80a08468d",
+          "transitionStatus": "unchanged",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/386054552e42-DeviceCapability.java",
+          "resolvedSha256": "ff776c05f1b75153fbba728f423bc50d45403466e1a15ffb19f50be80a08468d",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v3",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v3/386054552e42-DeviceCapability.java",
+          "sha256": "a246a929b91ce05bcebf30dbc5bc9bd9bd672e63339821f39a9c141ff258b9a7",
+          "transitionStatus": "modified",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v3/386054552e42-DeviceCapability.java",
+          "resolvedSha256": "a246a929b91ce05bcebf30dbc5bc9bd9bd672e63339821f39a9c141ff258b9a7",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "current",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/current/386054552e42-DeviceCapability.java",
+          "sha256": "a246a929b91ce05bcebf30dbc5bc9bd9bd672e63339821f39a9c141ff258b9a7",
+          "equals_last_historical": true,
+          "equals_source": true
+        }
+      ],
+      "snapshotMatchesLastHistorical": true,
+      "sourceBeforeFixMatchesSnapshot": true,
+      "finalSourceSha256": "a246a929b91ce05bcebf30dbc5bc9bd9bd672e63339821f39a9c141ff258b9a7",
+      "sourceAfterFixMatchesSnapshot": true
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/ExtremeLaunchOptions.java",
+      "versions": [
+        {
+          "origin": "base",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/base/1cd89140e83f-ExtremeLaunchOptions.java",
+          "sha256": "37d37d7f03e6f26a1d76d4f9889a3821b3c4e6d5ff68e7d9c5c3c87b94c4c2af",
+          "transitionStatus": "existing_base",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/base/1cd89140e83f-ExtremeLaunchOptions.java",
+          "resolvedSha256": "37d37d7f03e6f26a1d76d4f9889a3821b3c4e6d5ff68e7d9c5c3c87b94c4c2af",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v1",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/1cd89140e83f-ExtremeLaunchOptions.java",
+          "sha256": "f2eeee94b92f36207b8e3175b81fbd8f9475190bb1ea3bd9a5ec03d3572be778",
+          "transitionStatus": "modified",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/1cd89140e83f-ExtremeLaunchOptions.java",
+          "resolvedSha256": "f2eeee94b92f36207b8e3175b81fbd8f9475190bb1ea3bd9a5ec03d3572be778",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v2",
+          "not_in_manifest": true,
+          "transitionStatus": "unchanged",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/1cd89140e83f-ExtremeLaunchOptions.java",
+          "resolvedSha256": "f2eeee94b92f36207b8e3175b81fbd8f9475190bb1ea3bd9a5ec03d3572be778",
+          "resolvedStatus": "unchanged_full_file_list_carry"
+        },
+        {
+          "origin": "v3",
+          "not_in_manifest": true,
+          "transitionStatus": "unchanged",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/1cd89140e83f-ExtremeLaunchOptions.java",
+          "resolvedSha256": "f2eeee94b92f36207b8e3175b81fbd8f9475190bb1ea3bd9a5ec03d3572be778",
+          "resolvedStatus": "unchanged_full_file_list_carry"
+        },
+        {
+          "origin": "current",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/current/1cd89140e83f-ExtremeLaunchOptions.java",
+          "sha256": "f2eeee94b92f36207b8e3175b81fbd8f9475190bb1ea3bd9a5ec03d3572be778",
+          "equals_last_historical": true,
+          "equals_source": true
+        }
+      ],
+      "snapshotMatchesLastHistorical": true,
+      "sourceBeforeFixMatchesSnapshot": true,
+      "finalSourceSha256": "f2eeee94b92f36207b8e3175b81fbd8f9475190bb1ea3bd9a5ec03d3572be778",
+      "sourceAfterFixMatchesSnapshot": true
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/JvmPolicy.java",
+      "versions": [
+        {
+          "origin": "base",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/base/ba7ae5da809b-JvmPolicy.java",
+          "sha256": "7eb159e44fc77b37753baf3099acb743137d597954cce988fa0ae0103316052a",
+          "transitionStatus": "existing_base",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/base/ba7ae5da809b-JvmPolicy.java",
+          "resolvedSha256": "7eb159e44fc77b37753baf3099acb743137d597954cce988fa0ae0103316052a",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v1",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/ba7ae5da809b-JvmPolicy.java",
+          "sha256": "f205b61cb50151e6962db10d9c9f79772f082581baf904fbd413cbc6b47f7c24",
+          "transitionStatus": "modified",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/ba7ae5da809b-JvmPolicy.java",
+          "resolvedSha256": "f205b61cb50151e6962db10d9c9f79772f082581baf904fbd413cbc6b47f7c24",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v2",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/ba7ae5da809b-JvmPolicy.java",
+          "sha256": "ad45efd437b2773f0556bc974128fbe38e648a56dc57ffe4baedf837fc970891",
+          "transitionStatus": "modified",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/ba7ae5da809b-JvmPolicy.java",
+          "resolvedSha256": "ad45efd437b2773f0556bc974128fbe38e648a56dc57ffe4baedf837fc970891",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v3",
+          "not_in_manifest": true,
+          "transitionStatus": "unchanged",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/ba7ae5da809b-JvmPolicy.java",
+          "resolvedSha256": "ad45efd437b2773f0556bc974128fbe38e648a56dc57ffe4baedf837fc970891",
+          "resolvedStatus": "unchanged_full_file_list_carry"
+        },
+        {
+          "origin": "current",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/current/ba7ae5da809b-JvmPolicy.java",
+          "sha256": "ad45efd437b2773f0556bc974128fbe38e648a56dc57ffe4baedf837fc970891",
+          "equals_last_historical": true,
+          "equals_source": true
+        }
+      ],
+      "snapshotMatchesLastHistorical": true,
+      "sourceBeforeFixMatchesSnapshot": true,
+      "finalSourceSha256": "ad45efd437b2773f0556bc974128fbe38e648a56dc57ffe4baedf837fc970891",
+      "sourceAfterFixMatchesSnapshot": true
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/PerformancePolicy.java",
+      "versions": [
+        {
+          "origin": "base",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/base/db2e81034271-PerformancePolicy.java",
+          "sha256": "8b3f58a687017b05c053966244f0758232f5f4eda04cc2212efd2b8e594f6c87",
+          "transitionStatus": "existing_base",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/base/db2e81034271-PerformancePolicy.java",
+          "resolvedSha256": "8b3f58a687017b05c053966244f0758232f5f4eda04cc2212efd2b8e594f6c87",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v1",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/db2e81034271-PerformancePolicy.java",
+          "sha256": "fdceca58a4621a3f1201cf23d1aaf93225e3a6056fc4dd76a599c3082ffd3288",
+          "transitionStatus": "modified",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/db2e81034271-PerformancePolicy.java",
+          "resolvedSha256": "fdceca58a4621a3f1201cf23d1aaf93225e3a6056fc4dd76a599c3082ffd3288",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v2",
+          "not_in_manifest": true,
+          "transitionStatus": "unchanged",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/db2e81034271-PerformancePolicy.java",
+          "resolvedSha256": "fdceca58a4621a3f1201cf23d1aaf93225e3a6056fc4dd76a599c3082ffd3288",
+          "resolvedStatus": "unchanged_full_file_list_carry"
+        },
+        {
+          "origin": "v3",
+          "not_in_manifest": true,
+          "transitionStatus": "unchanged",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/db2e81034271-PerformancePolicy.java",
+          "resolvedSha256": "fdceca58a4621a3f1201cf23d1aaf93225e3a6056fc4dd76a599c3082ffd3288",
+          "resolvedStatus": "unchanged_full_file_list_carry"
+        },
+        {
+          "origin": "current",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/current/db2e81034271-PerformancePolicy.java",
+          "sha256": "fdceca58a4621a3f1201cf23d1aaf93225e3a6056fc4dd76a599c3082ffd3288",
+          "equals_last_historical": true,
+          "equals_source": true
+        }
+      ],
+      "snapshotMatchesLastHistorical": true,
+      "sourceBeforeFixMatchesSnapshot": true,
+      "finalSourceSha256": "fdceca58a4621a3f1201cf23d1aaf93225e3a6056fc4dd76a599c3082ffd3288",
+      "sourceAfterFixMatchesSnapshot": true
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/RendererPolicy.java",
+      "versions": [
+        {
+          "origin": "base",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/base/93d49327352d-RendererPolicy.java",
+          "sha256": "52e13d3aef0f7c49bff6738ca200046e54e72547436f6c37b5a8f40616c792a4",
+          "transitionStatus": "existing_base",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/base/93d49327352d-RendererPolicy.java",
+          "resolvedSha256": "52e13d3aef0f7c49bff6738ca200046e54e72547436f6c37b5a8f40616c792a4",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v1",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/93d49327352d-RendererPolicy.java",
+          "sha256": "2c5d7de74e22becb5d0247a97786659595d2afa23e51da47fe38bbc707c00e7f",
+          "transitionStatus": "modified",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/93d49327352d-RendererPolicy.java",
+          "resolvedSha256": "2c5d7de74e22becb5d0247a97786659595d2afa23e51da47fe38bbc707c00e7f",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v2",
+          "not_in_manifest": true,
+          "transitionStatus": "unchanged",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/93d49327352d-RendererPolicy.java",
+          "resolvedSha256": "2c5d7de74e22becb5d0247a97786659595d2afa23e51da47fe38bbc707c00e7f",
+          "resolvedStatus": "unchanged_full_file_list_carry"
+        },
+        {
+          "origin": "v3",
+          "not_in_manifest": true,
+          "transitionStatus": "unchanged",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/93d49327352d-RendererPolicy.java",
+          "resolvedSha256": "2c5d7de74e22becb5d0247a97786659595d2afa23e51da47fe38bbc707c00e7f",
+          "resolvedStatus": "unchanged_full_file_list_carry"
+        },
+        {
+          "origin": "current",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/current/93d49327352d-RendererPolicy.java",
+          "sha256": "2c5d7de74e22becb5d0247a97786659595d2afa23e51da47fe38bbc707c00e7f",
+          "equals_last_historical": true,
+          "equals_source": true
+        }
+      ],
+      "snapshotMatchesLastHistorical": true,
+      "sourceBeforeFixMatchesSnapshot": true,
+      "finalSourceSha256": "2c5d7de74e22becb5d0247a97786659595d2afa23e51da47fe38bbc707c00e7f",
+      "sourceAfterFixMatchesSnapshot": true
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/RuntimeJvmArguments.java",
+      "versions": [
+        {
+          "origin": "base",
+          "not_in_manifest": true,
+          "transitionStatus": "absent_before_addition",
+          "resolvedStatus": "absent_proven_by_added_file_record"
+        },
+        {
+          "origin": "v1",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/4e4787e507e8-RuntimeJvmArguments.java",
+          "sha256": "8a2519842424c304bfe3bf8f94e65de177fbaec9381683ec6e7863fb9f81d072",
+          "transitionStatus": "added",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/4e4787e507e8-RuntimeJvmArguments.java",
+          "resolvedSha256": "8a2519842424c304bfe3bf8f94e65de177fbaec9381683ec6e7863fb9f81d072",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v2",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/4e4787e507e8-RuntimeJvmArguments.java",
+          "sha256": "ff2703d3240a9cecafacde1ea4127d1cd21a99982eb303d176449ad895731df9",
+          "transitionStatus": "modified",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/4e4787e507e8-RuntimeJvmArguments.java",
+          "resolvedSha256": "ff2703d3240a9cecafacde1ea4127d1cd21a99982eb303d176449ad895731df9",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v3",
+          "not_in_manifest": true,
+          "transitionStatus": "unchanged",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/4e4787e507e8-RuntimeJvmArguments.java",
+          "resolvedSha256": "ff2703d3240a9cecafacde1ea4127d1cd21a99982eb303d176449ad895731df9",
+          "resolvedStatus": "unchanged_full_file_list_carry"
+        },
+        {
+          "origin": "current",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/current/4e4787e507e8-RuntimeJvmArguments.java",
+          "sha256": "ff2703d3240a9cecafacde1ea4127d1cd21a99982eb303d176449ad895731df9",
+          "equals_last_historical": true,
+          "equals_source": true
+        }
+      ],
+      "snapshotMatchesLastHistorical": true,
+      "sourceBeforeFixMatchesSnapshot": true,
+      "finalSourceSha256": "ff2703d3240a9cecafacde1ea4127d1cd21a99982eb303d176449ad895731df9",
+      "sourceAfterFixMatchesSnapshot": true
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/RuntimeMemoryBudget.java",
+      "versions": [
+        {
+          "origin": "base",
+          "not_in_manifest": true,
+          "transitionStatus": "absent_before_addition",
+          "resolvedStatus": "absent_proven_by_added_file_record"
+        },
+        {
+          "origin": "v1",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/a1cf701f3f78-RuntimeMemoryBudget.java",
+          "sha256": "3609b3317b27a161be013d2aadd16baf1ea08000017db3056a4cd9b366461df5",
+          "transitionStatus": "added",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/a1cf701f3f78-RuntimeMemoryBudget.java",
+          "resolvedSha256": "3609b3317b27a161be013d2aadd16baf1ea08000017db3056a4cd9b366461df5",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v2",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/a1cf701f3f78-RuntimeMemoryBudget.java",
+          "sha256": "f97432211967f306b47f3bda43839c32fc28ce62a7e387f3f2e428f0f7bf6b84",
+          "transitionStatus": "modified",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/a1cf701f3f78-RuntimeMemoryBudget.java",
+          "resolvedSha256": "f97432211967f306b47f3bda43839c32fc28ce62a7e387f3f2e428f0f7bf6b84",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v3",
+          "not_in_manifest": true,
+          "transitionStatus": "unchanged",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/a1cf701f3f78-RuntimeMemoryBudget.java",
+          "resolvedSha256": "f97432211967f306b47f3bda43839c32fc28ce62a7e387f3f2e428f0f7bf6b84",
+          "resolvedStatus": "unchanged_full_file_list_carry"
+        },
+        {
+          "origin": "current",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/current/a1cf701f3f78-RuntimeMemoryBudget.java",
+          "sha256": "f97432211967f306b47f3bda43839c32fc28ce62a7e387f3f2e428f0f7bf6b84",
+          "equals_last_historical": true,
+          "equals_source": true
+        }
+      ],
+      "snapshotMatchesLastHistorical": true,
+      "sourceBeforeFixMatchesSnapshot": true,
+      "finalSourceSha256": "f97432211967f306b47f3bda43839c32fc28ce62a7e387f3f2e428f0f7bf6b84",
+      "sourceAfterFixMatchesSnapshot": true
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/RuntimeRendererRules.java",
+      "versions": [
+        {
+          "origin": "base",
+          "not_in_manifest": true,
+          "transitionStatus": "absent_before_addition",
+          "resolvedStatus": "absent_proven_by_added_file_record"
+        },
+        {
+          "origin": "v1",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/5f9dd911def7-RuntimeRendererRules.java",
+          "sha256": "23cfa8e465b0b05de80ee012873c69c942c4e4c15b722d4c5a6b2ca51411c126",
+          "transitionStatus": "added",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/5f9dd911def7-RuntimeRendererRules.java",
+          "resolvedSha256": "23cfa8e465b0b05de80ee012873c69c942c4e4c15b722d4c5a6b2ca51411c126",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v2",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/5f9dd911def7-RuntimeRendererRules.java",
+          "sha256": "23cfa8e465b0b05de80ee012873c69c942c4e4c15b722d4c5a6b2ca51411c126",
+          "transitionStatus": "unchanged",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/5f9dd911def7-RuntimeRendererRules.java",
+          "resolvedSha256": "23cfa8e465b0b05de80ee012873c69c942c4e4c15b722d4c5a6b2ca51411c126",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v3",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v3/5f9dd911def7-RuntimeRendererRules.java",
+          "sha256": "5ceac455830d7cd58569055d70afc583692cef80e86a3725a023d80e4b6e7656",
+          "transitionStatus": "modified",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v3/5f9dd911def7-RuntimeRendererRules.java",
+          "resolvedSha256": "5ceac455830d7cd58569055d70afc583692cef80e86a3725a023d80e4b6e7656",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "current",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/current/5f9dd911def7-RuntimeRendererRules.java",
+          "sha256": "5ceac455830d7cd58569055d70afc583692cef80e86a3725a023d80e4b6e7656",
+          "equals_last_historical": true,
+          "equals_source": true
+        }
+      ],
+      "snapshotMatchesLastHistorical": true,
+      "sourceBeforeFixMatchesSnapshot": true,
+      "finalSourceSha256": "5ceac455830d7cd58569055d70afc583692cef80e86a3725a023d80e4b6e7656",
+      "sourceAfterFixMatchesSnapshot": true
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/RuntimeVulkanSupport.java",
+      "versions": [
+        {
+          "origin": "base",
+          "not_in_manifest": true,
+          "transitionStatus": "absent_before_addition",
+          "resolvedStatus": "absent_proven_by_added_file_record"
+        },
+        {
+          "origin": "v1",
+          "not_in_manifest": true,
+          "transitionStatus": "unchanged",
+          "resolvedStatus": "absent_proven_by_added_file_record"
+        },
+        {
+          "origin": "v2",
+          "not_in_manifest": true,
+          "transitionStatus": "unchanged",
+          "resolvedStatus": "absent_proven_by_added_file_record"
+        },
+        {
+          "origin": "v3",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v3/faf02a200ac2-RuntimeVulkanSupport.java",
+          "sha256": "edeea3e630ffd18ffff418315782cd7950b237e77a5389b6791ec3c90b216caa",
+          "transitionStatus": "added",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v3/faf02a200ac2-RuntimeVulkanSupport.java",
+          "resolvedSha256": "edeea3e630ffd18ffff418315782cd7950b237e77a5389b6791ec3c90b216caa",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "current",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/current/faf02a200ac2-RuntimeVulkanSupport.java",
+          "sha256": "edeea3e630ffd18ffff418315782cd7950b237e77a5389b6791ec3c90b216caa",
+          "equals_last_historical": true,
+          "equals_source": true
+        }
+      ],
+      "snapshotMatchesLastHistorical": true,
+      "sourceBeforeFixMatchesSnapshot": true,
+      "finalSourceSha256": "edeea3e630ffd18ffff418315782cd7950b237e77a5389b6791ec3c90b216caa",
+      "sourceAfterFixMatchesSnapshot": true
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/utils/JREUtils.java",
+      "versions": [
+        {
+          "origin": "base",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/base/d2a0e63cf9ff-JREUtils.java",
+          "sha256": "53a1582472108b7a956948d2d5117e01fb210d73d0fad4016dc44478fbbb8afe",
+          "transitionStatus": "existing_base",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/base/d2a0e63cf9ff-JREUtils.java",
+          "resolvedSha256": "53a1582472108b7a956948d2d5117e01fb210d73d0fad4016dc44478fbbb8afe",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v1",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/d2a0e63cf9ff-JREUtils.java",
+          "sha256": "77a1c2143133978bd16278a6888d05806fc1e646a53de9b7a61a9a13d1f65166",
+          "transitionStatus": "modified",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v1/d2a0e63cf9ff-JREUtils.java",
+          "resolvedSha256": "77a1c2143133978bd16278a6888d05806fc1e646a53de9b7a61a9a13d1f65166",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v2",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/d2a0e63cf9ff-JREUtils.java",
+          "sha256": "d2659b048b97f279fb60745f7db3a7636891a5d865fcb328d51a970922bcbaa9",
+          "transitionStatus": "modified",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v2/d2a0e63cf9ff-JREUtils.java",
+          "resolvedSha256": "d2659b048b97f279fb60745f7db3a7636891a5d865fcb328d51a970922bcbaa9",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "v3",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v3/d2a0e63cf9ff-JREUtils.java",
+          "sha256": "8fe12844719cebe68c34d34fb9a3380f51476119616ff26d5da17c565796c8bf",
+          "transitionStatus": "modified",
+          "resolvedSavedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/v3/d2a0e63cf9ff-JREUtils.java",
+          "resolvedSha256": "8fe12844719cebe68c34d34fb9a3380f51476119616ff26d5da17c565796c8bf",
+          "resolvedStatus": "snapshot"
+        },
+        {
+          "origin": "current",
+          "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/current/d2a0e63cf9ff-JREUtils.java",
+          "sha256": "8fe12844719cebe68c34d34fb9a3380f51476119616ff26d5da17c565796c8bf",
+          "equals_last_historical": true,
+          "equals_source": true
+        }
+      ],
+      "snapshotMatchesLastHistorical": true,
+      "sourceBeforeFixMatchesSnapshot": true,
+      "finalSourceSha256": "8850686c2845ab17afb16b396ef859872c98aaff143adcf59a142f3cea3718d8",
+      "sourceAfterFixMatchesSnapshot": false
+    }
+  ],
+  "packagingEvidenceFiles": [
+    "audit/runtime-apk-native-libraries.json",
+    "audit/runtime-apk-needed.json",
+    "browser_downloads/apk-inspection.txt"
+  ],
+  "limits": [
+    "No physical-device install/gameplay/FPS/mod certification",
+    "Absence from download manifest is not evidence of file absence from Git commit",
+    "Authorized local source fixes only; no commit/push/build.gradle/workflow/version changes",
+    "Inspection APK is debug1.4.3-vulkan11-test; target validation baseline is normal GitHub release1.5.0 with existing package/signature; release APK not inspected here",
+    "ADPF remains off pending genuine CPU-work measurement",
+    "Runtime binpacks absent from inspected debug APK; external runtime downloads/import paths exist but were not executed",
+    "Authorized local source fixes only; no commit/push/build.gradle/workflow/version changes",
+    "Inspection APK is debug1.4.3-vulkan11-test; target validation baseline is normal GitHub release1.5.0 with existing package/signature; release APK not inspected here",
+    "ADPF remains off pending genuine CPU-work measurement",
+    "Runtime binpacks absent from inspected debug APK; external runtime downloads/import paths exist but were not executed"
+  ],
+  "historicalClosure": {
+    "completeForRuntimeScope": true,
+    "verifiedSnapshotsReportedByCoordinator": 315,
+    "filesCompared": 15,
+    "preFixCurrentMatchesLastHistorical": true,
+    "preFixSourceMatchesCurrent": true,
+    "fullFileListsNonTruncated": true,
+    "fullPatches": [
+      "audit/runtime-1.4.2-38032930792.patch",
+      "audit/verified-1.4.1-38031765502.patch",
+      "audit/vulkan11-1.4.3-38035591430.patch"
+    ],
+    "method": "Full saved snapshots compared byte-for-byte; gaps resolved only through complete per-transition file lists. Not-in-manifest is not absence. Production source changed subsequently only through authorized fixes.",
+    "parserMethodIdenticalBaseV1V2V3CurrentBeforeFixSha256": "11a18d26542ca885aedb497bfbe03b3fb194db9db86c958e6f1b4e485bc6f3ff",
+    "runtimeWorkaroundsOrigin": "Tools Sodium property and both mixin false keys already in base, unchanged in v1/v2/v3. General JREUtils Sodium false removed in v1; Tools conditional false survived. Added prior to base, exact earlier introduction unknown."
+  },
+  "uiOptInConnection": {
+    "key": "experimentalModWorkarounds",
+    "default": false,
+    "uiSource": "source-ui/LauncherPreferenceFragment.java:967",
+    "runtimeRead": "prefs/LauncherPreferences.java:145",
+    "launchUse": "Tools.java:549-559",
+    "status": "same key/default verified in UI-scope delivery and runtime; coordinator must merge both"
+  },
+  "changedFilesManifest": "audit/runtime-changed-files.json"
+}

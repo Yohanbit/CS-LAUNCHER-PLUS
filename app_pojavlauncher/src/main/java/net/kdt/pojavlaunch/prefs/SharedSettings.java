@@ -35,6 +35,8 @@ import java.util.Map;
 public final class SharedSettings {
 
     private static final String TAG = "SharedSettings";
+    // Presence prevents bootstrap from resurrecting a second process's pre-reset cache.
+    private static final String RESET_MARKER = "__sharedSettingsReset";
 
     /** Settings reachable from both the launcher UI and the in-game quick settings. */
     public static final String[] SHARED_KEYS = {
@@ -99,18 +101,28 @@ public final class SharedSettings {
     }
 
     /** Mirrors every shared key found in the given map (used after a bulk settings save). */
-    public static void mirrorAll(Context ctx, @NonNull Map<String, ?> values) {
-        if (ctx == null) return;
+    public static boolean mirrorAll(Context ctx, @NonNull Map<String, ?> values) {
+        if (ctx == null) return false;
         JSONObject changes = new JSONObject();
         for (String key : SHARED_KEYS) {
             if (!values.containsKey(key)) continue;
             Object value = values.get(key);
-            if (value == null) continue;
             try {
-                changes.put(key, value instanceof Float ? (double) (Float) value : value);
-            } catch (Exception ignored) {}
+                changes.put(key, value == null ? JSONObject.NULL
+                        : value instanceof Float ? (double) (Float) value : value);
+            } catch (Exception invalid) { return false; }
         }
-        if (changes.length() > 0) CrossProcessState.merge(ctx, changes);
+        return changes.length() == 0 || CrossProcessState.merge(ctx, changes);
+    }
+
+    /** Remove only shared preference keys, not servers/accounts/other cross-process state. */
+    public static boolean resetSharedKeys(Context ctx) {
+        JSONObject changes = new JSONObject();
+        try {
+            for (String key : SHARED_KEYS) changes.put(key, JSONObject.NULL);
+            changes.put(RESET_MARKER, true);
+        } catch (Exception invalid) { return false; }
+        return CrossProcessState.mergeReset(ctx, changes);
     }
 
     // ───────────────────────────── reads / sync ─────────────────────────────
@@ -137,7 +149,13 @@ public final class SharedSettings {
         SharedPreferences.Editor editor = prefs.edit();
         int changed = 0;
         for (String key : SHARED_KEYS) {
-            if (!state.has(key)) continue;
+            if (!state.has(key)) {
+                if (state.optBoolean(RESET_MARKER, false) && prefs.contains(key)) {
+                    editor.remove(key);
+                    changed++;
+                }
+                continue;
+            }
             Object shared = state.opt(key);
             if (shared == null || shared == JSONObject.NULL) continue;
             Object mine = prefs.getAll().get(key);

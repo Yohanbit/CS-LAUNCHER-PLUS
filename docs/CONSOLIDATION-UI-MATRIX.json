@@ -1,0 +1,1719 @@
+{
+  "scope": "UI/performance policy audit; no physical testing",
+  "versions": {
+    "base": "72f4b0f45fc9f44dbb771d6b6b30a38d8825eb25",
+    "v1": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+    "v2": "70ef402cf049047f1015de3d901d82b1964687e9",
+    "v3": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab"
+  },
+  "sourceCount": 97,
+  "fileCoverage": [
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/MainActivity.java",
+      "versions": {
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/e05d39b79b3c-MainActivity.java",
+          "sha256": "f3b0589721eaff9b6891d2ab0cf3177d874da585564949a083828880e886ac33",
+          "complete": true,
+          "change": "changed"
+        },
+        "base": {
+          "ref": "72f4b0f45fc9f44dbb771d6b6b30a38d8825eb25",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/base/e05d39b79b3c-MainActivity.java",
+          "sha256": "ffd39b37346d0c96e1e2ab65daf9e2be5384e276292b047e8008e433ee781dfa",
+          "complete": true,
+          "change": "first_available"
+        },
+        "v3": {
+          "ref": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v3/e05d39b79b3c-MainActivity.java",
+          "sha256": "e77d0ab518ea3fdde9032ddbc036661b376ea5b5e79bf0e8a5ab042ff6ac1e3e",
+          "complete": true,
+          "change": "changed"
+        },
+        "v2": {
+          "ref": "70ef402cf049047f1015de3d901d82b1964687e9",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v2/e05d39b79b3c-MainActivity.java",
+          "sha256": "f3b0589721eaff9b6891d2ab0cf3177d874da585564949a083828880e886ac33",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/e05d39b79b3c-MainActivity.java",
+          "sha256": "e77d0ab518ea3fdde9032ddbc036661b376ea5b5e79bf0e8a5ab042ff6ac1e3e",
+          "complete": true,
+          "change": "unchanged"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/Tools.java",
+      "versions": {
+        "base": {
+          "ref": "72f4b0f45fc9f44dbb771d6b6b30a38d8825eb25",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/base/2e7d2c34af1e-Tools.java",
+          "sha256": "b7101c37084d7481ce02a7ed4c6accc5a9a2608fce96799b556ad5579db7f1ad",
+          "complete": true,
+          "change": "first_available"
+        },
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/2e7d2c34af1e-Tools.java",
+          "sha256": "4cc1841198d7d98fc99b4d5a822370ccd05f2855c8b7e3077d4587b0ce958f86",
+          "complete": true,
+          "change": "changed"
+        },
+        "v2": {
+          "ref": "70ef402cf049047f1015de3d901d82b1964687e9",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v2/2e7d2c34af1e-Tools.java",
+          "sha256": "ce0e47f0e2ef9a16f472f35eded555a9a3c122c32137f2382d560bedc68fec2d",
+          "complete": true,
+          "change": "changed"
+        },
+        "v3": {
+          "ref": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v3/2e7d2c34af1e-Tools.java",
+          "sha256": "e862fd73195318c6b866784c73cc68a9e80753f08c7d9716b2b947438dd0693f",
+          "complete": true,
+          "change": "changed"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/2e7d2c34af1e-Tools.java",
+          "sha256": "e862fd73195318c6b866784c73cc68a9e80753f08c7d9716b2b947438dd0693f",
+          "complete": true,
+          "change": "unchanged"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/customcontrols/buttons/ControlFps.java",
+      "versions": {
+        "base": {
+          "ref": "72f4b0f45fc9f44dbb771d6b6b30a38d8825eb25",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/base/4d933ed21828-ControlFps.java",
+          "sha256": "83d36cd530c639a4795ddc89a901a7419a209fab8f6f143ef948b4c3357654e8",
+          "complete": true,
+          "change": "first_available"
+        },
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/4d933ed21828-ControlFps.java",
+          "sha256": "87186abf424d64bd9f103e0487b4d39acf89febcbb1ea7b955aa6d7d6d43bf49",
+          "complete": true,
+          "change": "changed"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/4d933ed21828-ControlFps.java",
+          "sha256": "87186abf424d64bd9f103e0487b4d39acf89febcbb1ea7b955aa6d7d6d43bf49",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "v2": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/MinecraftGLSurface.java",
+      "versions": {
+        "base": {
+          "ref": "72f4b0f45fc9f44dbb771d6b6b30a38d8825eb25",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/base/070a873c026f-MinecraftGLSurface.java",
+          "sha256": "cfc6489d4e4bafed5668b5060b14102ce565c6c110b8f0b49a3d48e1ef9dc5b2",
+          "complete": true,
+          "change": "first_available"
+        },
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/070a873c026f-MinecraftGLSurface.java",
+          "sha256": "365d50095eecc744f0da4dee329be15db5400094c7cbbb3c2ca4be496ff93329",
+          "complete": true,
+          "change": "changed"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/070a873c026f-MinecraftGLSurface.java",
+          "sha256": "365d50095eecc744f0da4dee329be15db5400094c7cbbb3c2ca4be496ff93329",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "v2": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/AndroidGameStateController.java",
+      "versions": {
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/a5df98f6690c-AndroidGameStateController.java",
+          "sha256": "30c11a3975b88b8f39275d878b8a2187381cbbc5815ddb25720c38299bed01f6",
+          "complete": true,
+          "change": "changed"
+        },
+        "base": {
+          "ref": "72f4b0f45fc9f44dbb771d6b6b30a38d8825eb25",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/base/a5df98f6690c-AndroidGameStateController.java",
+          "sha256": "1019ba7e26a6aae93632c030b2c4e1020e944f03eb6c1bb3b07a5c8a2836fbb9",
+          "complete": true,
+          "change": "first_available"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/a5df98f6690c-AndroidGameStateController.java",
+          "sha256": "30c11a3975b88b8f39275d878b8a2187381cbbc5815ddb25720c38299bed01f6",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "v2": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/ExtremeLaunchOptions.java",
+      "versions": {
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/1cd89140e83f-ExtremeLaunchOptions.java",
+          "sha256": "f2eeee94b92f36207b8e3175b81fbd8f9475190bb1ea3bd9a5ec03d3572be778",
+          "complete": true,
+          "change": "changed"
+        },
+        "base": {
+          "ref": "72f4b0f45fc9f44dbb771d6b6b30a38d8825eb25",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/base/1cd89140e83f-ExtremeLaunchOptions.java",
+          "sha256": "37d37d7f03e6f26a1d76d4f9889a3821b3c4e6d5ff68e7d9c5c3c87b94c4c2af",
+          "complete": true,
+          "change": "first_available"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/1cd89140e83f-ExtremeLaunchOptions.java",
+          "sha256": "f2eeee94b92f36207b8e3175b81fbd8f9475190bb1ea3bd9a5ec03d3572be778",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "v2": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/DynamicResolutionController.java",
+      "versions": {
+        "base": {
+          "ref": "72f4b0f45fc9f44dbb771d6b6b30a38d8825eb25",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/base/63b9027ce508-DynamicResolutionController.java",
+          "sha256": "6c5b0f68555eac5983209d903751e0c679b774e80fcccb3845bcca6da5781a3f",
+          "complete": true,
+          "change": "first_available"
+        },
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/63b9027ce508-DynamicResolutionController.java",
+          "sha256": "8b8fb55e8eaeb225c361d2f78488d2a6c434559f9f99688286f46e3e908eff89",
+          "complete": true,
+          "change": "changed"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/63b9027ce508-DynamicResolutionController.java",
+          "sha256": "8b8fb55e8eaeb225c361d2f78488d2a6c434559f9f99688286f46e3e908eff89",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "v2": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/FrameSampleCollector.java",
+      "versions": {
+        "base": {
+          "ref": "72f4b0f45fc9f44dbb771d6b6b30a38d8825eb25",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/base/f9a30105407f-FrameSampleCollector.java",
+          "sha256": "c4bdaa0e307786d001316036f17156e15038eb594a3b2806025c6b708f53183b",
+          "complete": true,
+          "change": "first_available"
+        },
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/f9a30105407f-FrameSampleCollector.java",
+          "sha256": "78c749697b344489344ef248b8bb6f2d65d4ba25f3cce4ff25001cc8d6531081",
+          "complete": true,
+          "change": "changed"
+        },
+        "v2": {
+          "ref": "70ef402cf049047f1015de3d901d82b1964687e9",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v2/f9a30105407f-FrameSampleCollector.java",
+          "sha256": "9eab1902ea642e9939e4a36aae0bf254c706943b7edab4b8c824c813726d5fff",
+          "complete": true,
+          "change": "changed"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/f9a30105407f-FrameSampleCollector.java",
+          "sha256": "9eab1902ea642e9939e4a36aae0bf254c706943b7edab4b8c824c813726d5fff",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "70ef402cf049047f1015de3d901d82b1964687e9"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/JvmPolicy.java",
+      "versions": {
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/ba7ae5da809b-JvmPolicy.java",
+          "sha256": "f205b61cb50151e6962db10d9c9f79772f082581baf904fbd413cbc6b47f7c24",
+          "complete": true,
+          "change": "changed"
+        },
+        "base": {
+          "ref": "72f4b0f45fc9f44dbb771d6b6b30a38d8825eb25",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/base/ba7ae5da809b-JvmPolicy.java",
+          "sha256": "7eb159e44fc77b37753baf3099acb743137d597954cce988fa0ae0103316052a",
+          "complete": true,
+          "change": "first_available"
+        },
+        "v2": {
+          "ref": "70ef402cf049047f1015de3d901d82b1964687e9",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v2/ba7ae5da809b-JvmPolicy.java",
+          "sha256": "ad45efd437b2773f0556bc974128fbe38e648a56dc57ffe4baedf837fc970891",
+          "complete": true,
+          "change": "changed"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/ba7ae5da809b-JvmPolicy.java",
+          "sha256": "ad45efd437b2773f0556bc974128fbe38e648a56dc57ffe4baedf837fc970891",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "70ef402cf049047f1015de3d901d82b1964687e9"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/PerformancePolicy.java",
+      "versions": {
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/db2e81034271-PerformancePolicy.java",
+          "sha256": "fdceca58a4621a3f1201cf23d1aaf93225e3a6056fc4dd76a599c3082ffd3288",
+          "complete": true,
+          "change": "changed"
+        },
+        "base": {
+          "ref": "72f4b0f45fc9f44dbb771d6b6b30a38d8825eb25",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/base/db2e81034271-PerformancePolicy.java",
+          "sha256": "8b3f58a687017b05c053966244f0758232f5f4eda04cc2212efd2b8e594f6c87",
+          "complete": true,
+          "change": "first_available"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/db2e81034271-PerformancePolicy.java",
+          "sha256": "fdceca58a4621a3f1201cf23d1aaf93225e3a6056fc4dd76a599c3082ffd3288",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "v2": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/PerformanceMode.java",
+      "versions": {
+        "base": {
+          "ref": "72f4b0f45fc9f44dbb771d6b6b30a38d8825eb25",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/base/5732b723440a-PerformanceMode.java",
+          "sha256": "246ae76cc571847c88ae58efd6ea60a509ac7ba476316e7518fbd5daeac2f5b5",
+          "complete": true,
+          "change": "first_available"
+        },
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/5732b723440a-PerformanceMode.java",
+          "sha256": "af03cde398cf2b9334a5b757c9e09b03513907d5ca7fd777731b510f7761775c",
+          "complete": true,
+          "change": "changed"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/5732b723440a-PerformanceMode.java",
+          "sha256": "af03cde398cf2b9334a5b757c9e09b03513907d5ca7fd777731b510f7761775c",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "v2": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/PerformanceEngine.java",
+      "versions": {
+        "base": {
+          "ref": "72f4b0f45fc9f44dbb771d6b6b30a38d8825eb25",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/base/7e8c2b04625e-PerformanceEngine.java",
+          "sha256": "6ae54e72d2cd49513e457ade4adfe78db5087e1ff7d968b2259f0361051ddcb4",
+          "complete": true,
+          "change": "first_available"
+        },
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/7e8c2b04625e-PerformanceEngine.java",
+          "sha256": "6b0194e9d497b121d3d80b2f75d1dac8e4afc5f27b918b5549d721aaa642fe4b",
+          "complete": true,
+          "change": "changed"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/7e8c2b04625e-PerformanceEngine.java",
+          "sha256": "6b0194e9d497b121d3d80b2f75d1dac8e4afc5f27b918b5549d721aaa642fe4b",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "v2": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/RendererPolicy.java",
+      "versions": {
+        "base": {
+          "ref": "72f4b0f45fc9f44dbb771d6b6b30a38d8825eb25",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/base/93d49327352d-RendererPolicy.java",
+          "sha256": "52e13d3aef0f7c49bff6738ca200046e54e72547436f6c37b5a8f40616c792a4",
+          "complete": true,
+          "change": "first_available"
+        },
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/93d49327352d-RendererPolicy.java",
+          "sha256": "2c5d7de74e22becb5d0247a97786659595d2afa23e51da47fe38bbc707c00e7f",
+          "complete": true,
+          "change": "changed"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/93d49327352d-RendererPolicy.java",
+          "sha256": "2c5d7de74e22becb5d0247a97786659595d2afa23e51da47fe38bbc707c00e7f",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "v2": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/RuntimeJvmArguments.java",
+      "versions": {
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/4e4787e507e8-RuntimeJvmArguments.java",
+          "sha256": "8a2519842424c304bfe3bf8f94e65de177fbaec9381683ec6e7863fb9f81d072",
+          "complete": true,
+          "change": "first_available"
+        },
+        "v2": {
+          "ref": "70ef402cf049047f1015de3d901d82b1964687e9",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v2/4e4787e507e8-RuntimeJvmArguments.java",
+          "sha256": "ff2703d3240a9cecafacde1ea4127d1cd21a99982eb303d176449ad895731df9",
+          "complete": true,
+          "change": "changed"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/4e4787e507e8-RuntimeJvmArguments.java",
+          "sha256": "ff2703d3240a9cecafacde1ea4127d1cd21a99982eb303d176449ad895731df9",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "70ef402cf049047f1015de3d901d82b1964687e9"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/RuntimeThermalState.java",
+      "versions": {
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/7856ea61b4c8-RuntimeThermalState.java",
+          "sha256": "c9f7a34bf8b1e62d8afbc380788295178bccd3f0f9a14a2744c2cd3d2a6e4084",
+          "complete": true,
+          "change": "first_available"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/7856ea61b4c8-RuntimeThermalState.java",
+          "sha256": "c9f7a34bf8b1e62d8afbc380788295178bccd3f0f9a14a2744c2cd3d2a6e4084",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "v2": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/RuntimeRendererRules.java",
+      "versions": {
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/5f9dd911def7-RuntimeRendererRules.java",
+          "sha256": "23cfa8e465b0b05de80ee012873c69c942c4e4c15b722d4c5a6b2ca51411c126",
+          "complete": true,
+          "change": "first_available"
+        },
+        "v3": {
+          "ref": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v3/5f9dd911def7-RuntimeRendererRules.java",
+          "sha256": "5ceac455830d7cd58569055d70afc583692cef80e86a3725a023d80e4b6e7656",
+          "complete": true,
+          "change": "changed"
+        },
+        "v2": {
+          "ref": "70ef402cf049047f1015de3d901d82b1964687e9",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v2/5f9dd911def7-RuntimeRendererRules.java",
+          "sha256": "23cfa8e465b0b05de80ee012873c69c942c4e4c15b722d4c5a6b2ca51411c126",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/5f9dd911def7-RuntimeRendererRules.java",
+          "sha256": "5ceac455830d7cd58569055d70afc583692cef80e86a3725a023d80e4b6e7656",
+          "complete": true,
+          "change": "unchanged"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/RuntimeMemoryBudget.java",
+      "versions": {
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/a1cf701f3f78-RuntimeMemoryBudget.java",
+          "sha256": "3609b3317b27a161be013d2aadd16baf1ea08000017db3056a4cd9b366461df5",
+          "complete": true,
+          "change": "first_available"
+        },
+        "v2": {
+          "ref": "70ef402cf049047f1015de3d901d82b1964687e9",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v2/a1cf701f3f78-RuntimeMemoryBudget.java",
+          "sha256": "f97432211967f306b47f3bda43839c32fc28ce62a7e387f3f2e428f0f7bf6b84",
+          "complete": true,
+          "change": "changed"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/a1cf701f3f78-RuntimeMemoryBudget.java",
+          "sha256": "f97432211967f306b47f3bda43839c32fc28ce62a7e387f3f2e428f0f7bf6b84",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "70ef402cf049047f1015de3d901d82b1964687e9"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/SchedulingPolicy.java",
+      "versions": {
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/9a927a25d536-SchedulingPolicy.java",
+          "sha256": "36c0a9a8cff9f5cc55741c29233ef5d4f5646c3fcae64c40a87f7c35d395d212",
+          "complete": true,
+          "change": "changed"
+        },
+        "base": {
+          "ref": "72f4b0f45fc9f44dbb771d6b6b30a38d8825eb25",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/base/9a927a25d536-SchedulingPolicy.java",
+          "sha256": "da0d18cb722c4dec1d682982ef3a78be86089dbfea77eec3be70e267c4b8e6d6",
+          "complete": true,
+          "change": "first_available"
+        },
+        "v2": {
+          "ref": "70ef402cf049047f1015de3d901d82b1964687e9",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v2/9a927a25d536-SchedulingPolicy.java",
+          "sha256": "90668361a6873a55ad58d79b9cdf2f83e09321cde9161068445692f79e9b1329",
+          "complete": true,
+          "change": "changed"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/9a927a25d536-SchedulingPolicy.java",
+          "sha256": "90668361a6873a55ad58d79b9cdf2f83e09321cde9161068445692f79e9b1329",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "70ef402cf049047f1015de3d901d82b1964687e9"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/RuntimeThreadRules.java",
+      "versions": {
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/d85d6a250194-RuntimeThreadRules.java",
+          "sha256": "44727a42e280bdad328fe2aac4e57420b8e952ca3c50be526b1b48390a33f275",
+          "complete": true,
+          "change": "first_available"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/d85d6a250194-RuntimeThreadRules.java",
+          "sha256": "44727a42e280bdad328fe2aac4e57420b8e952ca3c50be526b1b48390a33f275",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "v2": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/SessionStats.java",
+      "versions": {
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/44e60877f513-SessionStats.java",
+          "sha256": "20d7146cb87d82ab0bb9e03e478ecc2908f8df179124fe1f4631f0ae8dfa225b",
+          "complete": true,
+          "change": "changed"
+        },
+        "base": {
+          "ref": "72f4b0f45fc9f44dbb771d6b6b30a38d8825eb25",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/base/44e60877f513-SessionStats.java",
+          "sha256": "df864ecbbe37dfa1ca2e8b698fb70b92615c6949eba9e80720ec89943e56a49e",
+          "complete": true,
+          "change": "first_available"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/44e60877f513-SessionStats.java",
+          "sha256": "20d7146cb87d82ab0bb9e03e478ecc2908f8df179124fe1f4631f0ae8dfa225b",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "v2": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/prefs/screens/LauncherPreferenceFragment.java",
+      "versions": {
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/11ce0d788eb7-LauncherPreferenceFragment.java",
+          "sha256": "99cf590857c4a6242b2e40cf6d44e3f314cd4823c44bc3b57490da25d69ff7c2",
+          "complete": true,
+          "change": "changed"
+        },
+        "base": {
+          "ref": "72f4b0f45fc9f44dbb771d6b6b30a38d8825eb25",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/base/11ce0d788eb7-LauncherPreferenceFragment.java",
+          "sha256": "3afeec4f7308d66c602067e08c95a5865ef52503eda03116e6a4dd9f19f181a6",
+          "complete": true,
+          "change": "first_available"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/11ce0d788eb7-LauncherPreferenceFragment.java",
+          "sha256": "99cf590857c4a6242b2e40cf6d44e3f314cd4823c44bc3b57490da25d69ff7c2",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "v2": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/ThermalGovernor.java",
+      "versions": {
+        "base": {
+          "ref": "72f4b0f45fc9f44dbb771d6b6b30a38d8825eb25",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/base/cd04ead03c61-ThermalGovernor.java",
+          "sha256": "fc9e7916317dee37d7267aca7ca416e6f79fb587ba39a27b09f7fe0d802e4ba9",
+          "complete": true,
+          "change": "first_available"
+        },
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/cd04ead03c61-ThermalGovernor.java",
+          "sha256": "cc1736541033f2bb5b369fa2e4084f6227fc3a7771d3c70a49a69a76d8435a7f",
+          "complete": true,
+          "change": "changed"
+        },
+        "v2": {
+          "ref": "70ef402cf049047f1015de3d901d82b1964687e9",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v2/cd04ead03c61-ThermalGovernor.java",
+          "sha256": "a37a1c741ba387ca6efdb554481a5884877fadc24a4878c8b3d46d898d3483fb",
+          "complete": true,
+          "change": "changed"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/cd04ead03c61-ThermalGovernor.java",
+          "sha256": "a37a1c741ba387ca6efdb554481a5884877fadc24a4878c8b3d46d898d3483fb",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "70ef402cf049047f1015de3d901d82b1964687e9"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/utils/FpsCounter.java",
+      "versions": {
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/90cb25839ea0-FpsCounter.java",
+          "sha256": "8a171c2fad201febb333236635b0b7883b976cdbce7dba7783fef4cfd5ee5d67",
+          "complete": true,
+          "change": "changed"
+        },
+        "base": {
+          "ref": "72f4b0f45fc9f44dbb771d6b6b30a38d8825eb25",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/base/90cb25839ea0-FpsCounter.java",
+          "sha256": "c9ba0803fb63d00357266d29ad80d025371fdcad41e953872c7045798c1fe8f6",
+          "complete": true,
+          "change": "first_available"
+        },
+        "v3": {
+          "ref": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v3/90cb25839ea0-FpsCounter.java",
+          "sha256": "1b0252d4c6f054571bac05353cb321b7ca43819305f3ce2394ce258b23bdd042",
+          "complete": true,
+          "change": "changed"
+        },
+        "v2": {
+          "ref": "70ef402cf049047f1015de3d901d82b1964687e9",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v2/90cb25839ea0-FpsCounter.java",
+          "sha256": "8a171c2fad201febb333236635b0b7883b976cdbce7dba7783fef4cfd5ee5d67",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/90cb25839ea0-FpsCounter.java",
+          "sha256": "1b0252d4c6f054571bac05353cb321b7ca43819305f3ce2394ce258b23bdd042",
+          "complete": true,
+          "change": "unchanged"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/utils/JREUtils.java",
+      "versions": {
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/d2a0e63cf9ff-JREUtils.java",
+          "sha256": "77a1c2143133978bd16278a6888d05806fc1e646a53de9b7a61a9a13d1f65166",
+          "complete": true,
+          "change": "changed"
+        },
+        "base": {
+          "ref": "72f4b0f45fc9f44dbb771d6b6b30a38d8825eb25",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/base/d2a0e63cf9ff-JREUtils.java",
+          "sha256": "53a1582472108b7a956948d2d5117e01fb210d73d0fad4016dc44478fbbb8afe",
+          "complete": true,
+          "change": "first_available"
+        },
+        "v2": {
+          "ref": "70ef402cf049047f1015de3d901d82b1964687e9",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v2/d2a0e63cf9ff-JREUtils.java",
+          "sha256": "d2659b048b97f279fb60745f7db3a7636891a5d865fcb328d51a970922bcbaa9",
+          "complete": true,
+          "change": "changed"
+        },
+        "v3": {
+          "ref": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v3/d2a0e63cf9ff-JREUtils.java",
+          "sha256": "8fe12844719cebe68c34d34fb9a3380f51476119616ff26d5da17c565796c8bf",
+          "complete": true,
+          "change": "changed"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/d2a0e63cf9ff-JREUtils.java",
+          "sha256": "8fe12844719cebe68c34d34fb9a3380f51476119616ff26d5da17c565796c8bf",
+          "complete": true,
+          "change": "unchanged"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/utils/FrameMetrics.java",
+      "versions": {
+        "base": {
+          "ref": "72f4b0f45fc9f44dbb771d6b6b30a38d8825eb25",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/base/47925419eb2c-FrameMetrics.java",
+          "sha256": "a7f8f1ae150e9dae0b55a6d2d778393c3e39248fb337611c0d5271ff1d61b1cb",
+          "complete": true,
+          "change": "first_available"
+        },
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/47925419eb2c-FrameMetrics.java",
+          "sha256": "db9eaa160469ee1ed73f6539b6ae5301d0a82d0d4ebb425712fec81ca4272cdb",
+          "complete": true,
+          "change": "changed"
+        },
+        "v2": {
+          "ref": "70ef402cf049047f1015de3d901d82b1964687e9",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v2/47925419eb2c-FrameMetrics.java",
+          "sha256": "0ce252b581e4d678e8272461187e8350d95de881f5c286a1811bb6d496872127",
+          "complete": true,
+          "change": "changed"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/47925419eb2c-FrameMetrics.java",
+          "sha256": "0ce252b581e4d678e8272461187e8350d95de881f5c286a1811bb6d496872127",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "70ef402cf049047f1015de3d901d82b1964687e9"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/utils/FrameCounterWindow.java",
+      "versions": {
+        "v1": {
+          "ref": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v1/3f5ea0decbb8-FrameCounterWindow.java",
+          "sha256": "1f385b5f1d855a562cdbb80bee07753abc90c357444d0d4f6b03437cbbd139f5",
+          "complete": true,
+          "change": "first_available"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/3f5ea0decbb8-FrameCounterWindow.java",
+          "sha256": "1f385b5f1d855a562cdbb80bee07753abc90c357444d0d4f6b03437cbbd139f5",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "v2": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": "4f17662f6be682db2a116bd651dcd041fa1029e3"
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/DeviceCapability.java",
+      "versions": {
+        "v3": {
+          "ref": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v3/386054552e42-DeviceCapability.java",
+          "sha256": "a246a929b91ce05bcebf30dbc5bc9bd9bd672e63339821f39a9c141ff258b9a7",
+          "complete": true,
+          "change": "changed"
+        },
+        "v2": {
+          "ref": "70ef402cf049047f1015de3d901d82b1964687e9",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v2/386054552e42-DeviceCapability.java",
+          "sha256": "ff776c05f1b75153fbba728f423bc50d45403466e1a15ffb19f50be80a08468d",
+          "complete": true,
+          "change": "first_available"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/386054552e42-DeviceCapability.java",
+          "sha256": "a246a929b91ce05bcebf30dbc5bc9bd9bd672e63339821f39a9c141ff258b9a7",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "v1": {
+          "change": "inherited_no_change_in_release",
+          "inherits": null
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/RuntimeVulkanSupport.java",
+      "versions": {
+        "v3": {
+          "ref": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/v3/faf02a200ac2-RuntimeVulkanSupport.java",
+          "sha256": "edeea3e630ffd18ffff418315782cd7950b237e77a5389b6791ec3c90b216caa",
+          "complete": true,
+          "change": "first_available"
+        },
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/faf02a200ac2-RuntimeVulkanSupport.java",
+          "sha256": "edeea3e630ffd18ffff418315782cd7950b237e77a5389b6791ec3c90b216caa",
+          "complete": true,
+          "change": "unchanged"
+        },
+        "v1": {
+          "change": "inherited_no_change_in_release",
+          "inherits": null
+        },
+        "v2": {
+          "change": "inherited_no_change_in_release",
+          "inherits": null
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/res/xml/provider.xml",
+      "versions": {
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/5a36759f382b-provider.xml",
+          "sha256": "45b78b531208ba5d9240da82a95e78730a36e0aee8d78a13e3ed5ac0c1f6001b",
+          "complete": true,
+          "change": "first_available"
+        },
+        "v1": {
+          "change": "inherited_no_change_in_release",
+          "inherits": null
+        },
+        "v2": {
+          "change": "inherited_no_change_in_release",
+          "inherits": null
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": null
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/res/xml/file_paths.xml",
+      "versions": {
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/79ac328d151e-file_paths.xml",
+          "sha256": "45b78b531208ba5d9240da82a95e78730a36e0aee8d78a13e3ed5ac0c1f6001b",
+          "complete": true,
+          "change": "first_available"
+        },
+        "v1": {
+          "change": "inherited_no_change_in_release",
+          "inherits": null
+        },
+        "v2": {
+          "change": "inherited_no_change_in_release",
+          "inherits": null
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": null
+        }
+      }
+    },
+    {
+      "path": "app_pojavlauncher/src/main/res/values/strings.xml",
+      "versions": {
+        "current": {
+          "ref": "fix/vulkan11-resume-validation",
+          "source": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-clean/current/bda74628331f-strings.xml",
+          "sha256": "182d8159cfabf035a15a6b96c1ef5905eeb418d488464aedb75a77b99dd61181",
+          "complete": true,
+          "change": "first_available"
+        },
+        "v1": {
+          "change": "inherited_no_change_in_release",
+          "inherits": null
+        },
+        "v2": {
+          "change": "inherited_no_change_in_release",
+          "inherits": null
+        },
+        "v3": {
+          "change": "inherited_no_change_in_release",
+          "inherits": null
+        }
+      }
+    }
+  ],
+  "features": [
+    {
+      "id": "persistence",
+      "origin": "base, unchanged release code",
+      "files": [
+        "LauncherPreferenceFragment.java",
+        "SettingsSaveManager.java",
+        "LauncherPreferences.java",
+        "SharedSettings.java",
+        "CrossProcessState.java"
+      ],
+      "preference": "SHARED_KEYS",
+      "finalConnection": "control edit→markDirty(key)→commitChanges: sync external state→publish only dirty shared keys→commit only dirty main keys→loadPreferences; reset filters only SHARED_KEYS from cross-process JSON and backup, preserves foreign state, blocks stale-cache rebootstrap",
+      "status": "fixed_host_verified",
+      "findings": [
+        "UI-01",
+        "UI-02"
+      ],
+      "tests": [
+        "ConsolidationSettingsTest: 85 PASS production persistence assertions; rollback, unrelated concurrent keys, reset/cache/backup, failure+retry",
+        "checkout SettingsSaveManager consumer scan: Java/Kotlin, unknown production references fail CI"
+      ],
+      "limits": [
+        "Do not overwrite concurrent values from another process"
+      ],
+      "historicalTests": [
+        "new cross-process dirty-key commit/reset regression"
+      ],
+      "findingResolution": {
+        "UI-01": "implemented; see audit/ui-fixes.md",
+        "UI-02": "implemented; see audit/ui-fixes.md"
+      }
+    },
+    {
+      "id": "profiles",
+      "origin": "base; v1 conservative gates",
+      "files": [
+        "PerformanceMode.java",
+        "PerformancePolicy.java",
+        "PerformanceEngine.java",
+        "MainActivity.java",
+        "Tools.java"
+      ],
+      "preference": "perfMode",
+      "finalConnection": "Game→persisted mode→session create presentation policy→Tools launch freeze→foreground scheduling/thermal/sampling→pause/end release",
+      "status": "preserved_persistence_fixed",
+      "tests": [
+        "ConsolidationSettingsTest: shared Extreme→draft Normal→autosave/reload preserves explicit choice"
+      ],
+      "limits": [
+        "missing preference defaults Extreme; malformed values Normal",
+        "FPS policy separate from profile"
+      ],
+      "historicalTests": [
+        "test-runtime-safety.sh",
+        "test-overhead-lifecycle.sh"
+      ]
+    },
+    {
+      "id": "scheduler",
+      "origin": "v1 bounded ownership; v2 lifecycle/overhead",
+      "files": [
+        "SchedulingPolicy.java",
+        "RuntimeThreadRules.java",
+        "PerformancePolicy.java"
+      ],
+      "preference": "perfExperimentalFlags + Performance/Maximum",
+      "finalConnection": "boostGameThreads→begin→1s proc scan→max2 exact render comm/starttime→nice -2→thermal shed/end restore",
+      "status": "preserve_opt_in",
+      "tests": [
+        "test-runtime-safety.sh",
+        "test-overhead-lifecycle.sh"
+      ],
+      "limits": [
+        "proc/OEM/permission may deny",
+        "external ownership wins",
+        "no measured benefit"
+      ]
+    },
+    {
+      "id": "adpf",
+      "origin": "base unsafe simulated timing removed v1",
+      "files": [
+        "PerformancePolicy.java",
+        "SchedulingPolicy.java"
+      ],
+      "preference": "Maximum cannot override unavailable timing",
+      "finalConnection": "adpfSession always false; diagnostics explicit disabled",
+      "status": "must_remain_disabled",
+      "tests": [
+        "test-runtime-safety.sh"
+      ],
+      "limits": [
+        "genuine CPU work duration absent",
+        "explicit render-work membership absent",
+        "FPS/wall swap timing not substitutes"
+      ]
+    },
+    {
+      "id": "thermal",
+      "origin": "v1 public APIs/hysteresis; v2 live-heartbeat handshake",
+      "files": [
+        "ThermalGovernor.java",
+        "RuntimeThermalState.java",
+        "SchedulingPolicy.java"
+      ],
+      "preference": "Performance/Maximum thermalPolling",
+      "finalConnection": "foreground→status API29/headroom API30 every10s→severe revoke priorities→60s genuine cool recover→background detach",
+      "status": "preserved_session_peak_fixed",
+      "findings": [
+        "UI-06"
+      ],
+      "tests": [
+        "ConsolidationThermalPeakTest: 7 PASS production collector assertions; hot pause→cool resume and new-session separation"
+      ],
+      "limits": [
+        "UNKNOWN is unknown not cool",
+        "no clock or platform protection override",
+        "Normal/Extreme not polling"
+      ],
+      "historicalTests": [
+        "test-overhead-lifecycle.sh",
+        "test-runtime-safety.sh",
+        "new session peak across resume regression"
+      ],
+      "findingResolution": {
+        "UI-06": "implemented; see audit/ui-fixes.md"
+      }
+    },
+    {
+      "id": "drs",
+      "origin": "base opt-in; v1 response validation/lifecycle target",
+      "files": [
+        "DynamicResolutionController.java",
+        "MinecraftGLSurface.java",
+        "FpsCounter.java"
+      ],
+      "preference": "extremeDynamicResolution/extremeMinResolution/extremeTargetFps",
+      "finalConnection": "Display→prefs listener live→private cumulative windows→probe/response/backoff→UI fixed-buffer GLFW resize→menu/manual/background restore",
+      "status": "preserved_opt_in_copy_fixed",
+      "findings": [
+        "UI-05"
+      ],
+      "tests": [
+        "ConsolidationUiSourceTest: DRS text foreground/live rather than next launch"
+      ],
+      "limits": [
+        "not GPU bottleneck detection",
+        "native Vulkan counter unavailable",
+        "whole framebuffer incl game HUD",
+        "isGrabbing menu proxy",
+        "thermal veto only polling profiles",
+        "physical validation pending"
+      ],
+      "historicalTests": [
+        {
+          "name": "DynamicResolutionTest",
+          "assertions": 298,
+          "result": "PASS host"
+        },
+        {
+          "name": "DynamicResolutionResponseRegressionTest",
+          "assertions": 102,
+          "result": "PASS host"
+        }
+      ],
+      "findingResolution": {
+        "UI-05": "implemented; see audit/ui-fixes.md"
+      }
+    },
+    {
+      "id": "pacing",
+      "origin": "base; v1 reversible fields/duplicates",
+      "files": [
+        "ExtremeLaunchOptions.java",
+        "MainActivity.java",
+        "JREUtils.java"
+      ],
+      "preference": "extremeFpsMode/extremeManualFps",
+      "finalConnection": "Game→next launch apply(options.txt backup) regardless profile→unlimited/manual vsync false→Original restores saved maxFps/vsync",
+      "status": "preserve",
+      "tests": [
+        {
+          "name": "ExtremeOptionsTest",
+          "assertions": 37,
+          "result": "PASS host"
+        }
+      ],
+      "limits": [
+        "260 sentinel not universal mod/new-version uncapped API",
+        "force_vsync authoritative"
+      ]
+    },
+    {
+      "id": "refresh",
+      "origin": "v1 correct physical-mode-group vote",
+      "files": [
+        "MinecraftGLSurface.java",
+        "ExtremeLaunchOptions.java"
+      ],
+      "preference": "FPS unlimited/manual policy",
+      "finalConnection": "supported current physical-size modes→highest/sufficient rate→Surface.setFrameRate API30/seamlessAPI31→pause clears",
+      "status": "preserve",
+      "tests": [
+        "ExtremeOptionsTest PASS host"
+      ],
+      "limits": [
+        "vote not physical display measurement",
+        "no fixed clocks/sustained-performance claim"
+      ]
+    },
+    {
+      "id": "fps_control",
+      "origin": "base canvas; v1 independent truthful windows; v3 coverage",
+      "files": [
+        "ControlFps.java",
+        "FpsCounter.java",
+        "FrameCounterWindow.java"
+      ],
+      "preference": "ControlData SPECIALBTN_FPS/fpsTextSize/fpsShowUnit",
+      "finalConnection": "CustomControls FPS element→visible window own sampler→SWAP FPS/zero/unknown→hidden detach cancels",
+      "status": "preserve",
+      "tests": [
+        "test-measurement.sh"
+      ],
+      "limits": [
+        "submission count not displayed FPS",
+        "Vulkan native shows unknown",
+        "doc comments still contain old warming semantics"
+      ]
+    },
+    {
+      "id": "legacy_hud",
+      "origin": "base; v1 remove metric animation",
+      "files": [
+        "MainActivity.java",
+        "FpsCounter.java",
+        "SharedSettings.java"
+      ],
+      "preference": "showFpsCounter/showMemoryChip/fpsCounterTransparent",
+      "finalConnection": "diagnostic HUD prefs→750ms FPS/2500ms memory→independent window; lifecycle stop/reset",
+      "status": "preserved_no_ui_removal",
+      "tests": [
+        "test-measurement.sh"
+      ],
+      "limits": [
+        "no longer offered by legacy Performance page; custom-control replacement advertised",
+        "do not remove stored keys without all quick-setting consumers"
+      ]
+    },
+    {
+      "id": "frame_diagnostics",
+      "origin": "v1 epochs/coverage; v2 zero default-off JNI and rejected-start cleanup",
+      "files": [
+        "FrameMetrics.java",
+        "FrameSampleCollector.java",
+        "MainActivity.java",
+        "JREUtils.java"
+      ],
+      "preference": "extremeFrameDiagnostics",
+      "finalConnection": "onResume starts CSV/submission session; enabling is documented next resume, disabling retains existing cleanup; GC logging documented next JVM launch; no new listener or CPU simulation",
+      "status": "preserved_copy_fixed",
+      "findings": [
+        "UI-04"
+      ],
+      "tests": [
+        "ConsolidationUiSourceTest: honest next-resume/next-launch copy; test-measurement.sh PASS existing lifecycle/default-off coverage"
+      ],
+      "limits": [
+        "GC logging next JVM only",
+        "swap wall wait not CPU work/GPU timing",
+        "two diagnostic loopers only opted in",
+        "ON from disabled intentionally requires resume; now accurately documented, no claim of live enabling"
+      ],
+      "historicalTests": [
+        "test-measurement.sh",
+        "test-overhead-lifecycle.sh",
+        "new live ON/OFF listener regression"
+      ],
+      "findingResolution": {
+        "UI-04": "implemented; see audit/ui-fixes.md"
+      }
+    },
+    {
+      "id": "session_history",
+      "origin": "v1 honest labels; v2 renderer/metadata segment reconciliation",
+      "files": [
+        "FrameSampleCollector.java",
+        "SessionStats.java",
+        "RendererPolicy.java"
+      ],
+      "preference": "frame diagnostics or adb trace",
+      "finalConnection": "foreground submission windows→descriptive median/worst→persist≥30s with Session-owned thermal maximum accumulated across pause/resume; new Session starts clean; no renderer ranking",
+      "status": "preserved_session_peak_fixed",
+      "findings": [
+        "UI-06"
+      ],
+      "tests": [
+        "ConsolidationThermalPeakTest: 7 PASS production collector assertions"
+      ],
+      "limits": [
+        "scene/resolution/mods/caps omitted",
+        "not 1% lows/per-frame percentiles/controlled comparison"
+      ],
+      "historicalTests": [
+        "test-measurement.sh"
+      ],
+      "findingResolution": {
+        "UI-06": "implemented; see audit/ui-fixes.md"
+      }
+    },
+    {
+      "id": "gc_experiment",
+      "origin": "v1 runtime aware conservative G1; v2 exact keys",
+      "files": [
+        "JvmPolicy.java",
+        "RuntimeJvmArguments.java",
+        "PerformancePolicy.java",
+        "JREUtils.java"
+      ],
+      "preference": "perfExperimentalFlags/developer_gc_variant",
+      "finalConnection": "Performance/Maximum experiment→G1 plan→selected runtime+user args filtering→current_cs flags or ergonomic_defaults no policy flags→final JVM args",
+      "status": "preserved_opt_in_copy_fixed",
+      "findings": [
+        "UI-03"
+      ],
+      "tests": [
+        "ConsolidationUiSourceTest: removed claims of heap/code-cache/young-generation tuning"
+      ],
+      "limits": [
+        "Normal/Extreme ergonomic",
+        "explicit user collector respected",
+        "no default pretouch/codecache/inflated heap"
+      ],
+      "historicalTests": [
+        "test-runtime-safety.sh",
+        "test-round3-runtime.sh"
+      ],
+      "findingResolution": {
+        "UI-03": "implemented; see audit/ui-fixes.md"
+      }
+    },
+    {
+      "id": "memory",
+      "origin": "v1 advisory; v2 unknown/insufficient; v3 process ABI",
+      "files": [
+        "RuntimeMemoryBudget.java",
+        "Tools.java",
+        "JREUtils.java",
+        "LauncherPreferenceFragment.java"
+      ],
+      "preference": "allocation",
+      "finalConnection": "draft allocation→Requested heap card refreshed by slider/exact input/preset rebuild; runtime validation/arguments determine effective heap separately (runtime owner)",
+      "status": "ui_fixed_runtime_owned",
+      "findings": [
+        "UI-01",
+        "UI-07"
+      ],
+      "tests": [
+        "ConsolidationUiSourceTest: draft heap reading/card refresh static coverage",
+        "ConsolidationSettingsTest: dirty-key persistence production coverage"
+      ],
+      "limits": [
+        "advisory not LMK guarantee",
+        "UI requested vs final effective distinct"
+      ],
+      "historicalTests": [
+        "test-runtime-safety.sh",
+        "test-round3-runtime.sh"
+      ],
+      "findingResolution": {
+        "UI-01": "implemented; see audit/ui-fixes.md",
+        "UI-07": "implemented; see audit/ui-fixes.md"
+      }
+    },
+    {
+      "id": "renderer_tuning",
+      "origin": "v1 remove automatic mailbox/noconform/descriptors",
+      "files": [
+        "RendererPolicy.java",
+        "RuntimeRendererRules.java",
+        "PerformancePolicy.java",
+        "JREUtils.java"
+      ],
+      "preference": "profile/perfExperimentalFlags/renderer/force_vsync/vsync_in_zink",
+      "finalConnection": "Mesa allowlist→bounded shader cache + optional glthread→env→fallback reconcile rebuild env",
+      "status": "preserved_opt_in_copy_fixed",
+      "findings": [
+        "UI-03"
+      ],
+      "tests": [
+        "ConsolidationUiSourceTest: accurate profile/gate descriptions"
+      ],
+      "limits": [
+        "MESA settings no-op for non-Mesa and omitted",
+        "no automatic mailbox/gate override",
+        "glthread device-sensitive"
+      ],
+      "historicalTests": [
+        "test-runtime-safety.sh"
+      ],
+      "findingResolution": {
+        "UI-03": "implemented; see audit/ui-fixes.md"
+      }
+    },
+    {
+      "id": "renderer_capability",
+      "origin": "v3 reported Vulkan/manual Zink attempt",
+      "files": [
+        "DeviceCapability.java",
+        "RuntimeVulkanSupport.java",
+        "RuntimeRendererRules.java",
+        "Tools.java"
+      ],
+      "preference": "manual renderer selection",
+      "finalConnection": "Android Vulkan metadata+packaged ABI libs→compatible attempt list→backend requirements unverified notice→loader fallback",
+      "status": "preserve",
+      "tests": [
+        "test-round3-runtime.sh"
+      ],
+      "limits": [
+        "GPU/GLES names not proof of backend compatibility",
+        "native Vulkan measurement coverage unknown"
+      ]
+    },
+    {
+      "id": "quiet_launcher",
+      "origin": "base invariant",
+      "files": [
+        "LauncherQuietPolicy.java",
+        "GameSessionState.java",
+        "PerformanceEngine.java"
+      ],
+      "preference": "perfMode",
+      "finalConnection": "game marker→cached launcher bridge→animationsAllowed/backgroundTrafficAllowed→clear session restores OFF",
+      "status": "preserve",
+      "tests": [
+        "test-overhead-lifecycle.sh"
+      ],
+      "limits": [
+        "cross-process refresh may lag",
+        "not a scheduler or FPS guarantee"
+      ]
+    },
+    {
+      "id": "game_state",
+      "origin": "v1 conservative game hints; v3 first submission observer",
+      "files": [
+        "AndroidGameStateController.java",
+        "MainActivity.java",
+        "FpsCounter.java"
+      ],
+      "preference": "none",
+      "finalConnection": "loading→foreground first GL submission observer→playing; pause/end releases watcher",
+      "status": "preserve",
+      "tests": [
+        "test-round3-watcher.sh"
+      ],
+      "limits": [
+        "submission not display presentation",
+        "observer not launch/DRS gate"
+      ]
+    },
+    {
+      "id": "resources_and_visibility",
+      "origin": "base resources unchanged; v1 copy edits",
+      "files": [
+        "LauncherPreferenceFragment.java",
+        "strings.xml",
+        "file_paths.xml",
+        "provider.xml"
+      ],
+      "preference": "SIMPLE_KEYS/Advanced/legacy Performance",
+      "finalConnection": "Java-generated controls preserved; experimental scheduler/JVM/Mesa descriptions accurate; diagnostics next-resume/GC-next-launch; DRS foreground live; new experimentalModWorkarounds checkbox visible Experimental, false by default, next-launch compatibility-risk description",
+      "status": "ui_fixed_static_verified",
+      "findings": [
+        "UI-03",
+        "UI-04",
+        "UI-05"
+      ],
+      "tests": [
+        "ConsolidationUiSourceTest: 15 PASS static wiring assertions; not Android widget execution"
+      ],
+      "limits": [
+        "orphan sustained-performance strings not executable control",
+        "XML preference catalogs absent from supplied resource list"
+      ],
+      "historicalTests": [
+        "new preference reachability/persistence tests"
+      ],
+      "findingResolution": {
+        "UI-03": "implemented; see audit/ui-fixes.md",
+        "UI-04": "implemented; see audit/ui-fixes.md",
+        "UI-05": "implemented; see audit/ui-fixes.md"
+      }
+    },
+    {
+      "id": "mod_workarounds",
+      "origin": "authorized consolidation opt-in",
+      "files": [
+        "LauncherPreferenceFragment.java",
+        "LauncherPreferences.java",
+        "JREUtils.java (runtime owner)"
+      ],
+      "preference": "experimentalModWorkarounds",
+      "finalConnection": "Experimental checkbox→dirty-key persistence→next launch; runtime owner reads boolean false by default and gates selected mod safety/mixin workarounds; runtime integration verification remains in runtime report",
+      "status": "ui_implemented_runtime_integration_owned_separately",
+      "tests": [
+        "ConsolidationSettingsTest: nonshared opt-in saveToMain persists only its key",
+        "ConsolidationUiSourceTest: visible checkbox/default false/next-launch risk text"
+      ],
+      "limits": [
+        "Not a general FPS optimization",
+        "May hide incompatibilities or cause crashes",
+        "No physical modpack validation",
+        "UI agent did not edit LauncherPreferences/JREUtils/Tools"
+      ]
+    }
+  ],
+  "testsRun": {
+    "physical": false,
+    "assertionsPassed": 437,
+    "resultsPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-test-results.txt",
+    "implementation": {
+      "settingsAssertionsPassed": 85,
+      "thermalAssertionsPassed": 7,
+      "uiStaticAssertionsPassed": 15,
+      "consumerScan": {
+        "localJavaKotlinFiles": 181,
+        "unreviewedProductionConsumers": 0,
+        "checkoutCompleteLocally": false,
+        "fullCheckoutRequiredInCI": true
+      },
+      "measurementSuite": "PASS; full Android NDK cross-compile skipped without ANDROID_NDK_HOME",
+      "resultsPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-consolidation-tests.txt",
+      "measurementResultsPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/audit/ui-measurement-regression.txt",
+      "androidWidgetExecution": false,
+      "apkBuild": false,
+      "physical": false
+    }
+  },
+  "additionalCurrentConsumers": [
+    "source/app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/prefs/LauncherPreferences.java",
+    "source/app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/prefs/SettingsSaveManager.java",
+    "source/app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/prefs/SharedSettings.java",
+    "source/app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/prefs/CrossProcessState.java",
+    "source/app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/LauncherQuietPolicy.java",
+    "source/app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/GameSessionState.java"
+  ],
+  "stage": "final UI implementation; historical fileCoverage snapshots retained as audit evidence, not final source",
+  "implementationSources": [
+    {
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/FrameSampleCollector.java",
+      "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/source/app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/FrameSampleCollector.java",
+      "sha256": "f22fbab8bba91c0392ad8ab0da57928032269c24ff9c444cf723eed5f213a8e2",
+      "bytes": 10128
+    },
+    {
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/PerformanceMode.java",
+      "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/source/app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/PerformanceMode.java",
+      "sha256": "88336f3e54376a745da61564f10466212c3de54c347f030a36955a4e0e8e928c",
+      "bytes": 5116
+    },
+    {
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/prefs/CrossProcessState.java",
+      "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/source/app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/prefs/CrossProcessState.java",
+      "sha256": "73ed1824596cc688b9b6bf01474f02e9d64a497d25698b0dc1c5747baff98165",
+      "bytes": 11307
+    },
+    {
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/prefs/SettingsSaveManager.java",
+      "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/source/app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/prefs/SettingsSaveManager.java",
+      "sha256": "90c87787850baf4ec99447296e525cf7dfa942fb8f403009c6f92bbc38de3c21",
+      "bytes": 3925
+    },
+    {
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/prefs/SharedSettings.java",
+      "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/source/app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/prefs/SharedSettings.java",
+      "sha256": "4321d16cd3f5235f74559ab1883aad2d271eb4fd70aa16c03245ff732ef27d42",
+      "bytes": 9905
+    },
+    {
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/prefs/screens/LauncherPreferenceFragment.java",
+      "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/source-ui/LauncherPreferenceFragment.java",
+      "sha256": "ce8b99c269d2a29ddd0ef9bed7749519a5ffd86ab024f0ea3c564f62e2491243",
+      "bytes": 158422
+    },
+    {
+      "repoPath": "tools/ConsolidationMeasurementSupport/SessionStats.java",
+      "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/source/tools/ConsolidationMeasurementSupport/SessionStats.java",
+      "sha256": "95adaf1b31eccde6c6abed7806ce3b7ab7ec80e3d3d6251c7fe028ea159b5760",
+      "bytes": 518
+    },
+    {
+      "repoPath": "tools/ConsolidationMeasurementSupport/ThermalGovernor.java",
+      "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/source/tools/ConsolidationMeasurementSupport/ThermalGovernor.java",
+      "sha256": "67c5270ee091c2027f98305c0af166936e612974e2ba977bf15a104f59bb8b9a",
+      "bytes": 160
+    },
+    {
+      "repoPath": "tools/ConsolidationSettingsSupport/Context.java",
+      "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/source/tools/ConsolidationSettingsSupport/Context.java",
+      "sha256": "b04a850e331291a3fd9255d60a35632aa3a8fd93fabdd9505d14ba63dc9fff8b",
+      "bytes": 2493
+    },
+    {
+      "repoPath": "tools/ConsolidationSettingsSupport/JSONObject.java",
+      "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/source/tools/ConsolidationSettingsSupport/JSONObject.java",
+      "sha256": "b452bc51ea9560d19470aed067f4d4bad572f768c7e3a48a98401bf94c7c0872",
+      "bytes": 4158
+    },
+    {
+      "repoPath": "tools/ConsolidationSettingsSupport/LauncherPreferences.java",
+      "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/source/tools/ConsolidationSettingsSupport/LauncherPreferences.java",
+      "sha256": "b64d183c396fcc3025d5e7acc5ef7b9cddc53a2f9e18d8b6bec42b26a17689b9",
+      "bytes": 509
+    },
+    {
+      "repoPath": "tools/ConsolidationSettingsSupport/Log.java",
+      "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/source/tools/ConsolidationSettingsSupport/Log.java",
+      "sha256": "ee280fbfbeaf5b90dc02f201260c1927f51ed61b865bce01c8280ed2435eae71",
+      "bytes": 226
+    },
+    {
+      "repoPath": "tools/ConsolidationSettingsSupport/NonNull.java",
+      "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/source/tools/ConsolidationSettingsSupport/NonNull.java",
+      "sha256": "feb1e800204acdaa66e9792e34cbd43c834fa7d730feb40c2812fdb4d673ea59",
+      "bytes": 58
+    },
+    {
+      "repoPath": "tools/ConsolidationSettingsSupport/Nullable.java",
+      "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/source/tools/ConsolidationSettingsSupport/Nullable.java",
+      "sha256": "56aa9489112c72667a516ecc7c52d156785daa8d277b0e8f4f7c55082319bd8d",
+      "bytes": 59
+    },
+    {
+      "repoPath": "tools/ConsolidationSettingsSupport/SharedPreferences.java",
+      "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/source/tools/ConsolidationSettingsSupport/SharedPreferences.java",
+      "sha256": "a908c67b9e6939262e8417ec60855b15c2257e4d4b8469ca10242ce760209540",
+      "bytes": 621
+    },
+    {
+      "repoPath": "tools/ConsolidationSettingsTest.java",
+      "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/source/tools/ConsolidationSettingsTest.java",
+      "sha256": "53541344d2145e02f9f277d843cda59446562784cb08cc13654ab7c3659946e3",
+      "bytes": 8490
+    },
+    {
+      "repoPath": "tools/ConsolidationStateWriter.java",
+      "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/source/tools/ConsolidationStateWriter.java",
+      "sha256": "e9b3dfd06af4194a050aaf3d35c83f15184cd80d6cc31aa9b47fb39862b26ac1",
+      "bytes": 491
+    },
+    {
+      "repoPath": "tools/ConsolidationThermalPeakTest.java",
+      "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/source/tools/ConsolidationThermalPeakTest.java",
+      "sha256": "e7d6c4b908153f2ec58ce891f932a9d38c97bc2a6be21e11bcc671088ea5299f",
+      "bytes": 2946
+    },
+    {
+      "repoPath": "tools/ConsolidationUiSourceTest.py",
+      "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/source/tools/ConsolidationUiSourceTest.py",
+      "sha256": "02e45a8298b146c6ff772fa79a36b9f00f318662401e446dd6367129835de9e9",
+      "bytes": 2102
+    },
+    {
+      "repoPath": "tools/test-consolidation-settings.sh",
+      "savedPath": "/tasklet/threads/a_54z3cj9n4pgxxx0k7m53/work/source/tools/test-consolidation-settings.sh",
+      "sha256": "172c01a1d1938acc89cfc876c808b6d1493b91477dede49e1211cc0855f18b59",
+      "bytes": 4005
+    }
+  ],
+  "defaults": {
+    "missingPerfMode": "extreme",
+    "invalidPerfModeOrFromKeyNull": "normal",
+    "experimentalModWorkarounds": false,
+    "changedByUiFixes": false
+  },
+  "finalLimitations": [
+    "Local source is partial; full checkout CI consumer scan is mandatory",
+    "Same-key explicit edits remain last-writer-wins",
+    "Reset across JSON and Android preferences is not an atomic transaction against process kill",
+    "ADPF remains disabled: real CPU work timing/membership absent",
+    "Release/package/signature remain parent-owned; no profile-default changes"
+  ]
+}

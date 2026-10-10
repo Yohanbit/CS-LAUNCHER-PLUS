@@ -101,14 +101,23 @@ public final class CrossProcessState {
      * Merges {@code changes} into the stored state under an inter-process lock.
      * A key mapped to {@link JSONObject#NULL} is removed.
      */
-    public static void merge(Context ctx, @NonNull JSONObject changes) {
-        if (unusable(ctx)) return;
+    public static boolean merge(Context ctx, @NonNull JSONObject changes) {
+        return mergeInternal(ctx, changes, false);
+    }
+
+    /** Reset also sanitizes the recovery copy, so a later damaged main file cannot undo it. */
+    static boolean mergeReset(Context ctx, @NonNull JSONObject changes) {
+        return mergeInternal(ctx, changes, true);
+    }
+
+    private static boolean mergeInternal(Context ctx, @NonNull JSONObject changes, boolean reset) {
+        if (unusable(ctx)) return false;
         synchronized (IO_GUARD) {
             File f = file(ctx);
             File parent = f.getParentFile();
             if (parent != null && !parent.exists() && !parent.mkdirs()) {
                 Log.w(TAG, "cannot create " + parent);
-                return;
+                return false;
             }
             FileLock lock = null;
             RandomAccessFile lockHandle = null;
@@ -142,7 +151,9 @@ public final class CrossProcessState {
                 }
                 // Refresh the backup from the copy that is about to be replaced, so there is
                 // always one complete file on disk even if the device dies mid-rename.
-                if (f.isFile() && f.length() > 0) copy(f, backupFile(ctx));
+                if (reset) {
+                    if (!copy(tmp, backupFile(ctx))) return false;
+                } else if (f.isFile() && f.length() > 0) copy(f, backupFile(ctx));
 
                 if (!tmp.renameTo(f)) {
                     // renameTo can fail if the target exists on some filesystems
@@ -152,10 +163,13 @@ public final class CrossProcessState {
                         Log.w(TAG, "could not replace " + f);
                         //noinspection ResultOfMethodCallIgnored
                         tmp.delete();
+                        return false;
                     }
                 }
+                return true;
             } catch (Exception e) {
                 Log.w(TAG, "state write failed", e);
+                return false;
             } finally {
                 try { if (lock != null) lock.release(); } catch (IOException ignored) {}
                 try { if (lockHandle != null) lockHandle.close(); } catch (IOException ignored) {}
@@ -163,15 +177,18 @@ public final class CrossProcessState {
         }
     }
 
-    private static void copy(File from, File to) {
+    private static boolean copy(File from, File to) {
         try (FileInputStream in = new FileInputStream(from);
              FileOutputStream out = new FileOutputStream(to)) {
             byte[] buffer = new byte[8192];
             int read;
             while ((read = in.read(buffer)) > 0) out.write(buffer, 0, read);
             out.flush();
+            out.getFD().sync();
+            return true;
         } catch (Exception e) {
             Log.w(TAG, "backup copy failed", e);
+            return false;
         }
     }
 

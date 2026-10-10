@@ -40,7 +40,7 @@ bool gl_init() {
         g_EglDisplay = EGL_NO_DISPLAY;
         return false;
     }
-    pojav_frame_set_coverage(1);
+    /* Loader/display availability is not a successfully created context. */
     return true;
 }
 
@@ -123,7 +123,7 @@ gl_render_window_t* gl_init_context(gl_render_window_t *share) {
     return bundle;
 }
 
-void gl_swap_surface(gl_render_window_t* bundle) {
+bool gl_swap_surface(gl_render_window_t* bundle) {
     /*
      * In some cases (see MinecraftGLSurface.start(), android kills the surface automatically for
      * us, if we try to release/destroy it, we SIGSEGV. Check if we are -19x-19 or some other
@@ -138,24 +138,24 @@ void gl_swap_surface(gl_render_window_t* bundle) {
      * to set the bloody height and width to their proper values. They just do it, instantly.
      */
     usleep(750000); // An overkill amount of time to wait for a surface to finish dying
-    int32_t nativeWindowWidth = ANativeWindow_getWidth(pojav_environ->pojavWindow);
-    int32_t nativeWindowHeight = ANativeWindow_getHeight(pojav_environ->pojavWindow);
-    if ((nativeWindowWidth > 0) || (nativeWindowHeight > 0)) {
-        LOGI("Native surface dimensions (%d x %d)\n",
-             nativeWindowWidth, nativeWindowHeight);
-        if (bundle->nativeSurface != NULL) {
-            ANativeWindow_release(bundle->nativeSurface);
+    /* Android destroys the Java Surface, not our acquired ANativeWindow ref.
+     * Dimensions are not an ownership/liveness test. The caller has detached
+     * EGL before replacing a live surface. Preserve the legacy delay above,
+     * but balance our references even when the underlying Surface is gone. */
+    if (bundle->surface != EGL_NO_SURFACE) {
+        if (!eglDestroySurface_p(g_EglDisplay, bundle->surface)) {
+            LOGW("Could not destroy old EGL surface: %04x", eglGetError_p());
+            return false; /* Retain both old and pending ownership; retry later. */
         }
-        if (bundle->surface != NULL) eglDestroySurface_p(g_EglDisplay, bundle->surface);
-    } else {
-        LOGW("Native surface dimensions (%d x %d) are invalid! Assuming given nativeSurface is bad.\n",
-             nativeWindowWidth, nativeWindowHeight);
+        bundle->surface = EGL_NO_SURFACE;
     }
+    if (bundle->nativeSurface != NULL) ANativeWindow_release(bundle->nativeSurface);
+    bundle->nativeSurface = NULL;
     if(bundle->newNativeSurface != NULL) {
         LOGI("Switching to new native surface");
         bundle->nativeSurface = bundle->newNativeSurface;
         bundle->newNativeSurface = NULL;
-        ANativeWindow_acquire(bundle->nativeSurface);
+        /* Transfer the reference acquired by the publication snapshot. */
         ANativeWindow_setBuffersGeometry(bundle->nativeSurface, 0, 0, bundle->format);
         bundle->surface = eglCreateWindowSurface_p(g_EglDisplay, bundle->config, bundle->nativeSurface, NULL);
     }else{
@@ -165,6 +165,7 @@ void gl_swap_surface(gl_render_window_t* bundle) {
         bundle->surface = eglCreatePbufferSurface_p(g_EglDisplay, bundle->config, pbuffer_attrs);
     }
     //eglMakeCurrent_p(g_EglDisplay, bundle->surface, bundle->surface, bundle->context);
+    return bundle->surface != EGL_NO_SURFACE;
 }
 
 void gl_make_current(gl_render_window_t* bundle) {
@@ -179,7 +180,7 @@ void gl_make_current(gl_render_window_t* bundle) {
     if(pojav_environ->mainWindowBundle == NULL) {
         pojav_environ->mainWindowBundle = (basic_render_window_t*)bundle;
         LOGI("Main window bundle is now %p", pojav_environ->mainWindowBundle);
-        pojav_environ->mainWindowBundle->newNativeSurface = pojav_environ->pojavWindow;
+        bundle->newNativeSurface = pojav_acquire_window(&bundle->window_generation);
         hasSetMainWindow = true;
     }
     LOGI("Making current, surface=%p, nativeSurface=%p, newNativeSurface=%p", bundle->surface, bundle->nativeSurface, bundle->newNativeSurface);
@@ -191,6 +192,7 @@ void gl_make_current(gl_render_window_t* bundle) {
         gl_apply_swap_interval();
     }else {
         if(hasSetMainWindow) {
+            if (bundle->newNativeSurface != NULL) ANativeWindow_release(bundle->newNativeSurface);
             pojav_environ->mainWindowBundle->newNativeSurface = NULL;
             gl_swap_surface((gl_render_window_t*)pojav_environ->mainWindowBundle);
             pojav_environ->mainWindowBundle = NULL;
@@ -202,19 +204,22 @@ void gl_make_current(gl_render_window_t* bundle) {
 
 bool gl_swap_buffers() {
     if(currentBundle == NULL) return false;
+    if ((basic_render_window_t*)currentBundle == pojav_environ->mainWindowBundle) gl_setup_window();
     if(currentBundle->state == STATE_RENDERER_NEW_WINDOW) {
-        eglMakeCurrent_p(g_EglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT); //detach everything to destroy the old EGLSurface
-        gl_swap_surface(currentBundle);
-        eglMakeCurrent_p(g_EglDisplay, currentBundle->surface, currentBundle->surface, currentBundle->context);
+        if (!eglMakeCurrent_p(g_EglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)) return false;
+        bool replaced = gl_swap_surface(currentBundle);
+        if (!eglMakeCurrent_p(g_EglDisplay, currentBundle->surface, currentBundle->surface, currentBundle->context)) return false;
+        if (!replaced) return false;
         currentBundle->state = STATE_RENDERER_ALIVE;
         gl_apply_swap_interval();
     }
     if(currentBundle->surface == NULL) return false;
     EGLBoolean swapped = eglSwapBuffers_p(g_EglDisplay, currentBundle->surface);
     if(!swapped && eglGetError_p() == EGL_BAD_SURFACE) {
-            eglMakeCurrent_p(g_EglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+            if (!eglMakeCurrent_p(g_EglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)) return false;
+            if (currentBundle->newNativeSurface != NULL) ANativeWindow_release(currentBundle->newNativeSurface);
             currentBundle->newNativeSurface = NULL;
-            gl_swap_surface(currentBundle);
+            if (!gl_swap_surface(currentBundle)) currentBundle->state = STATE_RENDERER_NEW_WINDOW;
             eglMakeCurrent_p(g_EglDisplay, currentBundle->surface, currentBundle->surface, currentBundle->context);
             gl_apply_swap_interval();
             LOGI("The window has died, awaiting window change");
@@ -225,10 +230,39 @@ bool gl_swap_buffers() {
 
 void gl_setup_window() {
     if(pojav_environ->mainWindowBundle != NULL) {
-        LOGI("Main window bundle is not NULL, changing state");
-        pojav_environ->mainWindowBundle->state = STATE_RENDERER_NEW_WINDOW;
-        pojav_environ->mainWindowBundle->newNativeSurface = pojav_environ->pojavWindow;
+        basic_render_window_t *bundle = pojav_environ->mainWindowBundle;
+        struct ANativeWindow *replacement = NULL;
+        if (pojav_take_window_update(&bundle->window_generation, &replacement)) {
+            if (bundle->newNativeSurface != NULL) ANativeWindow_release(bundle->newNativeSurface);
+            bundle->newNativeSurface = replacement;
+            bundle->state = STATE_RENDERER_NEW_WINDOW;
+        }
     }
+}
+
+bool gl_destroy_context(gl_render_window_t* bundle) {
+    if (bundle == NULL || bundle->bound_threads != 0) return false;
+    if (bundle->surface != EGL_NO_SURFACE) {
+        if (!eglDestroySurface_p(g_EglDisplay, bundle->surface)) return false;
+        bundle->surface = EGL_NO_SURFACE;
+    }
+    if (bundle->context != EGL_NO_CONTEXT) {
+        if (!eglDestroyContext_p(g_EglDisplay, bundle->context)) return false;
+        bundle->context = EGL_NO_CONTEXT;
+    }
+    if (bundle->nativeSurface != NULL) ANativeWindow_release(bundle->nativeSurface);
+    if (bundle->newNativeSurface != NULL) ANativeWindow_release(bundle->newNativeSurface);
+    free(bundle);
+    return true;
+}
+
+bool gl_terminate(void) {
+    if (g_EglDisplay != EGL_NO_DISPLAY) {
+        if (eglTerminate_p == NULL || !eglTerminate_p(g_EglDisplay)) return false;
+        g_EglDisplay = EGL_NO_DISPLAY;
+    }
+    if (eglReleaseThread_p != NULL) eglReleaseThread_p();
+    return true;
 }
 
 // Its not in a .h file because it is shared with osm_bridge.c (same pattern).

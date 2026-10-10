@@ -52,6 +52,8 @@ static int opens, closes, lookups, publications, clears, leases, refs, path_look
 static int open_fail, publish_fail, clear_fail, symbol_error;
 static int lease_fail, lease_mismatch, path_fail;
 static int device_api=28, turnip_enabled, turnip_calls;
+static void linker_ns_forget_unique(void *handle) { (void)handle; }
+static void reject_turnip_dependencies(void) { }
 static const char *missing;
 static void *expected;
 static const char *link_error;
@@ -259,7 +261,8 @@ int main(void) {
     /* Unsupported GL selection may not dispatch a previously loaded table. */
     setenv("AMETHYST_RENDERER","unsupported",1);
     pojavSetWindowHint(GLFW_CLIENT_API,GLFW_OPENGL_API);
-    assert(!pojavCreateContext(NULL)); assert(mode()==0&&!coverage&&!br_init_context);
+    assert(!pojavCreateContext(NULL)); assert(mode()==0&&!coverage);
+    assert(br_init_context!=NULL); /* Retain existing live-context backend for safe teardown. */
     reset("opengles_mobileglues"); assert(pojavInit());
     pthread_t readers[8];
     for(size_t i=0;i<8;i++) assert(pthread_create(&readers[i],NULL,reader,NULL)==0);

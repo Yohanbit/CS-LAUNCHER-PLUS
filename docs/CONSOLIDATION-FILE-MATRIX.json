@@ -1,0 +1,1558 @@
+{
+  "version": "1.5.0",
+  "baseCommit": "f942e25ce5efe08789eaeefe2fcd297d072872e8",
+  "origins": [
+    {
+      "tag": "verified-1.4.1-38031765502",
+      "commit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "id": 408739595,
+      "assets": [
+        {
+          "id": 627228971,
+          "name": "apk-inspection.txt",
+          "size": 13923,
+          "digest": "sha256:42b6accb8fcfb3b7573c08ceb3718c2aebf962409099f29b13c312f9b9ad92c4",
+          "url": "https://github.com/Yohanbit/Unamed-launcher/releases/download/verified-1.4.1-38031765502/apk-inspection.txt"
+        },
+        {
+          "id": 627228973,
+          "name": "commit.txt",
+          "size": 41,
+          "digest": "sha256:b4ca523bd4c6162e6f00211f15a632dfe4bf3cdc9534db8b7d02a0dd85c72c87",
+          "url": "https://github.com/Yohanbit/Unamed-launcher/releases/download/verified-1.4.1-38031765502/commit.txt"
+        },
+        {
+          "id": 627228969,
+          "name": "tests.txt",
+          "size": 1760,
+          "digest": "sha256:a82715ca229d152c1c459e57e49a7860dcce6f5a1f7efb2255861c12b81575a8",
+          "url": "https://github.com/Yohanbit/Unamed-launcher/releases/download/verified-1.4.1-38031765502/tests.txt"
+        },
+        {
+          "id": 627228974,
+          "name": "Unamed.launcher.apk",
+          "size": 107328254,
+          "digest": "sha256:129d2a8b30fbb36ca2a8c3b18e9c932bfb06971352a384869c344d993a1e3d99",
+          "url": "https://github.com/Yohanbit/Unamed-launcher/releases/download/verified-1.4.1-38031765502/Unamed.launcher.apk"
+        }
+      ]
+    },
+    {
+      "tag": "runtime-1.4.2-38032930792",
+      "commit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "id": 408755712,
+      "assets": [
+        {
+          "id": 627264196,
+          "name": "apk-inspection.txt",
+          "size": 13922,
+          "digest": "sha256:93bd7f089bf8863e239100f6edc2604012396cd497b7a288aeeffd8709ae79bb",
+          "url": "https://github.com/Yohanbit/Unamed-launcher/releases/download/runtime-1.4.2-38032930792/apk-inspection.txt"
+        },
+        {
+          "id": 627264191,
+          "name": "commit.txt",
+          "size": 41,
+          "digest": "sha256:693177ebe56e8e4501924255cfaecea2e0138165c2d5bd14ff46d936baf33d75",
+          "url": "https://github.com/Yohanbit/Unamed-launcher/releases/download/runtime-1.4.2-38032930792/commit.txt"
+        },
+        {
+          "id": 627264195,
+          "name": "previous-apk.json",
+          "size": 314,
+          "digest": "sha256:37adddecd9fb7efe5821dd0f8d3420261c261bcd3d664cf6e4485d766d899670",
+          "url": "https://github.com/Yohanbit/Unamed-launcher/releases/download/runtime-1.4.2-38032930792/previous-apk.json"
+        },
+        {
+          "id": 627264193,
+          "name": "tests.txt",
+          "size": 8842,
+          "digest": "sha256:b40b8bcdff1668e558cf175b039a1cff147f7fb1f041ab1f8c58d0ac9485ef89",
+          "url": "https://github.com/Yohanbit/Unamed-launcher/releases/download/runtime-1.4.2-38032930792/tests.txt"
+        },
+        {
+          "id": 627264194,
+          "name": "Unamed.launcher.apk",
+          "size": 107334389,
+          "digest": "sha256:14c3e0256ea2508800c2f79b7e251caef1950e774eebe9eead2f97307649c6a6",
+          "url": "https://github.com/Yohanbit/Unamed-launcher/releases/download/runtime-1.4.2-38032930792/Unamed.launcher.apk"
+        }
+      ]
+    },
+    {
+      "tag": "vulkan11-1.4.3-38035591430",
+      "commit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "id": 408783354,
+      "assets": [
+        {
+          "id": 627352382,
+          "name": "apk-inspection.txt",
+          "size": 13942,
+          "digest": "sha256:c05e4beb5d5d950d1d11ec88a4dc38773fc75a9e5e8b82fadd99aa0ba27181ff",
+          "url": "https://github.com/Yohanbit/Unamed-launcher/releases/download/vulkan11-1.4.3-38035591430/apk-inspection.txt"
+        },
+        {
+          "id": 627352384,
+          "name": "commit.txt",
+          "size": 41,
+          "digest": "sha256:2ae60531769e95b45a2869cb0a168519167830275b7b0a78373dd60289d64cf6",
+          "url": "https://github.com/Yohanbit/Unamed-launcher/releases/download/vulkan11-1.4.3-38035591430/commit.txt"
+        },
+        {
+          "id": 627352388,
+          "name": "previous-apk.json",
+          "size": 391,
+          "digest": "sha256:654de463530d56e1d9fb75c02766537e51242fcdaccb4a4c523ca433d3e127e9",
+          "url": "https://github.com/Yohanbit/Unamed-launcher/releases/download/vulkan11-1.4.3-38035591430/previous-apk.json"
+        },
+        {
+          "id": 627352381,
+          "name": "tests.txt",
+          "size": 16376,
+          "digest": "sha256:f9f0d1e06bf88f0717e04783d459538648de38ac839ba70dde61d2b4f0084f51",
+          "url": "https://github.com/Yohanbit/Unamed-launcher/releases/download/vulkan11-1.4.3-38035591430/tests.txt"
+        },
+        {
+          "id": 627352383,
+          "name": "Unamed.launcher.apk",
+          "size": 107339792,
+          "digest": "sha256:917609fb4b8695324610937ccae97640f8d620b279fa1c9b69f86d1f66368666",
+          "url": "https://github.com/Yohanbit/Unamed-launcher/releases/download/vulkan11-1.4.3-38035591430/Unamed.launcher.apk"
+        }
+      ]
+    }
+  ],
+  "historicalTransitions": [
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": ".github/workflows/build-apk.yml",
+      "historicalStatus": "modified",
+      "originSha256": "0d9c578acd353f21687a62e583ce6574db8014ec6c629e3bfd4e450deabec99b",
+      "finalSha256": "0ac2d22159fb68b3c32814c9ec68e9f371960e1c50dab553b12a1bfb3ab65320",
+      "disposition": "reconciled by publication; see functional matrix and fixes report"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/build.gradle",
+      "historicalStatus": "modified",
+      "originSha256": "e38d1b5b4eb1d894d4600c4d50ae5b38c9ef510b6fb6bf2cad3cdd6f3ccf85d6",
+      "finalSha256": "60168b398ad394dab5e95d2edcda8080e65f260e72249f8bcb4449953fcb75e0",
+      "disposition": "reconciled by integration; see functional matrix and fixes report"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/MainActivity.java",
+      "historicalStatus": "modified",
+      "originSha256": "f3b0589721eaff9b6891d2ab0cf3177d874da585564949a083828880e886ac33",
+      "finalSha256": "d6b2592ea6df865e9473eb48c0ded1b3fd044987ffe9ab3941cf9cbfacdf84f6",
+      "disposition": "reconciled by runtime; see functional matrix and fixes report"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/MinecraftGLSurface.java",
+      "historicalStatus": "modified",
+      "originSha256": "365d50095eecc744f0da4dee329be15db5400094c7cbbb3c2ca4be496ff93329",
+      "finalSha256": "365d50095eecc744f0da4dee329be15db5400094c7cbbb3c2ca4be496ff93329",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/Tools.java",
+      "historicalStatus": "modified",
+      "originSha256": "4cc1841198d7d98fc99b4d5a822370ccd05f2855c8b7e3077d4587b0ce958f86",
+      "finalSha256": "64db26b2ebfaa40a5e68c63ab377529ab9cbac5d4a2ef27e538640fc8f2e999d",
+      "disposition": "reconciled by runtime; see functional matrix and fixes report"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/customcontrols/buttons/ControlFps.java",
+      "historicalStatus": "modified",
+      "originSha256": "87186abf424d64bd9f103e0487b4d39acf89febcbb1ea7b955aa6d7d6d43bf49",
+      "finalSha256": "87186abf424d64bd9f103e0487b4d39acf89febcbb1ea7b955aa6d7d6d43bf49",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/AndroidGameStateController.java",
+      "historicalStatus": "modified",
+      "originSha256": "30c11a3975b88b8f39275d878b8a2187381cbbc5815ddb25720c38299bed01f6",
+      "finalSha256": "30c11a3975b88b8f39275d878b8a2187381cbbc5815ddb25720c38299bed01f6",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/DynamicResolutionController.java",
+      "historicalStatus": "modified",
+      "originSha256": "8b8fb55e8eaeb225c361d2f78488d2a6c434559f9f99688286f46e3e908eff89",
+      "finalSha256": "8b8fb55e8eaeb225c361d2f78488d2a6c434559f9f99688286f46e3e908eff89",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/ExtremeLaunchOptions.java",
+      "historicalStatus": "modified",
+      "originSha256": "f2eeee94b92f36207b8e3175b81fbd8f9475190bb1ea3bd9a5ec03d3572be778",
+      "finalSha256": "f2eeee94b92f36207b8e3175b81fbd8f9475190bb1ea3bd9a5ec03d3572be778",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/FrameSampleCollector.java",
+      "historicalStatus": "modified",
+      "originSha256": "78c749697b344489344ef248b8bb6f2d65d4ba25f3cce4ff25001cc8d6531081",
+      "finalSha256": "f22fbab8bba91c0392ad8ab0da57928032269c24ff9c444cf723eed5f213a8e2",
+      "disposition": "reconciled by ui; see functional matrix and fixes report"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/JvmPolicy.java",
+      "historicalStatus": "modified",
+      "originSha256": "f205b61cb50151e6962db10d9c9f79772f082581baf904fbd413cbc6b47f7c24",
+      "finalSha256": "ad45efd437b2773f0556bc974128fbe38e648a56dc57ffe4baedf837fc970891",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/PerformanceEngine.java",
+      "historicalStatus": "modified",
+      "originSha256": "6b0194e9d497b121d3d80b2f75d1dac8e4afc5f27b918b5549d721aaa642fe4b",
+      "finalSha256": "6b0194e9d497b121d3d80b2f75d1dac8e4afc5f27b918b5549d721aaa642fe4b",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/PerformanceMode.java",
+      "historicalStatus": "modified",
+      "originSha256": "af03cde398cf2b9334a5b757c9e09b03513907d5ca7fd777731b510f7761775c",
+      "finalSha256": "88336f3e54376a745da61564f10466212c3de54c347f030a36955a4e0e8e928c",
+      "disposition": "reconciled by ui; see functional matrix and fixes report"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/PerformancePolicy.java",
+      "historicalStatus": "modified",
+      "originSha256": "fdceca58a4621a3f1201cf23d1aaf93225e3a6056fc4dd76a599c3082ffd3288",
+      "finalSha256": "fdceca58a4621a3f1201cf23d1aaf93225e3a6056fc4dd76a599c3082ffd3288",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/RendererPolicy.java",
+      "historicalStatus": "modified",
+      "originSha256": "2c5d7de74e22becb5d0247a97786659595d2afa23e51da47fe38bbc707c00e7f",
+      "finalSha256": "2c5d7de74e22becb5d0247a97786659595d2afa23e51da47fe38bbc707c00e7f",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/RuntimeJvmArguments.java",
+      "historicalStatus": "added",
+      "originSha256": "8a2519842424c304bfe3bf8f94e65de177fbaec9381683ec6e7863fb9f81d072",
+      "finalSha256": "ff2703d3240a9cecafacde1ea4127d1cd21a99982eb303d176449ad895731df9",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/RuntimeMemoryBudget.java",
+      "historicalStatus": "added",
+      "originSha256": "3609b3317b27a161be013d2aadd16baf1ea08000017db3056a4cd9b366461df5",
+      "finalSha256": "f97432211967f306b47f3bda43839c32fc28ce62a7e387f3f2e428f0f7bf6b84",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/RuntimeRendererRules.java",
+      "historicalStatus": "added",
+      "originSha256": "23cfa8e465b0b05de80ee012873c69c942c4e4c15b722d4c5a6b2ca51411c126",
+      "finalSha256": "5ceac455830d7cd58569055d70afc583692cef80e86a3725a023d80e4b6e7656",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/RuntimeThermalState.java",
+      "historicalStatus": "added",
+      "originSha256": "c9f7a34bf8b1e62d8afbc380788295178bccd3f0f9a14a2744c2cd3d2a6e4084",
+      "finalSha256": "c9f7a34bf8b1e62d8afbc380788295178bccd3f0f9a14a2744c2cd3d2a6e4084",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/RuntimeThreadRules.java",
+      "historicalStatus": "added",
+      "originSha256": "44727a42e280bdad328fe2aac4e57420b8e952ca3c50be526b1b48390a33f275",
+      "finalSha256": "44727a42e280bdad328fe2aac4e57420b8e952ca3c50be526b1b48390a33f275",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/SchedulingPolicy.java",
+      "historicalStatus": "modified",
+      "originSha256": "36c0a9a8cff9f5cc55741c29233ef5d4f5646c3fcae64c40a87f7c35d395d212",
+      "finalSha256": "90668361a6873a55ad58d79b9cdf2f83e09321cde9161068445692f79e9b1329",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/SessionStats.java",
+      "historicalStatus": "modified",
+      "originSha256": "20d7146cb87d82ab0bb9e03e478ecc2908f8df179124fe1f4631f0ae8dfa225b",
+      "finalSha256": "20d7146cb87d82ab0bb9e03e478ecc2908f8df179124fe1f4631f0ae8dfa225b",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/ThermalGovernor.java",
+      "historicalStatus": "modified",
+      "originSha256": "cc1736541033f2bb5b369fa2e4084f6227fc3a7771d3c70a49a69a76d8435a7f",
+      "finalSha256": "a37a1c741ba387ca6efdb554481a5884877fadc24a4878c8b3d46d898d3483fb",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/prefs/screens/LauncherPreferenceFragment.java",
+      "historicalStatus": "modified",
+      "originSha256": "99cf590857c4a6242b2e40cf6d44e3f314cd4823c44bc3b57490da25d69ff7c2",
+      "finalSha256": "ce8b99c269d2a29ddd0ef9bed7749519a5ffd86ab024f0ea3c564f62e2491243",
+      "disposition": "reconciled by ui; see functional matrix and fixes report"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/utils/FpsCounter.java",
+      "historicalStatus": "modified",
+      "originSha256": "8a171c2fad201febb333236635b0b7883b976cdbce7dba7783fef4cfd5ee5d67",
+      "finalSha256": "1b0252d4c6f054571bac05353cb321b7ca43819305f3ce2394ce258b23bdd042",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/utils/FrameCounterWindow.java",
+      "historicalStatus": "added",
+      "originSha256": "1f385b5f1d855a562cdbb80bee07753abc90c357444d0d4f6b03437cbbd139f5",
+      "finalSha256": "1f385b5f1d855a562cdbb80bee07753abc90c357444d0d4f6b03437cbbd139f5",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/utils/FrameMetrics.java",
+      "historicalStatus": "modified",
+      "originSha256": "db9eaa160469ee1ed73f6539b6ae5301d0a82d0d4ebb425712fec81ca4272cdb",
+      "finalSha256": "0ce252b581e4d678e8272461187e8350d95de881f5c286a1811bb6d496872127",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/utils/JREUtils.java",
+      "historicalStatus": "modified",
+      "originSha256": "77a1c2143133978bd16278a6888d05806fc1e646a53de9b7a61a9a13d1f65166",
+      "finalSha256": "8850686c2845ab17afb16b396ef859872c98aaff143adcf59a142f3cea3718d8",
+      "disposition": "reconciled by runtime; see functional matrix and fixes report"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/jni/ctxbridges/gl_bridge.c",
+      "historicalStatus": "modified",
+      "originSha256": "f1b17c0dfeb5969417ec292a49306e9fd34bd8a39544dbf703abe03b7326a684",
+      "finalSha256": "dd3f780cfa35364dac56da0add9a7338a5a590103d36144d99b8039deaf6016d",
+      "disposition": "reconciled by native; see functional matrix and fixes report"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/jni/ctxbridges/osm_bridge.c",
+      "historicalStatus": "modified",
+      "originSha256": "a1f99760b0131078ef7964bc8611ef061220946f344559b6582d42b385cc2002",
+      "finalSha256": "722760d3e482badc19d22d1e581f3a9e432317058730f74bb2af176e535917c4",
+      "disposition": "reconciled by native; see functional matrix and fixes report"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/jni/egl_bridge.c",
+      "historicalStatus": "modified",
+      "originSha256": "068a39dd0f1a7f06b706926e2f95f2d397c64ca0c9925b237fb208b8d27c42af",
+      "finalSha256": "7aff493e3ac0be45d5a71575dddb65b3892b3e75a64a6891bf87752d64a21727",
+      "disposition": "reconciled by native; see functional matrix and fixes report"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/jni/frame_metrics.c",
+      "historicalStatus": "modified",
+      "originSha256": "02d578ae7c438841c6c97ea228224b84941380268cbc593bd694a3a218c685a2",
+      "finalSha256": "02d578ae7c438841c6c97ea228224b84941380268cbc593bd694a3a218c685a2",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "app_pojavlauncher/src/main/jni/frame_metrics.h",
+      "historicalStatus": "modified",
+      "originSha256": "a0603bf2f7e259797aa7b45c0ee6d642889621b5a746b9a7d20d6532db6e01c4",
+      "finalSha256": "a0603bf2f7e259797aa7b45c0ee6d642889621b5a746b9a7d20d6532db6e01c4",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "docs/VERIFIED-25-POINTS.md",
+      "historicalStatus": "added",
+      "originSha256": "9ce0f22bb0ac228d6df510c8eaf6744a6f97a9e0a8df78ebcdfc3fbbc7627b39",
+      "finalSha256": "87e2c7c4c4f29c8233b7e8a806f9b26e46fb9da3c1d4513ae84341fe040ca083",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "docs/VERIFIED-AB-PROTOCOL.md",
+      "historicalStatus": "added",
+      "originSha256": "8efc5f765f3ebefb8a4b598d50116497c29b02380c1072d3c9531c49db0acba8",
+      "finalSha256": "8efc5f765f3ebefb8a4b598d50116497c29b02380c1072d3c9531c49db0acba8",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "docs/VERIFIED-PERFORMANCE-PLAN.md",
+      "historicalStatus": "added",
+      "originSha256": "ce637611a79c829c4b3f45fa3c3c062c0750a3e6e198afdeb5290d6e72dbe41e",
+      "finalSha256": "ce637611a79c829c4b3f45fa3c3c062c0750a3e6e198afdeb5290d6e72dbe41e",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "docs/VERIFIED-RELEASE-NOTES.md",
+      "historicalStatus": "added",
+      "originSha256": "b8acc798614e92f4e26a065e0606c0042db617a239fa853c80164d8cff6248ff",
+      "finalSha256": "b8acc798614e92f4e26a065e0606c0042db617a239fa853c80164d8cff6248ff",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/DynamicResolutionResponseRegressionTest.java",
+      "historicalStatus": "added",
+      "originSha256": "c76cca1ede2e90acb53dcb05a1dc1520504a7372cb29da43038d080f80e8af85",
+      "finalSha256": "c76cca1ede2e90acb53dcb05a1dc1520504a7372cb29da43038d080f80e8af85",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/DynamicResolutionTest.java",
+      "historicalStatus": "modified",
+      "originSha256": "1e1ef15d1182bfc790b48d152a01a456abbd78018f9da3fadd558a59cef6ddeb",
+      "finalSha256": "1e1ef15d1182bfc790b48d152a01a456abbd78018f9da3fadd558a59cef6ddeb",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/ExtremeOptionsTest.java",
+      "historicalStatus": "modified",
+      "originSha256": "cec4452be143405a28e0536e12bc74d7696ddd4621a144c7322d5d759a9505d8",
+      "finalSha256": "cec4452be143405a28e0536e12bc74d7696ddd4621a144c7322d5d759a9505d8",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/MeasurementLifecycleTest.java",
+      "historicalStatus": "added",
+      "originSha256": "cdf2fbcc6e2c96ede5884b8e810f99b2ad0e5a8f45c4ad3ba18ed6d838fb0989",
+      "finalSha256": "cdf2fbcc6e2c96ede5884b8e810f99b2ad0e5a8f45c4ad3ba18ed6d838fb0989",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/MeasurementWindowTest.java",
+      "historicalStatus": "added",
+      "originSha256": "45d584fcd13e3d7fb607b9a8af5633d9d590969230a7e033bd2b731d490fb4b0",
+      "finalSha256": "45d584fcd13e3d7fb607b9a8af5633d9d590969230a7e033bd2b731d490fb4b0",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/RuntimeSafetyPolicyTest.java",
+      "historicalStatus": "added",
+      "originSha256": "0250a90f27858097a73e52bc2aaf509bb8ebd76878fb368c18db01b8e510ba0c",
+      "finalSha256": "0250a90f27858097a73e52bc2aaf509bb8ebd76878fb368c18db01b8e510ba0c",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/inspect_apk.py",
+      "historicalStatus": "added",
+      "originSha256": "a26d8063e3dbeb1e53adf5084f9b6c97702c96810d7cf0222b2487168dbfd2ed",
+      "finalSha256": "e6c8a4674e29484f468c185b073f32bb68901648c0aebaa27144b4d6c1d12bf4",
+      "disposition": "reconciled by publication; see functional matrix and fixes report"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/measurement_atomic_probe.c",
+      "historicalStatus": "added",
+      "originSha256": "f4446c3e2d778ff161b1a8a3716ab01d31aac0aa356109336c546c0b2fa08196",
+      "finalSha256": "f4446c3e2d778ff161b1a8a3716ab01d31aac0aa356109336c546c0b2fa08196",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/measurement_native_test.c",
+      "historicalStatus": "added",
+      "originSha256": "88c318d59d5c11e922943b7f06dd14e1d6f812b1c2d6ff60bff987c863a0165c",
+      "finalSha256": "88c318d59d5c11e922943b7f06dd14e1d6f812b1c2d6ff60bff987c863a0165c",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/measurement_test_support/android/content/Context.java",
+      "historicalStatus": "added",
+      "originSha256": "9749c202c30d56470897eab9ff5fc7a7dc9984d72fb28a1463c2869db5c06120",
+      "finalSha256": "9749c202c30d56470897eab9ff5fc7a7dc9984d72fb28a1463c2869db5c06120",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/measurement_test_support/android/os/Build.java",
+      "historicalStatus": "added",
+      "originSha256": "50daf802ede7c56ee62435600a983318ea24579dbddf0910e81ab7213542b8e6",
+      "finalSha256": "50daf802ede7c56ee62435600a983318ea24579dbddf0910e81ab7213542b8e6",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/measurement_test_support/android/os/Debug.java",
+      "historicalStatus": "added",
+      "originSha256": "5548761f1d3ad7c177aa4da066fe6ed49aba2c0e43bbdd30c09dbfb0179bbaa4",
+      "finalSha256": "5548761f1d3ad7c177aa4da066fe6ed49aba2c0e43bbdd30c09dbfb0179bbaa4",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/measurement_test_support/android/os/Handler.java",
+      "historicalStatus": "added",
+      "originSha256": "907984358c443c6eaaf5dcbbb0debc2efd4d7d9bd6260fca448ce0e291029af3",
+      "finalSha256": "907984358c443c6eaaf5dcbbb0debc2efd4d7d9bd6260fca448ce0e291029af3",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/measurement_test_support/android/os/HandlerThread.java",
+      "historicalStatus": "added",
+      "originSha256": "3df7457ab7b3bbdf3f3378e5d98ddda50755797fbe4d94cf543e8f1caefa01a6",
+      "finalSha256": "3df7457ab7b3bbdf3f3378e5d98ddda50755797fbe4d94cf543e8f1caefa01a6",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/measurement_test_support/android/os/Looper.java",
+      "historicalStatus": "added",
+      "originSha256": "0dd863736df987ebd4f16d8e7a62ac10a059324e94e4de1d800e7e39122bc612",
+      "finalSha256": "0dd863736df987ebd4f16d8e7a62ac10a059324e94e4de1d800e7e39122bc612",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/measurement_test_support/android/os/PowerManager.java",
+      "historicalStatus": "added",
+      "originSha256": "b3706303765707cf125c7e11610626033e91d01aa64fd4e1f3934fd131de9f1a",
+      "finalSha256": "b3706303765707cf125c7e11610626033e91d01aa64fd4e1f3934fd131de9f1a",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/measurement_test_support/android/os/Process.java",
+      "historicalStatus": "added",
+      "originSha256": "8f6e9df2eb382649ed768f56a0318ff6aa9f51f0974a84ab6cf4ea1daca3f500",
+      "finalSha256": "8f6e9df2eb382649ed768f56a0318ff6aa9f51f0974a84ab6cf4ea1daca3f500",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/measurement_test_support/android/util/Log.java",
+      "historicalStatus": "added",
+      "originSha256": "b2cd68f610a0c69084b8b7cc1b1fa14cde3c1ca37fee0daec5790a5cbddf0eb4",
+      "finalSha256": "b2cd68f610a0c69084b8b7cc1b1fa14cde3c1ca37fee0daec5790a5cbddf0eb4",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/measurement_test_support/net/kdt/pojavlaunch/Tools.java",
+      "historicalStatus": "added",
+      "originSha256": "e12e2e56d4a05e78099d91bfc3e9cb8ee41cefb42e32caa5035dfd35bebb32bb",
+      "finalSha256": "e12e2e56d4a05e78099d91bfc3e9cb8ee41cefb42e32caa5035dfd35bebb32bb",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/measurement_test_support/net/kdt/pojavlaunch/performance/McContext.java",
+      "historicalStatus": "added",
+      "originSha256": "0071e65d855e0d5f4e91581e396ed9f0e9d014c2e6346a8ef9c172dd669e4a00",
+      "finalSha256": "0071e65d855e0d5f4e91581e396ed9f0e9d014c2e6346a8ef9c172dd669e4a00",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/measurement_test_support/net/kdt/pojavlaunch/performance/PerformanceMode.java",
+      "historicalStatus": "added",
+      "originSha256": "1582304f95c20200e01c53d49a27b854145ae7021012c8173ad91b569d48f299",
+      "finalSha256": "1582304f95c20200e01c53d49a27b854145ae7021012c8173ad91b569d48f299",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/measurement_test_support/net/kdt/pojavlaunch/performance/PerformancePolicy.java",
+      "historicalStatus": "added",
+      "originSha256": "1433ea88696decaea019995490746a3cb899b3f632bf01f4076b326dc2c47c5c",
+      "finalSha256": "1433ea88696decaea019995490746a3cb899b3f632bf01f4076b326dc2c47c5c",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/measurement_test_support/net/kdt/pojavlaunch/performance/SessionStats.java",
+      "historicalStatus": "added",
+      "originSha256": "421ef93ab4e7967c172bc269acf0ebb2bb764f62bb1ed01692ddcda3fc54f882",
+      "finalSha256": "421ef93ab4e7967c172bc269acf0ebb2bb764f62bb1ed01692ddcda3fc54f882",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/measurement_test_support/net/kdt/pojavlaunch/performance/ThermalGovernor.java",
+      "historicalStatus": "added",
+      "originSha256": "538a601a997ce151e710c490c751be385834433d7d47a2fd77470cbf84849d15",
+      "finalSha256": "538a601a997ce151e710c490c751be385834433d7d47a2fd77470cbf84849d15",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/measurement_test_support/net/kdt/pojavlaunch/prefs/LauncherPreferences.java",
+      "historicalStatus": "added",
+      "originSha256": "131b73f908e907e33187da0da137174afecaa4fedae2172eca4d149c864daa72",
+      "finalSha256": "131b73f908e907e33187da0da137174afecaa4fedae2172eca4d149c864daa72",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/native_bridge_test.py",
+      "historicalStatus": "added",
+      "originSha256": "2f26c4c7ea886da3846fc52c612e4e8ed556dc3ee992670057940c33e84692b8",
+      "finalSha256": "4da11cc832efdee2f8d821f9064aa0cc7735ba6da7077dbb239e1e5902cba206",
+      "disposition": "reconciled by native; see functional matrix and fixes report"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/test-dynamic-resolution.sh",
+      "historicalStatus": "modified",
+      "originSha256": "c2aca6b692bbd8cb517f5ce8b74bb52660b27d9fea367c350340a8c7a3894898",
+      "finalSha256": "c2aca6b692bbd8cb517f5ce8b74bb52660b27d9fea367c350340a8c7a3894898",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/test-measurement.sh",
+      "historicalStatus": "added",
+      "originSha256": "5b684c825c0ee9bde6c537c652554873b302cd42dd3aa451598efb9ef648015b",
+      "finalSha256": "5b684c825c0ee9bde6c537c652554873b302cd42dd3aa451598efb9ef648015b",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/test-native-bridge.sh",
+      "historicalStatus": "added",
+      "originSha256": "ce1424a1020ea3033518c1597f2a61f914821d59fa3a825706300c63a472ffee",
+      "finalSha256": "ce1424a1020ea3033518c1597f2a61f914821d59fa3a825706300c63a472ffee",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "verified-1.4.1-38031765502",
+      "originCommit": "4f17662f6be682db2a116bd651dcd041fa1029e3",
+      "repoPath": "tools/test-runtime-safety.sh",
+      "historicalStatus": "added",
+      "originSha256": "a5f9c3a78e6ca6ddabcfc80d7b8f1cee15d30814c59b895466f02408e145167e",
+      "finalSha256": "89f8f48d335066c30cd379e6170dfffd2668752f02bc3d7db9e4cd03939e2ab8",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": ".github/workflows/build-apk.yml",
+      "historicalStatus": "modified",
+      "originSha256": "778437360c6157d452b9ad404b8e0eb5060b187100d5389b552f6d1bf62fe5cf",
+      "finalSha256": "0ac2d22159fb68b3c32814c9ec68e9f371960e1c50dab553b12a1bfb3ab65320",
+      "disposition": "reconciled by publication; see functional matrix and fixes report"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/Tools.java",
+      "historicalStatus": "modified",
+      "originSha256": "ce0e47f0e2ef9a16f472f35eded555a9a3c122c32137f2382d560bedc68fec2d",
+      "finalSha256": "64db26b2ebfaa40a5e68c63ab377529ab9cbac5d4a2ef27e538640fc8f2e999d",
+      "disposition": "reconciled by runtime; see functional matrix and fixes report"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/multirt/MultiRTUtils.java",
+      "historicalStatus": "modified",
+      "originSha256": "c6258149a07dc6af05f3c6ef4b292f5daeef17ea4b40617376b6bd3f4b5b862f",
+      "finalSha256": "4859f589f56c8349e83903809422aa8132b9e36a9bf0e5bec4b253b9773c15c6",
+      "disposition": "reconciled by runtime; see functional matrix and fixes report"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/multirt/Runtime.java",
+      "historicalStatus": "modified",
+      "originSha256": "c05cdc152a54ee1eda2bfbd44749232755af2e5ea16c34d59730e37eb46e154a",
+      "finalSha256": "c05cdc152a54ee1eda2bfbd44749232755af2e5ea16c34d59730e37eb46e154a",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/multirt/RuntimeLibraryLoader.java",
+      "historicalStatus": "added",
+      "originSha256": "33c08d1c6220a3f1040ab215d874659f6ef61cecc8ae0de6be6fb3f659fafa15",
+      "finalSha256": "33c08d1c6220a3f1040ab215d874659f6ef61cecc8ae0de6be6fb3f659fafa15",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/FrameSampleCollector.java",
+      "historicalStatus": "modified",
+      "originSha256": "9eab1902ea642e9939e4a36aae0bf254c706943b7edab4b8c824c813726d5fff",
+      "finalSha256": "f22fbab8bba91c0392ad8ab0da57928032269c24ff9c444cf723eed5f213a8e2",
+      "disposition": "reconciled by ui; see functional matrix and fixes report"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/JvmPolicy.java",
+      "historicalStatus": "modified",
+      "originSha256": "ad45efd437b2773f0556bc974128fbe38e648a56dc57ffe4baedf837fc970891",
+      "finalSha256": "ad45efd437b2773f0556bc974128fbe38e648a56dc57ffe4baedf837fc970891",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/RuntimeJvmArguments.java",
+      "historicalStatus": "modified",
+      "originSha256": "ff2703d3240a9cecafacde1ea4127d1cd21a99982eb303d176449ad895731df9",
+      "finalSha256": "ff2703d3240a9cecafacde1ea4127d1cd21a99982eb303d176449ad895731df9",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/RuntimeMemoryBudget.java",
+      "historicalStatus": "modified",
+      "originSha256": "f97432211967f306b47f3bda43839c32fc28ce62a7e387f3f2e428f0f7bf6b84",
+      "finalSha256": "f97432211967f306b47f3bda43839c32fc28ce62a7e387f3f2e428f0f7bf6b84",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/SchedulingPolicy.java",
+      "historicalStatus": "modified",
+      "originSha256": "90668361a6873a55ad58d79b9cdf2f83e09321cde9161068445692f79e9b1329",
+      "finalSha256": "90668361a6873a55ad58d79b9cdf2f83e09321cde9161068445692f79e9b1329",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/ThermalGovernor.java",
+      "historicalStatus": "modified",
+      "originSha256": "a37a1c741ba387ca6efdb554481a5884877fadc24a4878c8b3d46d898d3483fb",
+      "finalSha256": "a37a1c741ba387ca6efdb554481a5884877fadc24a4878c8b3d46d898d3483fb",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/utils/FrameMetrics.java",
+      "historicalStatus": "modified",
+      "originSha256": "0ce252b581e4d678e8272461187e8350d95de881f5c286a1811bb6d496872127",
+      "finalSha256": "0ce252b581e4d678e8272461187e8350d95de881f5c286a1811bb6d496872127",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/utils/JREUtils.java",
+      "historicalStatus": "modified",
+      "originSha256": "d2659b048b97f279fb60745f7db3a7636891a5d865fcb328d51a970922bcbaa9",
+      "finalSha256": "8850686c2845ab17afb16b396ef859872c98aaff143adcf59a142f3cea3718d8",
+      "disposition": "reconciled by runtime; see functional matrix and fixes report"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "app_pojavlauncher/src/main/jni/ctxbridges/bridge_tbl.h",
+      "historicalStatus": "modified",
+      "originSha256": "e07c4ae83c812769df52dc4367dd14f7b7c59a6c63c5a6491a1fad7c321b1198",
+      "finalSha256": "e07c4ae83c812769df52dc4367dd14f7b7c59a6c63c5a6491a1fad7c321b1198",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "app_pojavlauncher/src/main/jni/ctxbridges/egl_loader.c",
+      "historicalStatus": "modified",
+      "originSha256": "8fb6a9d85d22b7254cc7984cebdd20cc6e240e7aab430be2cd6c2563b371950d",
+      "finalSha256": "8fb6a9d85d22b7254cc7984cebdd20cc6e240e7aab430be2cd6c2563b371950d",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "app_pojavlauncher/src/main/jni/ctxbridges/gl_bridge.c",
+      "historicalStatus": "modified",
+      "originSha256": "2ace8ff43d7b8bff0b4b3007dc93d25fcb3abf7d233bb9db9651d47b6424461d",
+      "finalSha256": "dd3f780cfa35364dac56da0add9a7338a5a590103d36144d99b8039deaf6016d",
+      "disposition": "reconciled by native; see functional matrix and fixes report"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "app_pojavlauncher/src/main/jni/ctxbridges/osmesa_loader.c",
+      "historicalStatus": "modified",
+      "originSha256": "d592b0f7abfc192ccc4afecfb8addb1746d05b557619759eaa9442dbae51399d",
+      "finalSha256": "d592b0f7abfc192ccc4afecfb8addb1746d05b557619759eaa9442dbae51399d",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "app_pojavlauncher/src/main/jni/egl_bridge.c",
+      "historicalStatus": "modified",
+      "originSha256": "c91924970d83710d471a9f4c4cb718ddbdd8a655bde6424daa7422d2b7f3b634",
+      "finalSha256": "7aff493e3ac0be45d5a71575dddb65b3892b3e75a64a6891bf87752d64a21727",
+      "disposition": "reconciled by native; see functional matrix and fixes report"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "docs/ROUND2-INDEPENDENT-REVIEW.md",
+      "historicalStatus": "added",
+      "originSha256": "3e5b35903b1c416097a66b2664ee5744a1018652d0cbac57e66d9cf02436ecba",
+      "finalSha256": "592b739c541b2024cb2a81b08cce864eb8189e06d1815e16041b1e97953f69ad",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "docs/ROUND2-INTEGRATION.md",
+      "historicalStatus": "added",
+      "originSha256": "e18aaf47b597ce49db4c71afe8eabd2a7c0b6312995522bae522202dac9089d3",
+      "finalSha256": "e18aaf47b597ce49db4c71afe8eabd2a7c0b6312995522bae522202dac9089d3",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "docs/ROUND2-LIFECYCLE-VALIDATION.md",
+      "historicalStatus": "added",
+      "originSha256": "74cd47702bd6ec0589d5f2d4b1ef93228370aa19fe9d5f92121e2ea70edff5e7",
+      "finalSha256": "74cd47702bd6ec0589d5f2d4b1ef93228370aa19fe9d5f92121e2ea70edff5e7",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "docs/ROUND2-NATIVE-VALIDATION.md",
+      "historicalStatus": "added",
+      "originSha256": "90002a486a957c5458105dae0c4a19a7d7519965953769988c3d0c9cb19d7ec8",
+      "finalSha256": "90002a486a957c5458105dae0c4a19a7d7519965953769988c3d0c9cb19d7ec8",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "docs/ROUND2-PLAN.md",
+      "historicalStatus": "added",
+      "originSha256": "b12e007e9df03a8a9658ed9471a524e6e7d799ebeda3e6c22c47d7d1e5603541",
+      "finalSha256": "b12e007e9df03a8a9658ed9471a524e6e7d799ebeda3e6c22c47d7d1e5603541",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "docs/ROUND2-RELEASE-NOTES.md",
+      "historicalStatus": "added",
+      "originSha256": "8ed4e0aff370cf17cf246f21b60e2b1b5dd0a9de8553d43c45ab9dd8d94ea058",
+      "finalSha256": "8ed4e0aff370cf17cf246f21b60e2b1b5dd0a9de8553d43c45ab9dd8d94ea058",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "docs/ROUND2-RUNTIME-VALIDATION.md",
+      "historicalStatus": "added",
+      "originSha256": "f96cdc63c12d303ba5e7d6f309f1dc5e076d7813d0ab96676ef99bb6dfb8cda7",
+      "finalSha256": "f96cdc63c12d303ba5e7d6f309f1dc5e076d7813d0ab96676ef99bb6dfb8cda7",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "docs/VERIFIED-25-POINTS.md",
+      "historicalStatus": "modified",
+      "originSha256": "87e2c7c4c4f29c8233b7e8a806f9b26e46fb9da3c1d4513ae84341fe040ca083",
+      "finalSha256": "87e2c7c4c4f29c8233b7e8a806f9b26e46fb9da3c1d4513ae84341fe040ca083",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "docs/VERIFIED-BUILD-RESULT.md",
+      "historicalStatus": "added",
+      "originSha256": "6ccefe393118a0c1655070e405074402d4287c406b8cacb51e11ecbb2cddb897",
+      "finalSha256": "6ccefe393118a0c1655070e405074402d4287c406b8cacb51e11ecbb2cddb897",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "tools/OverheadLifecycleTest.java",
+      "historicalStatus": "added",
+      "originSha256": "a718a44b98d40e10c2ddd9dbff475e0ea926affadb83019aee9451d4f2e080b9",
+      "finalSha256": "a718a44b98d40e10c2ddd9dbff475e0ea926affadb83019aee9451d4f2e080b9",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "tools/RuntimeLaunchRegressionTest.java",
+      "historicalStatus": "added",
+      "originSha256": "f8533dc4b5322e2c7f6c4e25e17b6692bd0701c4a8beeadfed8af1e2e8155329",
+      "finalSha256": "f8533dc4b5322e2c7f6c4e25e17b6692bd0701c4a8beeadfed8af1e2e8155329",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "tools/native_bridge_test.py",
+      "historicalStatus": "modified",
+      "originSha256": "45dd7bf797dcadcb93001e9eb45be9a142648197868bab62f0dc89f2aa25ec0a",
+      "finalSha256": "4da11cc832efdee2f8d821f9064aa0cc7735ba6da7077dbb239e1e5902cba206",
+      "disposition": "reconciled by native; see functional matrix and fixes report"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "tools/native_graphics_round2_test.py",
+      "historicalStatus": "added",
+      "originSha256": "e8ac1bdf7d5fe87c48e7206af7dfee4d6b98700176093739a72ca2fd8939a7fd",
+      "finalSha256": "bc85cb188abbc80ee33bb673560992b2a2dd2f5b51e5262d8de631cf3b297803",
+      "disposition": "reconciled by native; see functional matrix and fixes report"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "tools/overhead_frame_metrics_jni.c",
+      "historicalStatus": "added",
+      "originSha256": "81329c7eaedca8d16fdce9939681b0a8ad671a67598e401baecd92d4c121efaf",
+      "finalSha256": "81329c7eaedca8d16fdce9939681b0a8ad671a67598e401baecd92d4c121efaf",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "tools/overhead_test_support/android/content/Context.java",
+      "historicalStatus": "added",
+      "originSha256": "1d9c16f556fd9e1cd4c6adda04881a4af6fff955ef5006aafa51bdab4f7ddd1d",
+      "finalSha256": "1d9c16f556fd9e1cd4c6adda04881a4af6fff955ef5006aafa51bdab4f7ddd1d",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "tools/overhead_test_support/android/os/Build.java",
+      "historicalStatus": "added",
+      "originSha256": "e75faa920e87d7e4f822ad0718c51fab256469d9f88bce9abf3b5dc0f6e3580a",
+      "finalSha256": "e75faa920e87d7e4f822ad0718c51fab256469d9f88bce9abf3b5dc0f6e3580a",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "tools/overhead_test_support/android/os/Handler.java",
+      "historicalStatus": "added",
+      "originSha256": "7c173e77061eeb4bc50e824a81896d519bc54e81d6812c96526733db195dd302",
+      "finalSha256": "7c173e77061eeb4bc50e824a81896d519bc54e81d6812c96526733db195dd302",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "tools/overhead_test_support/android/os/HandlerThread.java",
+      "historicalStatus": "added",
+      "originSha256": "0ec2cff28290a8f106fa02f3863b08444a1e17a06ff08d1fa9a7ee12e996193b",
+      "finalSha256": "0ec2cff28290a8f106fa02f3863b08444a1e17a06ff08d1fa9a7ee12e996193b",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "tools/overhead_test_support/android/os/PowerManager.java",
+      "historicalStatus": "added",
+      "originSha256": "b79881bf74dffede777302c29ef6454b8378d8ad5a7846b5828ba747005a4090",
+      "finalSha256": "b79881bf74dffede777302c29ef6454b8378d8ad5a7846b5828ba747005a4090",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "tools/overhead_test_support/android/os/Process.java",
+      "historicalStatus": "added",
+      "originSha256": "5adb784dbd8803a2e213fea3c22961f87d9a0189ac9e7556dfff206732ad57a8",
+      "finalSha256": "5adb784dbd8803a2e213fea3c22961f87d9a0189ac9e7556dfff206732ad57a8",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "tools/overhead_test_support/android/os/SystemClock.java",
+      "historicalStatus": "added",
+      "originSha256": "387c7f964fd32e8829983364a7cd34f1acd8927e393bf26a002471ea81fd9292",
+      "finalSha256": "387c7f964fd32e8829983364a7cd34f1acd8927e393bf26a002471ea81fd9292",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "tools/overhead_test_support/android/util/Log.java",
+      "historicalStatus": "added",
+      "originSha256": "2040b38dfb3e0fe01390aef10db3aa708091dbf322aecb0b5ac64d03d13cd85a",
+      "finalSha256": "2040b38dfb3e0fe01390aef10db3aa708091dbf322aecb0b5ac64d03d13cd85a",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "tools/overhead_test_support/net/kdt/pojavlaunch/performance/PerformancePolicy.java",
+      "historicalStatus": "added",
+      "originSha256": "e8480e9222f7758c673dd12572723896651c5a851455c13ce4eedccfc38995e4",
+      "finalSha256": "e8480e9222f7758c673dd12572723896651c5a851455c13ce4eedccfc38995e4",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "tools/test-native-graphics-round2.sh",
+      "historicalStatus": "added",
+      "originSha256": "6b82a443d900d1c3abfb0169c1508100a0f919bcc3c67b1db2df2df38f595fc2",
+      "finalSha256": "6b82a443d900d1c3abfb0169c1508100a0f919bcc3c67b1db2df2df38f595fc2",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "tools/test-overhead-lifecycle.sh",
+      "historicalStatus": "added",
+      "originSha256": "cf94fbf03145a5b837f89a35828ff95e8de14e2c6060db55738c4306a8f1ea13",
+      "finalSha256": "cf94fbf03145a5b837f89a35828ff95e8de14e2c6060db55738c4306a8f1ea13",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "runtime-1.4.2-38032930792",
+      "originCommit": "70ef402cf049047f1015de3d901d82b1964687e9",
+      "repoPath": "tools/test-runtime-safety.sh",
+      "historicalStatus": "modified",
+      "originSha256": "89f8f48d335066c30cd379e6170dfffd2668752f02bc3d7db9e4cd03939e2ab8",
+      "finalSha256": "89f8f48d335066c30cd379e6170dfffd2668752f02bc3d7db9e4cd03939e2ab8",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": ".github/workflows/build-apk.yml",
+      "historicalStatus": "modified",
+      "originSha256": "b65358bb17ad009febd34a5f2bb5e733e1258f2c01684e06c5180292f1409d0d",
+      "finalSha256": "0ac2d22159fb68b3c32814c9ec68e9f371960e1c50dab553b12a1bfb3ab65320",
+      "disposition": "reconciled by publication; see functional matrix and fixes report"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/Architecture.java",
+      "historicalStatus": "modified",
+      "originSha256": "c39d4c2368417b97ab484d7dcea63efd497c66a92200f36804a32f1318f8648f",
+      "finalSha256": "c39d4c2368417b97ab484d7dcea63efd497c66a92200f36804a32f1318f8648f",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/MainActivity.java",
+      "historicalStatus": "modified",
+      "originSha256": "e77d0ab518ea3fdde9032ddbc036661b376ea5b5e79bf0e8a5ab042ff6ac1e3e",
+      "finalSha256": "d6b2592ea6df865e9473eb48c0ded1b3fd044987ffe9ab3941cf9cbfacdf84f6",
+      "disposition": "reconciled by runtime; see functional matrix and fixes report"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/Tools.java",
+      "historicalStatus": "modified",
+      "originSha256": "e862fd73195318c6b866784c73cc68a9e80753f08c7d9716b2b947438dd0693f",
+      "finalSha256": "64db26b2ebfaa40a5e68c63ab377529ab9cbac5d4a2ef27e538640fc8f2e999d",
+      "disposition": "reconciled by runtime; see functional matrix and fixes report"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/launch/FirstSubmissionWatch.java",
+      "historicalStatus": "added",
+      "originSha256": "aeb3f97c3dd28a9f2805b939d3ae1701172aa77f95eaf5199c314d178c9e5f38",
+      "finalSha256": "aeb3f97c3dd28a9f2805b939d3ae1701172aa77f95eaf5199c314d178c9e5f38",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/DeviceCapability.java",
+      "historicalStatus": "modified",
+      "originSha256": "a246a929b91ce05bcebf30dbc5bc9bd9bd672e63339821f39a9c141ff258b9a7",
+      "finalSha256": "a246a929b91ce05bcebf30dbc5bc9bd9bd672e63339821f39a9c141ff258b9a7",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/RuntimeRendererRules.java",
+      "historicalStatus": "modified",
+      "originSha256": "5ceac455830d7cd58569055d70afc583692cef80e86a3725a023d80e4b6e7656",
+      "finalSha256": "5ceac455830d7cd58569055d70afc583692cef80e86a3725a023d80e4b6e7656",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/performance/RuntimeVulkanSupport.java",
+      "historicalStatus": "added",
+      "originSha256": "edeea3e630ffd18ffff418315782cd7950b237e77a5389b6791ec3c90b216caa",
+      "finalSha256": "edeea3e630ffd18ffff418315782cd7950b237e77a5389b6791ec3c90b216caa",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/utils/FpsCounter.java",
+      "historicalStatus": "modified",
+      "originSha256": "1b0252d4c6f054571bac05353cb321b7ca43819305f3ce2394ce258b23bdd042",
+      "finalSha256": "1b0252d4c6f054571bac05353cb321b7ca43819305f3ce2394ce258b23bdd042",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/utils/JREUtils.java",
+      "historicalStatus": "modified",
+      "originSha256": "8fe12844719cebe68c34d34fb9a3380f51476119616ff26d5da17c565796c8bf",
+      "finalSha256": "8850686c2845ab17afb16b396ef859872c98aaff143adcf59a142f3cea3718d8",
+      "disposition": "reconciled by runtime; see functional matrix and fixes report"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "app_pojavlauncher/src/main/jni/egl_bridge.c",
+      "historicalStatus": "modified",
+      "originSha256": "e2936af30e9bdf2f390a8fde090ad9bf84e7d6555830eb4a8469681c99db8edd",
+      "finalSha256": "7aff493e3ac0be45d5a71575dddb65b3892b3e75a64a6891bf87752d64a21727",
+      "disposition": "reconciled by native; see functional matrix and fixes report"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "app_pojavlauncher/src/main/jni/jvm_hooks/lwjgl_dlopen_hook.c",
+      "historicalStatus": "modified",
+      "originSha256": "0ee5b47e0dd1fb47e336ff9c8351223837bd867b4d2c33342793f6d069803756",
+      "finalSha256": "0ee5b47e0dd1fb47e336ff9c8351223837bd867b4d2c33342793f6d069803756",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "docs/RESUME-RELEASE-NOTES.md",
+      "historicalStatus": "added",
+      "originSha256": "7194d81105ff4e5e875e5eb820bffc9f4bbd9f8854fd3acdbd6d9f2cbe68d82d",
+      "finalSha256": "7194d81105ff4e5e875e5eb820bffc9f4bbd9f8854fd3acdbd6d9f2cbe68d82d",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "docs/RESUME-VALIDATION.md",
+      "historicalStatus": "added",
+      "originSha256": "6d957b50cb98ac979ac3a81038f043d41b248d64227f4893c1e00b1c20f9f814",
+      "finalSha256": "6d957b50cb98ac979ac3a81038f043d41b248d64227f4893c1e00b1c20f9f814",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "docs/ROUND2-BUILD-RESULT.md",
+      "historicalStatus": "added",
+      "originSha256": "006cc1feb7197944dc9ae792f9f4e92374e591ba8dd76d346fa0207499ca33e8",
+      "finalSha256": "006cc1feb7197944dc9ae792f9f4e92374e591ba8dd76d346fa0207499ca33e8",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "docs/ROUND2-INDEPENDENT-REVIEW.md",
+      "historicalStatus": "modified",
+      "originSha256": "592b739c541b2024cb2a81b08cce864eb8189e06d1815e16041b1e97953f69ad",
+      "finalSha256": "592b739c541b2024cb2a81b08cce864eb8189e06d1815e16041b1e97953f69ad",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "docs/ROUND3-INDEPENDENT-REVIEW.md",
+      "historicalStatus": "added",
+      "originSha256": "e396378b897bf2b8e7ebc45eb1a0ed16574a2749d76dc8f89bb4c386c54cf8a2",
+      "finalSha256": "e396378b897bf2b8e7ebc45eb1a0ed16574a2749d76dc8f89bb4c386c54cf8a2",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "docs/ROUND3-NATIVE-VALIDATION.md",
+      "historicalStatus": "added",
+      "originSha256": "58eac4e98d39679b89c2c73ec68103ac34a73d0c150095e51e4b58f53dcf9dc1",
+      "finalSha256": "58eac4e98d39679b89c2c73ec68103ac34a73d0c150095e51e4b58f53dcf9dc1",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "docs/ROUND3-PLAN.md",
+      "historicalStatus": "added",
+      "originSha256": "93ae71b344c1b682bc7e70c46ee61cb3931f863ce5005e8e29570ba0f9b94856",
+      "finalSha256": "93ae71b344c1b682bc7e70c46ee61cb3931f863ce5005e8e29570ba0f9b94856",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "docs/ROUND3-PUBLIC-RESEARCH.md",
+      "historicalStatus": "added",
+      "originSha256": "5218bd882a4528ed7f3e6a8f1002b99205e55297467c61b1a876884fd2c60d30",
+      "finalSha256": "5218bd882a4528ed7f3e6a8f1002b99205e55297467c61b1a876884fd2c60d30",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "docs/ROUND3-RELEASE-NOTES.md",
+      "historicalStatus": "added",
+      "originSha256": "0bde52c03366a60f8823ce924320f02085b24686a507556aa8fe3cff3604c247",
+      "finalSha256": "0bde52c03366a60f8823ce924320f02085b24686a507556aa8fe3cff3604c247",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "docs/ROUND3-RUNTIME-VALIDATION.md",
+      "historicalStatus": "added",
+      "originSha256": "6721253829d6def4da861124f70e4b30a0466fd9dfc40d78529e2e26bede4dd2",
+      "finalSha256": "6721253829d6def4da861124f70e4b30a0466fd9dfc40d78529e2e26bede4dd2",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "docs/ROUND3-WATCHER-VALIDATION.md",
+      "historicalStatus": "added",
+      "originSha256": "32a8b2565abce4660829732321ad91b3478a875b975a75b8b8682b184211dfb1",
+      "finalSha256": "32a8b2565abce4660829732321ad91b3478a875b975a75b8b8682b184211dfb1",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/Round3RuntimeCapabilityTest.java",
+      "historicalStatus": "added",
+      "originSha256": "8422a7a7e8ea686eda3271fd134b153b6477ab9493982b6468e5e525f92af938",
+      "finalSha256": "8422a7a7e8ea686eda3271fd134b153b6477ab9493982b6468e5e525f92af938",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/Round3WatcherLifecycleTest.java",
+      "historicalStatus": "added",
+      "originSha256": "1f365d98c36f982eeeae411fdf2e9a827e8181166a6bab860386e35e3d373746",
+      "finalSha256": "1f365d98c36f982eeeae411fdf2e9a827e8181166a6bab860386e35e3d373746",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/apk_publication_test.py",
+      "historicalStatus": "added",
+      "originSha256": "09546c895442329a3a112e67034687d596cb468d818cec7fe40afa4d7cb85fbc",
+      "finalSha256": "09546c895442329a3a112e67034687d596cb468d818cec7fe40afa4d7cb85fbc",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/inspect_apk.py",
+      "historicalStatus": "modified",
+      "originSha256": "ca4b5773ba2b7f09fd2765d974acefa90d86e4645d7d67d43d3da18f68ed2a19",
+      "finalSha256": "e6c8a4674e29484f468c185b073f32bb68901648c0aebaa27144b4d6c1d12bf4",
+      "disposition": "reconciled by publication; see functional matrix and fixes report"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/native_bridge_test.py",
+      "historicalStatus": "modified",
+      "originSha256": "56895cf75fc3bbd3d137993685caa42be41b12515f67e4a5f47653bb3ab696b2",
+      "finalSha256": "4da11cc832efdee2f8d821f9064aa0cc7735ba6da7077dbb239e1e5902cba206",
+      "disposition": "reconciled by native; see functional matrix and fixes report"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/native_graphics_round2_test.py",
+      "historicalStatus": "modified",
+      "originSha256": "3d060312a5a0f018e361a78968b8c745eb97e0008159bf8f517ec124318dac04",
+      "finalSha256": "bc85cb188abbc80ee33bb673560992b2a2dd2f5b51e5262d8de631cf3b297803",
+      "disposition": "reconciled by native; see functional matrix and fixes report"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/round3_runtime_test_support/android/app/ActivityManager.java",
+      "historicalStatus": "added",
+      "originSha256": "b49514c92c9c37d31ef1f5ba448d698d22203302dcd0e0eca6dd8d813c2790e8",
+      "finalSha256": "b49514c92c9c37d31ef1f5ba448d698d22203302dcd0e0eca6dd8d813c2790e8",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/round3_runtime_test_support/android/content/Context.java",
+      "historicalStatus": "added",
+      "originSha256": "6a3fc5aaaf0d38c0278ce046f287c03b8bddfc3a89a3bcae90970eb749beecf4",
+      "finalSha256": "6a3fc5aaaf0d38c0278ce046f287c03b8bddfc3a89a3bcae90970eb749beecf4",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/round3_runtime_test_support/android/content/pm/FeatureInfo.java",
+      "historicalStatus": "added",
+      "originSha256": "f29d8980f7274da71e3bd139c9c4c487145a7e0fff30c3f0b6e2e9d62885e626",
+      "finalSha256": "f29d8980f7274da71e3bd139c9c4c487145a7e0fff30c3f0b6e2e9d62885e626",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/round3_runtime_test_support/android/content/pm/PackageManager.java",
+      "historicalStatus": "added",
+      "originSha256": "84448ba800d400ac9b5479837521dfdaad669858245683523503b6e393c35f7b",
+      "finalSha256": "84448ba800d400ac9b5479837521dfdaad669858245683523503b6e393c35f7b",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/round3_runtime_test_support/android/os/Build.java",
+      "historicalStatus": "added",
+      "originSha256": "81583734cf447d006b7fecf1bf7168137b29e2e5a875e8971b75c267aadfca62",
+      "finalSha256": "81583734cf447d006b7fecf1bf7168137b29e2e5a875e8971b75c267aadfca62",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/round3_runtime_test_support/android/os/Process.java",
+      "historicalStatus": "added",
+      "originSha256": "3d06bce49d7f62d2fcc7c92ecd46c703ba9331d2523878f7f00ea60d326cc608",
+      "finalSha256": "3d06bce49d7f62d2fcc7c92ecd46c703ba9331d2523878f7f00ea60d326cc608",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/round3_runtime_test_support/net/kdt/pojavlaunch/BuildConfig.java",
+      "historicalStatus": "added",
+      "originSha256": "355ca1c85ddda0b550bf758f564bd11525f74d5c4fea9dfe9a5dad0303ddd8f1",
+      "finalSha256": "355ca1c85ddda0b550bf758f564bd11525f74d5c4fea9dfe9a5dad0303ddd8f1",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/round3_runtime_test_support/net/kdt/pojavlaunch/Tools.java",
+      "historicalStatus": "added",
+      "originSha256": "a6ffc8523ca15c176989be56deac0cf4da8d52fd4ecf53609ea0da634d33c905",
+      "finalSha256": "a6ffc8523ca15c176989be56deac0cf4da8d52fd4ecf53609ea0da634d33c905",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/round3_runtime_test_support/net/kdt/pojavlaunch/performance/GameSessionState.java",
+      "historicalStatus": "added",
+      "originSha256": "aa46d1b7bd2ecd03141fdda7b4ea7624e752fc4e07ff3d66eb7ee8c55e4b2902",
+      "finalSha256": "aa46d1b7bd2ecd03141fdda7b4ea7624e752fc4e07ff3d66eb7ee8c55e4b2902",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/round3_runtime_test_support/net/kdt/pojavlaunch/utils/GLInfoUtils.java",
+      "historicalStatus": "added",
+      "originSha256": "e6f76d12bc5106177a29967c9a6bdfe3e8f27bb8410a7fb8a8345469205c5bc6",
+      "finalSha256": "e6f76d12bc5106177a29967c9a6bdfe3e8f27bb8410a7fb8a8345469205c5bc6",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/round3_runtime_test_support/org/json/JSONArray.java",
+      "historicalStatus": "added",
+      "originSha256": "a2b0406e7f9817b534b2415cff87f9fa46eac181a6ca45cbd9528fd3e3fdaef4",
+      "finalSha256": "a2b0406e7f9817b534b2415cff87f9fa46eac181a6ca45cbd9528fd3e3fdaef4",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/round3_runtime_test_support/org/json/JSONObject.java",
+      "historicalStatus": "added",
+      "originSha256": "6469a7bcb33b0d831504c02fb97d343c1ad013155c10790b369eb942233ec3e0",
+      "finalSha256": "6469a7bcb33b0d831504c02fb97d343c1ad013155c10790b369eb942233ec3e0",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/round3_watcher_harness.py",
+      "historicalStatus": "added",
+      "originSha256": "0fd712080760307f790478a89d808047f5598ea89a494c7dd29250dbfa46538c",
+      "finalSha256": "0fd712080760307f790478a89d808047f5598ea89a494c7dd29250dbfa46538c",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/round3_watcher_jni.c",
+      "historicalStatus": "added",
+      "originSha256": "d57d8238263e7c31cf7eac80d60dcc89d377b59ea81b501e2c4272b43c69e4f4",
+      "finalSha256": "d57d8238263e7c31cf7eac80d60dcc89d377b59ea81b501e2c4272b43c69e4f4",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/test-apk-publication.sh",
+      "historicalStatus": "added",
+      "originSha256": "0ba83c14c040b378d33ffb7d47a1bf8b4c781dca3eb8d5bed5b7bce29d9f734f",
+      "finalSha256": "0ba83c14c040b378d33ffb7d47a1bf8b4c781dca3eb8d5bed5b7bce29d9f734f",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/test-round3-runtime.sh",
+      "historicalStatus": "added",
+      "originSha256": "3179d5bbce945c66a4bd33184af874df0d19bc3f79fc3657c87cab02dfa1ce04",
+      "finalSha256": "3179d5bbce945c66a4bd33184af874df0d19bc3f79fc3657c87cab02dfa1ce04",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/test-round3-watcher.sh",
+      "historicalStatus": "added",
+      "originSha256": "cc2f805a7d04a001f467c5d3b0bbfce6d1d5310d330104e2af2d0cf2aefdd243",
+      "finalSha256": "cc2f805a7d04a001f467c5d3b0bbfce6d1d5310d330104e2af2d0cf2aefdd243",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/test-vulkan-loader-round3.sh",
+      "historicalStatus": "added",
+      "originSha256": "a2b69e6c71c8747e9f39ee7ef790816a32fbf985338dceed1ff6015a13bbb556",
+      "finalSha256": "a2b69e6c71c8747e9f39ee7ef790816a32fbf985338dceed1ff6015a13bbb556",
+      "disposition": "inherited unmodified from latest cumulative source; see functional matrix for connectivity"
+    },
+    {
+      "origin": "vulkan11-1.4.3-38035591430",
+      "originCommit": "f7d53619d0d89b1ef5f54e2e4560285fdbd8a7ab",
+      "repoPath": "tools/vulkan_loader_round3_test.py",
+      "historicalStatus": "added",
+      "originSha256": "6a88ba02bd244e2af12d440c610cc3163192977b6b2b54ebd9f0e626513aba21",
+      "finalSha256": "dee23a4c1744dd7ae16d72668ba0375259280d30230c0de40f19e52cab2d3daf",
+      "disposition": "reconciled by native; see functional matrix and fixes report"
+    }
+  ]
+}

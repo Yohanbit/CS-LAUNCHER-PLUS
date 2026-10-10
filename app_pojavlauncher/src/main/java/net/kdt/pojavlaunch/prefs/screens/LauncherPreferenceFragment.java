@@ -637,15 +637,14 @@ public class LauncherPreferenceFragment extends Fragment {
         if (mAdapter != null) {
             mAdapter.cleanup();
         }
-        if (mIsDirty) {
-            SettingsSaveManager.commitChanges(getContext());
-            LauncherPreferences.loadPreferences(getContext());
-            mIsDirty = false;
-        }
+        if (mIsDirty) flushDirtySettings();
         super.onDestroyView();
     }
 
     private void initializeDraft(Context context) {
+        // A failed autosave owns its draft until it can be retried; do not discard it on recreation.
+        if (SettingsSaveManager.hasUnsavedChanges(context)
+                && !SettingsSaveManager.commitChanges(context)) return;
         // The game process may have changed shared settings (FPS chip, gyro, resolution…) while
         // the launcher was in the background. Pull those in first, otherwise the draft — and the
         // bulk save built from it — would silently roll them back.
@@ -706,12 +705,12 @@ public class LauncherPreferenceFragment extends Fragment {
                 break;
             case "Game": {
                 int maxRAM = Tools.getMaximumRamAllocation(requireContext());
-                int selectedRam = LauncherPreferences.DEFAULT_PREF.getInt("allocation", 1024);
+                int selectedRam = mDraftPrefs.getInt("allocation", 1024);
                 items.add(new SettingItem("allocation", SettingItem.TYPE_SLIDER,
                         "RAM for Minecraft", "Allocated heap for Minecraft and mods", 1024)
                         .setSliderConfig(256, Math.max(maxRAM, selectedRam), 128, " MB"));
                 items.add(new SettingItem("ram_effective_info", SettingItem.TYPE_INFO,
-                        "Exact Minecraft heap", "Minecraft will launch with -Xmx" + selectedRam + "M", null));
+                        "Requested Minecraft heap", "Requested -Xmx" + selectedRam + "M; launch validation and explicit JVM arguments may change the effective heap.", null));
                 items.add(new SettingItem(PerformanceMode.PREF_KEY, SettingItem.TYPE_DROPDOWN,
                         "Performance profile", "Applied on next launch. Experimental profiles may increase heat; results depend on device and scene.", PerformanceMode.EXTREME.key)
                         .setDropdownOptions(SIMPLE_PERF_LABELS, PERF_MODE_VALUES));
@@ -924,10 +923,10 @@ public class LauncherPreferenceFragment extends Fragment {
                     javaItems.add(new SettingItem("javaArgs", SettingItem.TYPE_INPUT, getString(R.string.mcl_setting_title_javaargs), getString(R.string.mcl_setting_subtitle_javaargs), ""));
 
                     int maxRAM = Tools.getMaximumRamAllocation(requireContext());
-                    int selectedRam = LauncherPreferences.DEFAULT_PREF.getInt("allocation", 1024);
+                    int selectedRam = mDraftPrefs.getInt("allocation", 1024);
                     javaItems.add(new SettingItem("allocation", SettingItem.TYPE_SLIDER, getString(R.string.mcl_memory_allocation), getString(R.string.mcl_memory_allocation_subtitle), 1024).setSliderConfig(256, Math.max(maxRAM, selectedRam), 128, " MB"));
                     javaItems.add(new SettingItem("ram_effective_info", SettingItem.TYPE_INFO,
-                            "Exact Minecraft heap", "Minecraft will launch with -Xmx" + selectedRam + "M", null));
+                            "Requested Minecraft heap", "Requested -Xmx" + selectedRam + "M; launch validation and explicit JVM arguments may change the effective heap.", null));
 
                     javaItems.add(new SettingItem("disable_autojre_select", SettingItem.TYPE_SWITCH, "Disable automatic JRE selection", "Stops automatic selection of which runtime to use", false));
                     javaItems.add(new SettingItem("java_sandbox", SettingItem.TYPE_SWITCH, getString(R.string.mcl_setting_java_sandbox), getString(R.string.mcl_setting_java_sandbox_subtitle), true));
@@ -958,13 +957,16 @@ public class LauncherPreferenceFragment extends Fragment {
                     // the sysfs thermal sampler it replaced is gone — heat is read through
                     // PowerManager by the engine itself while a boosted session runs.
                     expItems.add(new SettingItem(PerformanceMode.PREF_EXPERIMENTAL_FLAGS, SettingItem.TYPE_SWITCH,
-                            "Experimental JVM tuning",
-                            "Lets the Performance and Maximum profiles also apply heap headroom, code-cache sizing and G1 young-generation sizing. "
-                                    + "Off by default: those flags need a device benchmark before they belong in a profile.",
+                            "Experimental scheduler / JVM / Mesa tuning",
+                            "Next launch: Performance/Maximum may request bounded nice -2 for up to two game threads and compatible G1 flags; Mesa renderers may enable glthread. "
+                                    + "Extreme keeps ergonomic GC and no scheduler boost. Normal ignores this switch. No heap inflation or proven FPS benefit; off by default.",
                             false));
                     // The retired orientation switch is gone for good: every page is
                     // built for a wide screen, and unlocking orientation app-wide is
                     // precisely what made the server hub open vertically.
+                    expItems.add(new SettingItem("experimentalModWorkarounds", SettingItem.TYPE_SWITCH,
+                            "Experimental mod workarounds",
+                            "Next launch: allow launcher workarounds that disable selected mod safety checks and mixin compatibility checks. May cause crashes or hide incompatibilities; use only for affected modpacks. Off by default.", false));
                     categories.add(new SettingCategory("Experiments", expItems));
                     break;
 
@@ -989,11 +991,13 @@ public class LauncherPreferenceFragment extends Fragment {
                                 .setTitle("Reset Settings")
                                 .setMessage("Are you sure you want to reset all settings to defaults?")
                                 .setPositiveButton("Reset", (dialog, which) -> {
-                                    mDraftPrefs.edit().clear().commit();
-                                    requireContext().getSharedPreferences("cslauncher_settings", Context.MODE_PRIVATE).edit().clear().commit();
-                                    LauncherPreferences.loadPreferences(requireContext());
-                                    Toast.makeText(requireContext(), "Settings reset successfully", Toast.LENGTH_SHORT).show();
-                                    requireActivity().recreate();
+                                    if (SettingsSaveManager.resetLauncherSettings(requireContext())) {
+                                        mIsDirty = false;
+                                        Toast.makeText(requireContext(), "Settings reset successfully", Toast.LENGTH_SHORT).show();
+                                        requireActivity().recreate();
+                                    } else {
+                                        Toast.makeText(requireContext(), "Failed to reset settings; please retry", Toast.LENGTH_LONG).show();
+                                    }
                                 })
                                 .setNegativeButton(android.R.string.cancel, null)
                                 .show();
@@ -1089,12 +1093,12 @@ public class LauncherPreferenceFragment extends Fragment {
                 "Manual FPS limit", "Used only by Manual FPS policy; does not change resolution.", 120)
                 .setSliderConfig(10, 250, 10, " FPS"));
         items.add(new SettingItem("extremeFrameDiagnostics", SettingItem.TYPE_SWITCH,
-                "Frame diagnostics (A/B tests)", "Foreground swap submission rate, CPU wall swap wait, memory and thermal logs; not GPU work or displayed FPS. Adds measurement overhead; live opt-in.", false));
+                "Frame diagnostics (A/B tests)", "Foreground swap submission rate, CPU wall swap wait, memory and thermal logs; not GPU work or displayed FPS. Adds measurement overhead. Enabling starts CSV/submission sampling on the next game resume; GC logging needs the next JVM launch.", false));
     }
 
     private void addDynamicResolutionSettings(List<SettingItem> items) {
         items.add(new SettingItem("extremeDynamicResolution", SettingItem.TYPE_SWITCH,
-                "Resolución dinámica (experimental)", "Cambios en el próximo inicio. Puede reducir la resolución completa al jugar; no mide carga GPU. Menús intentan recuperar la resolución manual, pendiente de prueba física. El HUD no se renderiza independientemente. Desactívala para restaurar la calidad.", false));
+                "Resolución dinámica (experimental)", "Cambios en vivo con el juego en primer plano. Puede reducir la resolución completa al jugar; no mide carga GPU. Menús intentan recuperar la resolución manual, pendiente de prueba física. El HUD no se renderiza independientemente. Desactívala para restaurar la calidad.", false));
         items.add(new SettingItem("extremeMinResolution", SettingItem.TYPE_SLIDER,
                 "Resolución mínima dinámica", "Porcentaje de la pantalla, no de la resolución manual: 60% manual y 30% mínimo significa entre 60% y 30%, no 18%. Nunca aumenta el valor manual.", 60)
                 .setSliderConfig(30, 100, 5, " %"));
@@ -1314,7 +1318,7 @@ public class LauncherPreferenceFragment extends Fragment {
                 onAccept.run();
                 return;
             }
-            String body = "Maximum uses experimental scheduling and launcher-managed JVM tuning on the next launch. "
+            String body = "Maximum may use bounded scheduling and compatible G1 tuning on the next launch only when the experimental tuning switch is enabled. "
                     + "It is not an overclock and cannot bypass Android thermal limits. Higher FPS or lower latency is not guaranteed."
                     + "\n\nHeat and battery use may increase. Return to Normal to undo this profile on the next launch. "
                     + "FPS policy, GC variant and dynamic resolution are separate settings; review those controls too."
@@ -1326,6 +1330,7 @@ public class LauncherPreferenceFragment extends Fragment {
                         try {
                             SettingsSaveManager.getDraftPrefs(ctx).edit()
                                     .putBoolean(PerformanceMode.PREF_MAX_ACK, true).apply();
+                            SettingsSaveManager.markDirty(PerformanceMode.PREF_MAX_ACK);
                         } catch (Throwable ignored) {
                         }
                         onAccept.run();
@@ -1393,22 +1398,35 @@ public class LauncherPreferenceFragment extends Fragment {
         return true;
     }
 
-    private void markDirty() {
+    private void markDirty(String key) {
+        SettingsSaveManager.markDirty(key);
         mIsDirty = true;
-        try {
-            SettingsSaveManager.commitChanges(requireContext());
-            LauncherPreferences.loadPreferences(requireContext());
-        } catch (Throwable ignored) {}
+        flushDirtySettings();
+        if ("allocation".equals(key) && mRecyclerView != null) {
+            mRecyclerView.post(() -> {
+                if (mAdapter != null && isAdded()) mAdapter.replaceCategories(buildCurrentCategories());
+            });
+        }
         updateSaveBar();
+    }
+
+    private boolean flushDirtySettings() {
+        try {
+            boolean saved = SettingsSaveManager.commitChanges(requireContext());
+            mIsDirty = !saved;
+            if (!saved) Log.w("SettingsSave", "Pending settings could not be persisted; will retry on pause");
+            return saved;
+        } catch (Exception unavailable) {
+            mIsDirty = true;
+            Log.w("SettingsSave", "Settings save unavailable", unavailable);
+            return false;
+        }
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        try {
-            SettingsSaveManager.commitChanges(requireContext());
-            LauncherPreferences.loadPreferences(requireContext());
-        } catch (Throwable ignored) {}
+        flushDirtySettings();
     }
 
     private void updateSaveBar() {
@@ -1429,23 +1447,7 @@ public class LauncherPreferenceFragment extends Fragment {
         boolean prevNotch = LauncherPreferences.PREF_IGNORE_NOTCH;
 
         SharedPreferences mainPrefs = context.getSharedPreferences("cslauncher_settings", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = mainPrefs.edit();
-        for (Map.Entry<String, ?> entry : mDraftPrefs.getAll().entrySet()) {
-            String key = entry.getKey();
-            Object val = entry.getValue();
-            if (val instanceof Boolean) editor.putBoolean(key, (Boolean) val);
-            else if (val instanceof Integer) editor.putInt(key, (Integer) val);
-            else if (val instanceof Long) editor.putLong(key, (Long) val);
-            else if (val instanceof Float) editor.putFloat(key, (Float) val);
-            else if (val instanceof String) editor.putString(key, (String) val);
-        }
-        editor.commit();
-        // Publish the cross-process settings so the game picks them up on its next start.
-        try {
-            net.kdt.pojavlaunch.prefs.SharedSettings.mirrorAll(context, mDraftPrefs.getAll());
-        } catch (Throwable ignored) {}
-
-        boolean verified = verifySavedSettings(context);
+        boolean verified = flushDirtySettings();
         if (verified) {
             LauncherPreferences.loadPreferences(context);
             mIsDirty = false;
@@ -1555,9 +1557,8 @@ public class LauncherPreferenceFragment extends Fragment {
                 org.apache.commons.io.FileUtils.copyFile(target1, target2);
             } catch (Throwable ignored) {}
 
-            LauncherPreferences.DEFAULT_PREF.edit()
-                    .putString("launch_screen_style", "gif").apply();
-            try { SettingsSaveManager.commitChanges(requireContext()); } catch (Throwable ignored) {}
+            mDraftPrefs.edit().putString("launch_screen_style", "gif").apply();
+            markDirty("launch_screen_style");
 
             net.kdt.pojavlaunch.utils.CsPopup.show(requireActivity(),
                     getString(R.string.cs_launch_gif_set_ok), android.R.drawable.ic_menu_gallery);
@@ -1588,9 +1589,8 @@ public class LauncherPreferenceFragment extends Fragment {
         boolean was = target1.exists() || target2.exists();
         if (target1.exists()) target1.delete();
         if (target2.exists()) target2.delete();
-        LauncherPreferences.DEFAULT_PREF.edit()
-                .putString("launch_screen_style", "black").apply();
-        try { SettingsSaveManager.commitChanges(requireContext()); } catch (Throwable ignored) {}
+        mDraftPrefs.edit().putString("launch_screen_style", "black").apply();
+        markDirty("launch_screen_style");
         Toast.makeText(requireContext(),
                 was ? R.string.cs_launch_gif_removed : R.string.cs_launch_gif_none_set,
                 Toast.LENGTH_SHORT).show();
@@ -1844,8 +1844,7 @@ public class LauncherPreferenceFragment extends Fragment {
                             }
                         } else {
                             mPrefs.edit().putBoolean(item.key, checkedVal).apply();
-                            net.kdt.pojavlaunch.prefs.SharedSettings.mirror(getContext(), item.key, checkedVal);
-                            markDirty();
+                            markDirty(item.key);
                         }
 
                         if (item.key.equals("enableGyro") || item.key.equals("disableGestures")
@@ -1885,8 +1884,7 @@ public class LauncherPreferenceFragment extends Fragment {
                         public void onStopTrackingTouch(SeekBar sb) {
                             int finalVal = item.minVal + sb.getProgress() * item.stepVal;
                             mPrefs.edit().putInt(item.key, finalVal).apply();
-                            net.kdt.pojavlaunch.prefs.SharedSettings.mirror(getContext(), item.key, finalVal);
-                            markDirty();
+                            markDirty(item.key);
                         }
                     });
 
@@ -1916,10 +1914,9 @@ public class LauncherPreferenceFragment extends Fragment {
                                     if (newValue < item.minVal) newValue = item.minVal;
                                     if (newValue > item.maxVal) newValue = item.maxVal;
                                     mPrefs.edit().putInt(item.key, newValue).apply();
-                                    net.kdt.pojavlaunch.prefs.SharedSettings.mirror(getContext(), item.key, newValue);
                                     tvVal.setText(newValue + item.unitSuffix);
                                     seekBar.setProgress((newValue - item.minVal) / item.stepVal);
-                                    markDirty();
+                                    markDirty(item.key);
                                 })
                                 .show();
                     });
@@ -1971,7 +1968,7 @@ public class LauncherPreferenceFragment extends Fragment {
                                     Runnable apply = () -> {
                                         mPrefs.edit().putString(item.key, chosenVal).apply();
                                         tvSpinner.setText(item.dropdownEntries[which]);
-                                        markDirty();
+                                        markDirty(item.key);
                                         if (PerformanceMode.PREF_KEY.equals(item.key)) {
                                             // The mode summary and the two policy cards are rendered
                                             // from the resolved policy, so the list is rebuilt from the
@@ -2023,7 +2020,7 @@ public class LauncherPreferenceFragment extends Fragment {
                                     String input = et.getText().toString();
                                     mPrefs.edit().putString(item.key, input).apply();
                                     tvSpinner.setText(input.isEmpty() ? "Default" : input);
-                                    markDirty();
+                                    markDirty(item.key);
                                 })
                                 .setNegativeButton(android.R.string.cancel, null)
                                 .show();
@@ -2427,39 +2424,20 @@ public class LauncherPreferenceFragment extends Fragment {
             int ram = Tools.sanitizeRamAllocation(ctx, requestedRam);
 
             try {
-                android.content.SharedPreferences p = LauncherPreferences.DEFAULT_PREF != null
-                        ? LauncherPreferences.DEFAULT_PREF
-                        : ctx.getSharedPreferences("cslauncher_settings", Context.MODE_PRIVATE);
-                android.content.SharedPreferences.Editor e = p.edit();
-                e.putInt("allocation", ram);
-                e.putInt("resolutionRatio", resolution);
-                e.putBoolean("force_vsync", vsync);
-                e.putString("mg_renderer_setting_fsr", fsr);
-                e.putString(PerformanceMode.PREF_KEY, mode.key);
-                e.putBoolean("alternate_surface", altSurface);
-                e.putString("perfPreset", presetName);
-                e.commit();
-
-                try {
-                    android.content.SharedPreferences.Editor d =
-                            SettingsSaveManager.getDraftPrefs(ctx).edit();
-                    d.putInt("allocation", ram);
-                    d.putInt("resolutionRatio", resolution);
-                    d.putBoolean("force_vsync", vsync);
-                    d.putString("mg_renderer_setting_fsr", fsr);
-                    d.putString(PerformanceMode.PREF_KEY, mode.key);
-                    d.putBoolean("alternate_surface", altSurface);
-                    d.putString("perfPreset", presetName);
-                    d.apply();
-                } catch (Throwable ignored) {}
-
-                LauncherPreferences.loadPreferences(ctx.getApplicationContext());
-                net.kdt.pojavlaunch.prefs.SharedSettings.mirror(ctx, "allocation", ram);
-                net.kdt.pojavlaunch.prefs.SharedSettings.mirror(ctx, "resolutionRatio", resolution);
-                net.kdt.pojavlaunch.prefs.SharedSettings.mirror(ctx, "force_vsync", vsync);
-                net.kdt.pojavlaunch.prefs.SharedSettings.mirror(ctx, "mg_renderer_setting_fsr", fsr);
-                net.kdt.pojavlaunch.prefs.SharedSettings.mirror(ctx, PerformanceMode.PREF_KEY, mode.key);
-                net.kdt.pojavlaunch.prefs.SharedSettings.mirror(ctx, "alternate_surface", altSurface);
+                android.content.SharedPreferences.Editor d = SettingsSaveManager.getDraftPrefs(ctx).edit();
+                d.putInt("allocation", ram);
+                d.putInt("resolutionRatio", resolution);
+                d.putBoolean("force_vsync", vsync);
+                d.putString("mg_renderer_setting_fsr", fsr);
+                d.putString(PerformanceMode.PREF_KEY, mode.key);
+                d.putBoolean("alternate_surface", altSurface);
+                d.putString("perfPreset", presetName);
+                if (!d.commit()) throw new IllegalStateException("Preset draft could not be saved");
+                for (String key : new String[]{"allocation", "resolutionRatio", "force_vsync",
+                        "mg_renderer_setting_fsr", PerformanceMode.PREF_KEY, "alternate_surface", "perfPreset"}) {
+                    SettingsSaveManager.markDirty(key);
+                }
+                if (!flushDirtySettings()) throw new IllegalStateException("Preset could not be saved");
             } catch (Throwable t) {
                 android.widget.Toast.makeText(ctx, "Preset failed to apply", android.widget.Toast.LENGTH_SHORT).show();
                 return;
@@ -2475,7 +2453,9 @@ public class LauncherPreferenceFragment extends Fragment {
                 Tools.MAIN_HANDLER.postDelayed(() -> tv.setText("APPLY"), 1200);
             }
             refreshPresetMarker(panel);
-            notifyDataSetChanged();
+            if (mRecyclerView != null) mRecyclerView.post(() -> {
+                if (mAdapter != null && isAdded()) mAdapter.replaceCategories(buildCurrentCategories());
+            });
             android.widget.Toast.makeText(ctx, toastMsg, android.widget.Toast.LENGTH_LONG).show();
         }
 

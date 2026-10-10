@@ -25,7 +25,7 @@ void setNativeWindowSwapInterval(struct ANativeWindow* nativeWindow, int swapInt
 bool osm_init() {
     pojav_frame_set_coverage(0);
     if(!dlsym_OSMesa()) return false;
-    pojav_frame_set_coverage(2);
+    /* Coverage is published only after successful context creation. */
     return true;
 }
 
@@ -56,19 +56,20 @@ void osm_set_no_render_buffer(ANativeWindow_Buffer* buffer) {
 }
 
 void osm_swap_surfaces(osm_render_window_t* bundle) {
-    if(bundle->nativeSurface != NULL && bundle->newNativeSurface != bundle->nativeSurface) {
+    if(bundle->nativeSurface != NULL) {
         if(bundle->buffer_locked) {
             LOGI("Unlocking for cleanup...");
             bundle->buffer_locked = false;
             ANativeWindow_unlockAndPost(bundle->nativeSurface);
         }
         ANativeWindow_release(bundle->nativeSurface);
+        bundle->nativeSurface = NULL;
     }
     if(bundle->newNativeSurface != NULL) {
         LOGI("Switching to new native surface");
         bundle->nativeSurface = bundle->newNativeSurface;
         bundle->newNativeSurface = NULL;
-        ANativeWindow_acquire(bundle->nativeSurface);
+        /* Transfer the publication's owned reference, including same-window updates. */
         ANativeWindow_setBuffersGeometry(bundle->nativeSurface, 0, 0, WINDOW_FORMAT_RGBX_8888);
         bundle->disable_rendering = false;
         osm_apply_swap_interval(bundle);
@@ -99,7 +100,9 @@ void osm_make_current(osm_render_window_t* bundle) {
     if(bundle == NULL) {
         //technically this does nothing as its not possible to unbind a context in OSMesa
         OSMesaMakeCurrent_p(NULL, NULL, 0, 0, 0);
-        currentBundle = NULL;
+        /* Some OSMesa versions reject unbinding. Never claim that a live
+         * driver context is unbound and destroy it during termination. */
+        if (OSMesaGetCurrentContext_p() == NULL) currentBundle = NULL;
         return;
     }
     bool hasSetMainWindow = false;
@@ -107,7 +110,7 @@ void osm_make_current(osm_render_window_t* bundle) {
     if(pojav_environ->mainWindowBundle == NULL) {
         pojav_environ->mainWindowBundle = (basic_render_window_t*) bundle;
         LOGI("Main window bundle is now %p", pojav_environ->mainWindowBundle);
-        pojav_environ->mainWindowBundle->newNativeSurface = pojav_environ->pojavWindow;
+        bundle->newNativeSurface = pojav_acquire_window(&bundle->window_generation);
         hasSetMainWindow = true;
     }
     if(bundle->nativeSurface == NULL) {
@@ -122,6 +125,7 @@ void osm_make_current(osm_render_window_t* bundle) {
 
 bool osm_swap_buffers() {
     if(currentBundle == NULL) return false;
+    if ((basic_render_window_t*)currentBundle == pojav_environ->mainWindowBundle) osm_setup_window();
     if(currentBundle->state == STATE_RENDERER_NEW_WINDOW) {
         osm_swap_surfaces(currentBundle);
         currentBundle->state = STATE_RENDERER_ALIVE;
@@ -150,10 +154,27 @@ bool osm_swap_buffers() {
 
 void osm_setup_window() {
     if(pojav_environ->mainWindowBundle != NULL) {
-        LOGI("Main window bundle is not NULL, changing state");
-        pojav_environ->mainWindowBundle->state = STATE_RENDERER_NEW_WINDOW;
-        pojav_environ->mainWindowBundle->newNativeSurface = pojav_environ->pojavWindow;
+        basic_render_window_t *bundle = pojav_environ->mainWindowBundle;
+        struct ANativeWindow *replacement = NULL;
+        if (pojav_take_window_update(&bundle->window_generation, &replacement)) {
+            if (bundle->newNativeSurface != NULL) ANativeWindow_release(bundle->newNativeSurface);
+            bundle->newNativeSurface = replacement;
+            bundle->state = STATE_RENDERER_NEW_WINDOW;
+        }
     }
+}
+
+bool osm_destroy_context(osm_render_window_t* bundle) {
+    if (bundle == NULL || bundle->bound_threads != 0) return false;
+    if (bundle->buffer_locked && bundle->nativeSurface != NULL) {
+        bundle->buffer_locked = false;
+        ANativeWindow_unlockAndPost(bundle->nativeSurface);
+    }
+    if (bundle->context != NULL) OSMesaDestroyContext_p(bundle->context);
+    if (bundle->nativeSurface != NULL) ANativeWindow_release(bundle->nativeSurface);
+    if (bundle->newNativeSurface != NULL) ANativeWindow_release(bundle->newNativeSurface);
+    free(bundle);
+    return true;
 }
 
 static void osm_apply_swap_interval(osm_render_window_t* bundle) {
