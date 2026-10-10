@@ -1,0 +1,35 @@
+name: Publish current Unamed launcher as normal release
+
+on:
+  push:
+    branches: [cs-1.4-full-fps-extreme]
+    paths: ['.github/workflows/promote-release.yml']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: unamed-release-promotion
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Promote newest published APK without rebuilding or changing notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api --paginate --slurp "repos/$GH_REPO/releases?per_page=100" > releases.json
+          jq -e '[.[][] | select(.draft == false and (.tag_name | startswith("extreme-1.4-")) and any(.assets[]; .name == "Unamed.launcher.apk" and .size > 1000000))] | sort_by(.created_at) | last // error("No published Unamed APK found")' releases.json > before.json
+          id=$(jq -r '.id' before.json)
+          jq '{tag_name,name,prerelease,html_url,assets: [.assets[] | {id,name,size}]}' before.json
+          gh api --method PATCH "repos/$GH_REPO/releases/$id" -F prerelease=false -f make_latest=true > after.json
+          jq -e '.prerelease == false and .draft == false and any(.assets[]; .name == "Unamed.launcher.apk" and .size > 1000000)' after.json
+          diff <(jq -S '{id,tag_name,body,assets: [.assets[] | {id,name,size,browser_download_url}]}' before.json) <(jq -S '{id,tag_name,body,assets: [.assets[] | {id,name,size,browser_download_url}]}' after.json)
+          echo "SUCCESS: normal release published; original APK and technical notes preserved."
+          jq -r '.html_url, (.assets[] | select(.name == "Unamed.launcher.apk") | .browser_download_url)' after.json
