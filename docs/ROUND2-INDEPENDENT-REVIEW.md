@@ -1,5 +1,11 @@
 # Ronda 2 — revisión de contratos de integración
 
+## Cierre posterior: bloqueador corregido y revalidado
+
+El hallazgo histórico de abajo está **cerrado antes de la publicación**. La revisión posterior confirmó que `pojavInit()` inicializa plataforma/JNI/ventana sin GL y que `pojavCreateContext()` retorna la ventana NO_API antes de cualquier inicialización GL. El contexto GL usa inicialización diferida fail-closed y reutiliza el bridge para contextos compartidos. La regresión completa init → hint → create pasa con GL fallido y renderer ausente; crear GL con ese backend inválido falla correctamente. El revisor ejecutó la suite focal con GCC y Clang, ambas aprobadas. La ejecución Android/NDK se verifica por separado en CI.
+
+Se conserva el hallazgo inicial para documentar el error y su reproducción; sus referencias de líneas/test describen la instantánea anterior a la corrección, no el código publicado.
+
 Árbol revisado: `/tmp/unamed-work`, rama `fix/mali-runtime-round2`, HEAD/base `13f0d24f38494a3a745739c7f4fed601e88b6fc0`, cambios locales sin commit. Revisión sólo de init fail-closed, loaders, Vulkan/NO_API, bibliotecas JVM obligatorias, cleanup del servidor de skins y claves exactas de argumentos. No se reabrió la primera ronda ni se modificó el repositorio.
 
 ## Bloqueador: GLFW_NO_API sigue condicionado a inicializar un backend OpenGL
