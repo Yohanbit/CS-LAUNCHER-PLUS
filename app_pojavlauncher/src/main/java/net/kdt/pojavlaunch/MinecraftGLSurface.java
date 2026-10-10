@@ -675,7 +675,13 @@ public class MinecraftGLSurface extends View implements GrabListener, DirectGame
         if (supported.isEmpty()) return display.getRefreshRate();
 
         float desired = supported.last(); // Unlimited/VSync path: highest actually supported rate.
-        String maxFps = MCOptionUtils.get("maxFps");
+        // The surface is created before runCraft applies options.txt. Reading only
+        // the old game cap here could request 60 Hz even after selecting Unlimited.
+        String pacingMode = LauncherPreferences.DEFAULT_PREF.getString("extremeFpsMode", "unlimited");
+        String maxFps = "unlimited".equals(pacingMode) ? "260"
+                : "manual".equals(pacingMode)
+                ? String.valueOf(LauncherPreferences.DEFAULT_PREF.getInt("extremeManualFps", 120))
+                : MCOptionUtils.get("maxFps");
         try {
             int configured = Integer.parseInt(maxFps);
             // Minecraft's 260 slider value represents Unlimited. A lower value

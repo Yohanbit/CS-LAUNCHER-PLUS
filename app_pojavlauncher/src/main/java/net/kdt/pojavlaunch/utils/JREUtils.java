@@ -310,7 +310,8 @@ public class JREUtils {
         }
         if ("unlimited".equals(LauncherPreferences.DEFAULT_PREF.getString("extremeFpsMode", "unlimited"))) {
             envMap.put("CS_UNLIMITED_FPS", "1");
-            envMap.put("FORCE_VSYNC", "false");
+            // An explicit launcher VSync request remains authoritative; the default
+            // is off. Unlimited disables the game's own option, not a user override.
         }
         try { envMap.put("POJAV_DISPLAY_REFRESH_HZ", String.valueOf(activity.getWindowManager().getDefaultDisplay().getRefreshRate())); }
         catch (Throwable ignored) { }

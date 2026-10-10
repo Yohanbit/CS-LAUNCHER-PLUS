@@ -137,6 +137,7 @@ jobs:
           - Añadidas las librerías Android LWJGL, SDL, OpenAL y SPIRV-Cross que faltaban en el arranque.
           - Configuración de MobileGlues exportada antes de cargar el renderer.
           - Añadidos modos FPS Unlimited, Manual y Original con restauración de ajustes.
+          - La solicitud de frecuencia de pantalla usa el modo FPS elegido y respeta VSync explícito.
           - Añadida resolución dinámica opcional con escala mínima configurable.
           - Corregidos el doble conteo de FPS, las prioridades de hilos y el guardado del historial.
           - Añadidos diagnósticos de swaps, memoria, temperatura y GC.
