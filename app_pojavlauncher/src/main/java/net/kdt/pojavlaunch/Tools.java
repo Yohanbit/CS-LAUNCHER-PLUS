@@ -372,16 +372,20 @@ public final class Tools {
             localeString = R.string.memory_warning_msg;
         }
 
-        if(LauncherPreferences.PREF_RAM_ALLOCATION > freeDeviceMemory) {
+        int advisoryHeap = net.kdt.pojavlaunch.performance.RuntimeMemoryBudget.recommendedHeapMb(
+                getTotalDeviceMemory(activity), freeDeviceMemory, freeAddressSpace);
+        if(LauncherPreferences.PREF_RAM_ALLOCATION > freeDeviceMemory
+                || (advisoryHeap > 0 && LauncherPreferences.PREF_RAM_ALLOCATION > advisoryHeap)) {
             int finalDeviceMemory = freeDeviceMemory;
             int requestedMemory = LauncherPreferences.PREF_RAM_ALLOCATION;
-            int suggestedMemory = Math.max(256, (Math.max(256, finalDeviceMemory - 256) / 128) * 128);
+            int suggestedMemory = Math.max(256, advisoryHeap);
             java.util.concurrent.atomic.AtomicBoolean useSuggested = new java.util.concurrent.atomic.AtomicBoolean(false);
             LifecycleAwareAlertDialog.DialogCreator dialogCreator = (dialog, builder) ->
                 builder.setTitle("Minecraft RAM warning")
                         .setMessage(activity.getString(localeString, finalDeviceMemory, requestedMemory)
                                 + "\n\nSelected JVM heap: -Xmx" + requestedMemory + "M"
-                                + "\nSuggested safe value: -Xmx" + suggestedMemory + "M")
+                                + "\nAdvisory value reserving Android/native/GPU memory: -Xmx" + suggestedMemory + "M"
+                                + "\nThis budget is not a guarantee against memory pressure.")
                         .setPositiveButton("Launch with " + requestedMemory + " MB", (d, w)->{})
                         .setNegativeButton("Use " + suggestedMemory + " MB", (d, w)->useSuggested.set(true));
 

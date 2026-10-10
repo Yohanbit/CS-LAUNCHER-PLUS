@@ -13,6 +13,8 @@ Rama independiente: `fix/verified-performance-mali-g76`. No fusionar en `main` n
 5. Compilar ARM32/ARM64; inspeccionar APK, firma y continuidad frente a un artefacto anterior identificado.
 6. Publicar sólo una prerelease nueva con notas técnicas de esta actualización. No borrar ni retirar ninguna release existente.
 
-El registro final separará evidencia, cambio o conservación justificada, prueba, resultado y limitaciones para los 25 puntos solicitados. Las pruebas de lógica y compilación no equivalen a ejecutar Minecraft ni medir un Mali-G76 físico. La comparación A/B en teléfono se entregará como procedimiento reproducible, no como resultados inventados.
+El registro final separará evidencia, cambio o conservación justificada, prueba, resultado y limitaciones para los 25 puntos solicitados. Las pruebas de lógica y compilación no equivalen a ejecutar Minecraft ni medir un teléfono físico. La comparación A/B en teléfono se entregará como procedimiento reproducible, no como resultados inventados.
+
+Objetivo actualizado por el usuario: familia Mali, no Mali-G76 específicamente. El nombre histórico de la rama no implica una especialización para ese modelo. La configuración se condiciona por backend/capacidades; no se extrapola compatibilidad entre generaciones Mali ni se aplican ajustes Turnip/Adreno a Mali.
 
 Estado inicial: pruebas existentes ejecutadas sin cambios (`test-extreme-options.sh`: 7 aserciones; `test-dynamic-resolution.sh`: 106 aserciones). Entorno local OpenJDK 21; compilación Android prevista en JDK 17.

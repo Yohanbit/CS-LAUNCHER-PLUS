@@ -8,6 +8,7 @@
 #include <environ/environ.h>
 #include "osm_bridge.h"
 #include "../frame_pacing.h"
+#include "../frame_metrics.h"
 
 #define TAG __FILE_NAME__
 #include <log.h>
@@ -22,7 +23,9 @@ static void osm_apply_swap_interval(osm_render_window_t* bundle);
 void setNativeWindowSwapInterval(struct ANativeWindow* nativeWindow, int swapInterval);
 
 bool osm_init() {
+    pojav_frame_set_coverage(0);
     if(!dlsym_OSMesa()) return false;
+    pojav_frame_set_coverage(2);
     return true;
 }
 

@@ -4,174 +4,140 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Process;
-
+import android.util.Log;
+import net.kdt.pojavlaunch.prefs.LauncherPreferences;
 import net.kdt.pojavlaunch.utils.FpsCounter;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.Arrays;
 import java.util.Locale;
+import java.util.Objects;
 
-/**
- * Measures what a session was actually doing, from the frame counter the launcher already keeps at the
- * GL swap boundary.
- *
- * <p>Runs in the game process while the session is in the foreground, at 1 Hz, on a
- * {@code THREAD_PRIORITY_BACKGROUND} looper. A tick is one native {@code long} read plus arithmetic: no
- * file IO, no reflection, no allocation beyond an amortized ring buffer. The purpose is to turn "did
- * this mode help?" into a number the launcher can display and the user can re-measure; accurate
- * percentiles and jank counts remain the job of {@code dumpsys gfxinfo} on a real device, which is what
- * the benchmark harness collects.
- *
- * <p>Samples survive a background round-trip (a notification shade pull must not throw away ten minutes
- * of measurement), sessions shorter than 30 seconds are dropped, and every record is labelled with
- * renderer + profile + version so only like-for-like runs are ever compared.
- */
+/** Opt-in foreground submission-rate windows; not GPU/presentation timings,
+ * render-loop percentiles, 1% lows, or controlled comparisons between modes.
+ * Zero windows are retained. Native Vulkan coverage is unknown, not zero.
+ * Pause destroys the looper and resets the window but retains collected data. */
 public final class FrameSampleCollector {
-
     private static final int WINDOW_SECONDS = 3600;
-    private static final long MIN_VALID_FPS = 1L;
-
-    /**
-     * Tag for the per-second frame trace a benchmark harness reads. It exists so an old build and a new
-     * build can be compared from the *same* measurement (frames counted at the swap boundary by the
-     * native bridges) instead of from the in-game text, which is easy to misread and impossible to
-     * machine-compare. Off by default: nothing is logged until somebody runs
-     * {@code adb shell setprop log.tag.CSPerfFps D}, so a normal session pays nothing for it. It is not
-     * a second frame counter — it prints the number this class already computed.
-     */
     public static final String HARNESS_TAG = "CSPerfFps";
+    private static Session session;
+    private static SamplingRun active;
+    private FrameSampleCollector() { }
+
+    private static boolean traceEnabled() { return Log.isLoggable(HARNESS_TAG, Log.DEBUG); }
+    private static boolean enabled() {
+        return traceEnabled() || (LauncherPreferences.DEFAULT_PREF != null
+                && LauncherPreferences.DEFAULT_PREF.getBoolean("extremeFrameDiagnostics", false));
+    }
 
     private static final class Session {
-        final long startedAt = System.currentTimeMillis();
-        final String rendererId;
-        final String modeKey;
-        final String versionId;
-        final List<Integer> samples = new ArrayList<>();
-        long lastPresents = -1L;
-        long lastSampleAt;
-
-        /** Opt-in adb hook: see {@link #HARNESS_TAG}. Off unless a developer turns it on. */
-        final boolean traceForHarness = android.util.Log.isLoggable(HARNESS_TAG, android.util.Log.DEBUG);
-
+        final long startedAt = System.currentTimeMillis(); // timestamp only
+        final String rendererId, modeKey, versionId;
+        final FpsCounter.Window window = new FpsCounter.Window(1_000_000_000L);
+        final int[] samples = new int[WINDOW_SECONDS];
+        int size, next;
+        long observedNanos;
         Session(String rendererId, String modeKey, String versionId) {
-            this.rendererId = rendererId;
-            this.modeKey = modeKey;
-            this.versionId = versionId;
+            this.rendererId = rendererId; this.modeKey = modeKey; this.versionId = versionId;
+        }
+        void add(int fps, long elapsedNanos) {
+            samples[next] = fps;
+            next = (next + 1) % samples.length;
+            if (size < samples.length) size++;
+            observedNanos += elapsedNanos;
+        }
+        int[] sortedSamples() {
+            int[] copy = Arrays.copyOf(samples, size);
+            Arrays.sort(copy);
+            return copy;
         }
     }
 
-    private static volatile Session sSession;
-    private static HandlerThread sThread;
-    private static Handler sHandler;
-
-    private FrameSampleCollector() {}
-
-    /** Start (or restart after a background round-trip) sampling for this session. */
+    /** No thread, loop, file or sample allocations unless diagnostics or adb tracing is enabled. */
     public static synchronized void begin(Context ctx, String rendererId, String versionId) {
-        if (ctx == null) return;
+        if (ctx == null || !enabled()) { pause(); return; }
         PerformancePolicy policy = PerformancePolicy.current();
         String mode = policy != null ? policy.mode.key : PerformanceMode.NORMAL.key;
-        if (sSession == null) sSession = new Session(rendererId, mode, versionId);
-        if (sThread == null) {
-            sThread = new HandlerThread("CS-FrameStats", Process.THREAD_PRIORITY_BACKGROUND);
-            sThread.start();
-            sHandler = new Handler(sThread.getLooper());
+        if (session != null && (!Objects.equals(session.rendererId, rendererId)
+                || !Objects.equals(session.modeKey, mode) || !Objects.equals(session.versionId, versionId))) {
+            pause(); persist(ctx, session); session = null;
         }
-        sHandler.removeCallbacks(tick);
-        sHandler.post(tick);
+        if (session == null) session = new Session(rendererId, mode, versionId);
+        if (active != null) return;
+        session.window.reset();
+        SamplingRun run = new SamplingRun(session);
+        active = run;
+        run.thread.start();
+        run.handler = new Handler(run.thread.getLooper());
+        run.handler.post(run);
     }
 
-    /** Stop the heartbeat but keep what was measured. */
+    /** Cancel/revoke old callbacks and quit the thread; no heartbeat remains in the background. */
     public static synchronized void pause() {
-        Handler handler = sHandler;
-        if (handler != null) handler.removeCallbacks(tick);
-        // The next resume must not count the background gap as one very slow second.
-        Session s = sSession;
-        if (s != null) s.lastPresents = -1L;
+        SamplingRun run = active;
+        active = null;
+        if (session != null) session.window.reset();
+        if (run != null) {
+            if (run.handler != null) run.handler.removeCallbacksAndMessages(null);
+            run.thread.quitSafely();
+        }
     }
 
-    /** Persist the session record and forget it. Called from {@code onDestroy}, never mid-session. */
     public static synchronized void finishAndClear(Context ctx) {
         pause();
-        Session s = sSession;
-        sSession = null;
-        try {
-            HandlerThread t = sThread;
-            sThread = null;
-            sHandler = null;
-            if (t != null) t.quitSafely();
-        } catch (Throwable ignored) {
-        }
-        if (s == null) return;
-        persist(ctx, s);
+        Session finished = session;
+        session = null;
+        if (finished != null) persist(ctx, finished);
     }
 
-    /** Median fps over the session so far, or -1 when there is nothing trustworthy to show. */
-    public static int liveMedianFps() {
-        Session s = sSession;
-        if (s == null) return -1;
-        synchronized (s.samples) {
-            if (s.samples.isEmpty()) return -1;
-            List<Integer> copy = new ArrayList<>(s.samples);
-            Collections.sort(copy);
-            return copy.get(copy.size() / 2);
-        }
+    /** Descriptive median of observed windows, including zeros; -1 if unavailable. */
+    public static synchronized int liveMedianFps() {
+        if (session == null || session.size == 0) return -1;
+        int[] copy = session.sortedSamples();
+        return copy[copy.length / 2];
     }
 
-    private static final Runnable tick = new Runnable() {
+    private static final class SamplingRun implements Runnable {
+        final Session owner;
+        final HandlerThread thread = new HandlerThread("CS-FrameStats", Process.THREAD_PRIORITY_BACKGROUND);
+        Handler handler;
+        SamplingRun(Session owner) { this.owner = owner; }
         @Override public void run() {
-            sample();
-            Handler handler = sHandler;
-            if (handler != null) handler.postDelayed(this, 1000L);
-        }
-    };
-
-    private static void sample() {
-        Session s = sSession;
-        if (s == null) return;
-        long now = System.currentTimeMillis();
-        long presents = FpsCounter.getTotalPresents();
-        if (presents < 0L) return; // native glue not linked yet
-        if (s.lastPresents >= 0L) {
-            long delta = presents - s.lastPresents;
-            long elapsed = Math.max(1L, now - s.lastSampleAt);
-            if (delta > 0L) {
-                int fps = (int) Math.min(1000L, (delta * 1000L) / elapsed);
-                if (fps >= MIN_VALID_FPS) {
-                    synchronized (s.samples) {
-                        s.samples.add(fps);
-                        while (s.samples.size() > WINDOW_SECONDS) s.samples.remove(0);
-                    }
-                    if (s.traceForHarness) {
-                        android.util.Log.d(HARNESS_TAG, "t=" + ((now - s.startedAt) / 1000L)
-                                + "s fps=" + fps + " presents=" + presents
-                                + " mode=" + s.modeKey + " renderer=" + s.rendererId);
-                    }
+            // One lifecycle lock prevents pause/finish from racing a queued tick
+            // or a stale tick attaching itself to a newly created handler.
+            synchronized (FrameSampleCollector.class) {
+                if (active != this || session != owner) return;
+                if (!enabled()) { pause(); return; }
+                int fps = owner.window.getFps();
+                if (fps >= 0) {
+                    owner.add(fps, owner.window.getLastElapsedNanos());
+                    if (traceEnabled()) Log.d(HARNESS_TAG, "t=" + owner.observedNanos / 1_000_000_000L
+                            + "s fps=" + fps + " presents=" + FpsCounter.getTotalPresents()
+                            + " metric=successful_swap_submissions observed_ms=" + owner.observedNanos / 1_000_000L
+                            + " mode=" + owner.modeKey + " renderer=" + owner.rendererId);
+                } else if (traceEnabled()) {
+                    Log.d(HARNESS_TAG, "submission_fps=unknown_or_warming mode=" + owner.modeKey
+                            + " renderer=" + owner.rendererId);
                 }
+                if (active == this) handler.postDelayed(this, 1000L);
             }
         }
-        s.lastPresents = presents;
-        s.lastSampleAt = now;
     }
 
-    private static void persist(Context ctx, Session s) {
-        if (ctx == null) return;
-        List<Integer> copy;
-        synchronized (s.samples) {
-            copy = new ArrayList<>(s.samples);
-        }
-        if (copy.size() < 10) return;
-        Collections.sort(copy);
-        int median = copy.get(copy.size() / 2);
-        int worst = copy.get(0); // lowest 1-second window: a stutter proxy, honestly labelled
-        float medianFrameMs = median > 0 ? 1000f / median : 0f;
-        long duration = System.currentTimeMillis() - s.startedAt;
-        SessionStats.append(ctx, new SessionStats.Entry(s.startedAt, s.rendererId, s.modeKey, s.versionId,
-                median, worst, medianFrameMs, duration, ThermalGovernor.peakLevelOrdinal()));
-        android.util.Log.i("CSPerf", "session measured (" + s.modeKey + ", " + s.rendererId + ", "
-                + s.versionId + "): median " + median + " fps, worst second " + worst + " fps, "
-                + String.format(Locale.ROOT, "%.1f ms/frame, %d samples, %ds",
-                medianFrameMs, copy.size(), duration / 1000L));
+    private static void persist(Context ctx, Session finished) {
+        // Foreground observed time only; calendar changes / background gaps do
+        // not manufacture a long session or a zero-FPS stall on resume.
+        long durationMs = finished.observedNanos / 1_000_000L;
+        if (ctx == null || finished.size < 10 || durationMs < 30_000L) return;
+        int[] copy = finished.sortedSamples();
+        int median = copy[copy.length / 2], worst = copy[0];
+        // Inverse median rate is NOT measured per-frame CPU/GPU time.
+        float inverseMedianRateMs = median > 0 ? 1000f / median : Float.NaN;
+        SessionStats.append(ctx, new SessionStats.Entry(finished.startedAt, finished.rendererId,
+                finished.modeKey, finished.versionId, median, worst, inverseMedianRateMs,
+                durationMs, ThermalGovernor.peakLevelOrdinal()));
+        Log.i("CSPerf", "descriptive submission-rate session (" + finished.modeKey + ", "
+                + finished.rendererId + ", " + finished.versionId + "): median " + median
+                + " fps, lowest sampled window " + worst + " fps, "
+                + String.format(Locale.ROOT, "inverse median rate %.1f ms, %d windows, %ds observed foreground",
+                inverseMedianRateMs, copy.length, durationMs / 1000L));
     }
 }

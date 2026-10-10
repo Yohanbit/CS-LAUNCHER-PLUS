@@ -4,7 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 /**
- * The three performance profiles the user can pick, and the only persisted input the
+ * The four performance profiles the user can pick, and the primary persisted input the
  * {@link PerformancePolicy} takes.
  *
  * <p>A mode is a <i>request</i>, not a promise: what actually happens on this phone is decided by
@@ -12,9 +12,9 @@ import android.content.SharedPreferences;
  * running Android version exposes. A device without ADPF, or without a thermal HAL, gets the same
  * mode with fewer levers — and the settings card says so instead of pretending.
  *
- * <p>Normal is the default on purpose. It is the only mode that requests nothing from the
- * scheduler, touches no JVM flag, and starts no periodic work: the launcher behaves the way it
- * did before a performance policy existed. It is <i>not</i> a capped mode — no profile in this list
+ * <p>Normal is the safe baseline. The persisted launcher's default can be Extreme, but scheduling
+ * and GC experiments are off in every mode unless explicitly enabled. Normal requests nothing
+ * from the scheduler and adds no JVM tuning. It is <i>not</i> a capped mode — no profile in this list
  * may impose a frame-rate ceiling, because a ceiling is a fidelity change the player did not ask for.
  */
 public enum PerformanceMode {
@@ -26,17 +26,17 @@ public enum PerformanceMode {
                     + "no frame-rate cap, no display-mode change and no resolution change: the game is "
                     + "paced only by Minecraft's own VSync and FPS settings"),
 
-    /** Noticeably higher FPS, at moderate heat. Safe Android APIs only. */
+    /** Quiet launcher, with optional bounded scheduling/GC experiments; no measured FPS guarantee. */
     PERFORMANCE("performance",
             "Conservative scheduling and G1 experiment",
-            "Game threads raised to display priority · short GC pauses · launcher goes quiet "
-                    + "while Minecraft is on screen · no sustained-clock cap and no frame-rate limit"),
+            "Platform scheduling and JVM defaults · optional bounded nice -2/G1 experiment · "
+                    + "quiet launcher · thermal observation · no frame-rate ceiling or quality promise"),
 
     /** Everything the device can hold, until the thermal API says stop. */
     MAXIMUM("maximum",
             "Experimental scheduling; device performance not measured",
-            "Game threads request urgent display priority · ADPF target-only hints where available · "
-                    + "G1 policy · quiet launcher · thermal shedding · quality unchanged. "
+            "Optional nice -2/G1 experiment · ADPF disabled without genuine CPU work timing · "
+                    + "quiet launcher · thermal shedding · quality unchanged. "
                     + "FPS/VSync policy is chosen separately; driver/display limits still apply."),
 
     EXTREME("extreme", "EXTREME — unlimited software pacing, reversible defaults",
@@ -54,7 +54,7 @@ public enum PerformanceMode {
 
     /**
      * Gate for optimizations that are documented and plausible but not yet measured on real
-     * phones (heap headroom bumps, code-cache sizing, JIT tier caps, heap-region tuning).
+     * phones (bounded scheduling, G1 experiment and renderer-specific glthread).
      * Off by default: a profile is allowed to ship only what has a number behind it.
      */
     public static final String PREF_EXPERIMENTAL_FLAGS = "perfExperimentalFlags";

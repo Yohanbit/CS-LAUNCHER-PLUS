@@ -33,30 +33,24 @@ import net.kdt.pojavlaunch.multirt.MultiRTUtils;
 import net.kdt.pojavlaunch.multirt.Runtime;
 import net.kdt.pojavlaunch.plugins.FFmpegPlugin;
 import net.kdt.pojavlaunch.prefs.*;
+import net.kdt.pojavlaunch.performance.RuntimeJvmArguments;
+import net.kdt.pojavlaunch.performance.RuntimeMemoryBudget;
+import net.kdt.pojavlaunch.performance.RuntimeRendererRules;
+import net.kdt.pojavlaunch.performance.JvmPolicy;
 
 import org.lwjgl.glfw.*;
 
 public class JREUtils {
 
-    /**
-     * Every JVM argument the performance engine is allowed to own. They are purged from the user's
-     * command line before the policy's flags are appended, so one list decides what the engine may
-     * touch and a developer override can still turn the whole thing off.
-     */
-    private static final String[] MANAGED_JVM_PREFIXES = {
-            // No -Xms/-Xmx here: the heap is added a few lines above this purge, and this list is
-            // applied after it — owning the heap keys here would delete the launcher's own flags.
-            "-XX:+UseG1GC", "-XX:+UseSerialGC", "-XX:+UseParallelGC", "-XX:+UseZGC",
-            "-XX:MaxGCPauseMillis", "-XX:ParallelGCThreads", "-XX:ConcGCThreads",
-            "-XX:G1NewSizePercent", "-XX:G1MaxNewSizePercent", "-XX:G1HeapRegionSize",
-            "-XX:G1ReservePercent", "-XX:G1HeapWastePercent", "-XX:G1MixedGCCountTarget",
-            "-XX:InitiatingHeapOccupancyPercent", "-XX:G1MixedGCLiveThresholdPercent",
-            "-XX:G1RSetUpdatingPauseTimePercent", "-XX:SurvivorRatio", "-XX:MaxTenuringThreshold",
-            "-XX:ReservedCodeCacheSize", "-XX:+UseCodeCacheFlushing",
-            "-XX:+ParallelRefProcEnabled", "-XX:+PerfDisableSharedMem",
-            "-XX:+UseStringDeduplication", "-XX:+ExplicitGCInvokesConcurrent",
-            "-XX:-ExplicitGCInvokesConcurrent", "-XX:SoftRefLRUPolicyMSPerMB",
-            "-XX:+DisableExplicitGC", "-XX:-DisableExplicitGC", "-XX:ActiveProcessorCount"
+    /** Only engine-owned renderer keys; custom_env.txt is reapplied after each reset. */
+    private static final String[] RENDERER_ENV_KEYS = {
+            "AMETHYST_RENDERER", "POJAVEXEC_EGL", "LIBGL_ES", "POJAV_VSYNC_IN_ZINK",
+            "MESA_LOADER_DRIVER_OVERRIDE", "GALLIUM_DRIVER", "MESA_GL_VERSION_OVERRIDE",
+            "MESA_GLSL_VERSION_OVERRIDE", "MESA_GLSL_CACHE_DIR", "MESA_SHADER_CACHE_DIR",
+            "MESA_SHADER_CACHE_DISABLE", "MESA_SHADER_CACHE_MAX_SIZE", "MESA_VK_WSI_PRESENT_MODE",
+            "mesa_glthread", "ZINK_DESCRIPTORS", "ZINK_DEBUG", "TU_DEBUG", "FD_DEV_FEATURES",
+            "POJAV_LOAD_TURNIP", "force_glsl_extensions_warn", "allow_higher_compat_version",
+            "allow_glsl_extension_directive_midshader"
     };
 
     private JREUtils() {}
@@ -204,6 +198,7 @@ public class JREUtils {
     }
 
     public static void setJavaEnvironment(Activity activity, String jreHome) throws Throwable {
+        clearRendererEnvironment();
         Map<String, String> envMap = new ArrayMap<>();
         envMap.put("POJAV_NATIVEDIR", NATIVE_LIB_DIR);
         envMap.put("JAVA_HOME", jreHome);
@@ -229,52 +224,31 @@ public class JREUtils {
 
 
         // The OPEN GL version is changed according
-        envMap.put("LIBGL_ES", (String) ExtraCore.getValue(ExtraConstants.OPEN_GL_VERSION));
+        String requestedGlVersion = (String) ExtraCore.getValue(ExtraConstants.OPEN_GL_VERSION);
+        if (requestedGlVersion != null) envMap.put("LIBGL_ES", requestedGlVersion);
 
         envMap.put("FORCE_VSYNC", String.valueOf(LauncherPreferences.PREF_FORCE_VSYNC));
 
-        envMap.put("MESA_GLSL_CACHE_DIR", Tools.DIR_CACHE.getAbsolutePath());
-        // Mesa renamed the GLSL cache variables; provide both generations so
-        // Zink/Freedreno/Panfrost can reuse compiled shaders across launches.
-        envMap.put("MESA_SHADER_CACHE_DIR", Tools.DIR_CACHE.getAbsolutePath());
-        envMap.put("MESA_SHADER_CACHE_DISABLE", "false");
-        envMap.put("MESA_SHADER_CACHE_MAX_SIZE", "256M");
-        envMap.put("force_glsl_extensions_warn", "true");
-        envMap.put("allow_higher_compat_version", "true");
-        envMap.put("allow_glsl_extension_directive_midshader", "true");
-        // FCL-style renderer-specific Mesa routing. The old unconditional
-        // "zink" override accidentally forced the wrong Gallium driver for
-        // Freedreno/Panfrost selections.
-        if ("opengles3_desktopgl_zink".equals(LOCAL_RENDERER)
-                || "opengles3_desktopgl_zink_kopper".equals(LOCAL_RENDERER)
-                || "vulkan_zink".equals(LOCAL_RENDERER)) {
-            envMap.put("MESA_LOADER_DRIVER_OVERRIDE", "zink");
-            envMap.put("GALLIUM_DRIVER", "zink");
-            envMap.put("MESA_GL_VERSION_OVERRIDE", "4.6");
-            envMap.put("MESA_GLSL_VERSION_OVERRIDE", "460");
-        } else if ("gallium_freedreno".equals(LOCAL_RENDERER)) {
-            envMap.put("MESA_LOADER_DRIVER_OVERRIDE", "freedreno");
-            envMap.put("GALLIUM_DRIVER", "freedreno");
-        } else if ("gallium_panfrost".equals(LOCAL_RENDERER)) {
-            envMap.put("MESA_LOADER_DRIVER_OVERRIDE", "panfrost");
-            envMap.put("GALLIUM_DRIVER", "panfrost");
+        envMap.putAll(RuntimeRendererRules.routingEnvironment(LOCAL_RENDERER));
+        if (RuntimeRendererRules.isMesa(LOCAL_RENDERER)) {
+            envMap.put("MESA_GLSL_CACHE_DIR", Tools.DIR_CACHE.getAbsolutePath());
+            envMap.put("MESA_SHADER_CACHE_DIR", Tools.DIR_CACHE.getAbsolutePath());
+            envMap.put("force_glsl_extensions_warn", "true");
+            envMap.put("allow_higher_compat_version", "true");
+            envMap.put("allow_glsl_extension_directive_midshader", "true");
         }
         // ── CS PERFORMANCE ENGINE: driver tuning, gated on the renderer actually selected ──
         // Nothing is written for a non-Mesa renderer, and the balanced profile writes nothing at all:
         // the previous code applied MESA_*/TU_* variables whatever the renderer was, including a
         // 512 MB shader-cache budget and a mailbox present mode that overrode the vsync preference.
         net.kdt.pojavlaunch.performance.PerformancePolicy envPolicy =
-                net.kdt.pojavlaunch.performance.PerformancePolicy.current();
+                net.kdt.pojavlaunch.performance.PerformancePolicy.reconcileRenderer(LOCAL_RENDERER);
         if (envPolicy != null) {
-            net.kdt.pojavlaunch.performance.McContext actual = envPolicy.game.withRenderer(LOCAL_RENDERER);
-            envMap.putAll(net.kdt.pojavlaunch.performance.RendererPolicy.envFor(
-                    envPolicy.mode, envPolicy.device, actual, envPolicy.experimentalJvmFlags,
-                    new java.util.ArrayList<String>()));
+            envMap.putAll(envPolicy.rendererEnv);
         }
         // The presentation chain is where a lost frame hides, so every value that can pace a frame is
         // logged next to the process about to be started. One 'adb logcat -s CSPerf' answers
         // "why is this 60?" without a debugger, and the same text lands in performance/ in the data dir.
-        net.kdt.pojavlaunch.performance.LaunchDiagnostics.write(activity, envMap, envPolicy);
 
         envMap.put("VTEST_SOCKET_NAME", new File(Tools.DIR_CACHE, ".virgl_test").getAbsolutePath());
 
@@ -335,11 +309,14 @@ public class JREUtils {
             }
         }
 
-        if(info.isAdreno() && !PREF_ZINK_PREFER_SYSTEM_DRIVER) {
+        if(info.isAdreno() && LOCAL_RENDERER != null && LOCAL_RENDERER.contains("zink")
+                && !PREF_ZINK_PREFER_SYSTEM_DRIVER) {
             envMap.put("POJAV_LOAD_TURNIP", "1");
         }
 
         readCustomEnv(envMap); // Must be last so it overrides anything the user sets for obvious reasons.
+        // Record the complete environment after renderer routing and explicit user overrides.
+        net.kdt.pojavlaunch.performance.LaunchDiagnostics.write(activity, envMap, envPolicy);
 
         for (Map.Entry<String, String> env : envMap.entrySet()) {
             Logger.appendToLog("Added custom env: " + env.getKey() + "=" + env.getValue());
@@ -465,7 +442,7 @@ public class JREUtils {
         // MG constructor reads config during dlopen. Set the real directory BEFORE loading it.
         // A custom directory is supported upstream: do not impersonate another launcher.
         Os.setenv("MG_DIR_PATH", Tools.DIR_DATA + "/MobileGlues", true);
-        final String graphicsLib = loadGraphicsLibrary();
+        final String graphicsLib = loadGraphicsLibrary(activity);
         setJavaEnvironment(activity, runtimeHome);
         List<String> userArgs = getJavaArgs(activity, runtimeHome, userArgsString);
 
@@ -481,8 +458,8 @@ public class JREUtils {
         purgeArg(userArgs, "-Dorg.lwjgl.opengl.libname");
         // Don't let the user specify a custom Freetype library (as the user is unlikely to specify a version compiled for Android)
         purgeArg(userArgs, "-Dorg.lwjgl.freetype.libname");
-        // Overridden by us to specify the exact number of cores that the android system has
-        purgeArg(userArgs, "-XX:ActiveProcessorCount");
+        // Preserve an explicit user processor count. No platform affinity/cluster probe justifies
+        // an automatic count, and older Java 8 runtimes may not support ActiveProcessorCount.
 
         //Add automatically generated args
         // Per-profile RAM was removed (Phase 5) — the global launcher setting rules.
@@ -497,50 +474,33 @@ public class JREUtils {
         // Do not commit the whole Xmx heap at startup. On Android, Xms=Xmx plus
         // AlwaysPreTouch competes with the GPU/OS and can trigger LMK or long
         // first-frame stalls. Grow from a modest, aligned initial heap instead.
-        if (perfPolicy != null && perfPolicy.heapBiasPercent > 0) {
-            // A performance profile may only ever hand out MORE heap than the user asked for, and
-            // only up to the launcher's own safety ceiling. It never takes heap away.
-            int ceiling = Tools.getMaximumRamAllocation(activity);
-            int biased = Math.min(perfPolicy.maxHeapMb, ceiling);
-            if (biased > effectiveRam) {
-                Log.i("ProfileLaunch", "Performance policy " + perfPolicy.mode.key
-                        + " raised the heap to " + biased + " MB (user asked for " + effectiveRam + ")");
-                effectiveRam = biased;
-            }
+        int recommendedHeap = RuntimeMemoryBudget.recommendedHeapMb(Tools.getTotalDeviceMemory(activity),
+                Tools.getFreeDeviceMemory(activity), Tools.getMaximumRamAllocation(activity));
+        if (effectiveRam > recommendedHeap) {
+            Logger.appendToLog("RAM advisory: selected " + effectiveRam + " MB, conservative Android/native/GPU "
+                    + "budget " + recommendedHeap + " MB (0 means unknown/insufficient headroom). "
+                    + "User Xmx preserved; this is not a guarantee against Android LMK.");
         }
-        int initialRam = Math.max(256, Math.min(1024, effectiveRam / 2));
-        initialRam = Math.max(256, (initialRam / 128) * 128);
+        int initialRam = RuntimeMemoryBudget.initialHeapMb(effectiveRam);
         userArgs.add("-Xms" + initialRam + "M");
         userArgs.add("-Xmx" + effectiveRam + "M");
         Log.i("ProfileLaunch", "Effective JVM RAM: -Xms" + initialRam
                 + "M -Xmx" + effectiveRam + "M (mobile adaptive heap)");
 
         // ── CS PERFORMANCE ENGINE ──
-        // Every argument comes from the one resolved policy, and the purge of the managed prefixes
-        // happens BEFORE they are appended, so a flag can no longer survive its own purge and make an
-        // A/B run measure the same command line twice. `developer_gc_variant=ergonomic_defaults` is the
-        // documented escape hatch — it means "let the JVM decide" and is now actually honoured.
+        // Do not purge the user's collector/tuning choices. Defaults add nothing; optional policy
+        // flags use the actual selected runtime version and never duplicate an explicit user key.
         String gcVariant = LauncherPreferences.DEFAULT_PREF.getString("developer_gc_variant", "current_cs");
-        for (String prefix : MANAGED_JVM_PREFIXES) purgeArg(userArgs, prefix);
-        if (perfPolicy == null) {
-            userArgs.add("-XX:+UseG1GC");
-            userArgs.add("-XX:MaxGCPauseMillis=100");
-            userArgs.add("-XX:+PerfDisableSharedMem");
-            Log.i("ProfileLaunch", "No performance policy on this launch path; using the launcher's proven G1 default");
-        } else if ("ergonomic_defaults".equals(gcVariant)) {
-            Log.i("ProfileLaunch", "GC benchmark variant: JVM ergonomic defaults (policy " + perfPolicy.mode.key + ")");
-        } else {
-            for (String flag : perfPolicy.jvmFlags()) userArgs.add(flag);
-            Log.i("ProfileLaunch", "Performance policy " + perfPolicy.mode.key + " JVM flags: " + perfPolicy.jvmFlags());
-        }
+        List<String> policyFlags = "ergonomic_defaults".equals(gcVariant) ? Collections.emptyList()
+                : JvmPolicy.flagsFor(perfPolicy, runtime.javaVersion, userArgs);
+        userArgs.addAll(policyFlags);
+        Log.i("ProfileLaunch", "Runtime Java " + runtime.javaVersion + " automatic JVM experiment flags: " + policyFlags);
         if (LauncherPreferences.DEFAULT_PREF.getBoolean("extremeFrameDiagnostics", false)) {
             File diagnostics = new File(Tools.DIR_DATA, "performance"); diagnostics.mkdirs();
             String gcLog = new File(diagnostics, "gc-" + System.currentTimeMillis() + ".log").getAbsolutePath();
-            if (runtime.javaVersion >= 9) userArgs.add("-Xlog:gc*,safepoint:file=" + gcLog + ":time,uptime,level,tags:filecount=2,filesize=8m");
-            else { userArgs.add("-Xloggc:" + gcLog); userArgs.add("-XX:+PrintGCDetails"); }
+            userArgs.addAll(RuntimeJvmArguments.gcDiagnostics(runtime.javaVersion, gcLog, userArgs));
         }
-        userArgs.add("-Dlog4j2.formatMsgNoLookups=true");
-        userArgs.add("-Dsodium.checks.issue2561=false");
+        // getJavaArgs already supplies the Log4j mitigation. Leave Sodium's safety checks enabled.
 
         if(LOCAL_RENDERER != null) userArgs.add("-Dorg.lwjgl.opengl.libname=" + graphicsLib);
 
@@ -553,12 +513,7 @@ public class JREUtils {
         // We don't have jemalloc for our LWJGL so set the allocator to system to avoid error logs
         userArgs.add("-Dorg.lwjgl.system.allocator=system");
 
-        // Some phones are not using the right number of cores, fix that. Capped at the core count the
-        // device profile measured: the JVM otherwise spins GC and JIT workers for CPUs it is never
-        // scheduled onto on a big.LITTLE phone.
-        int processorCount = perfPolicy != null ? perfPolicy.device.cores
-                : java.lang.Runtime.getRuntime().availableProcessors();
-        userArgs.add("-XX:ActiveProcessorCount=" + Math.max(1, Math.min(processorCount, 8)));
+        // Leave processor ergonomics to the selected JVM and Android scheduler.
         // Adds/changes methods for compatibility
         userArgs.add("-javaagent:"+new File(Tools.DIR_DATA,"methods_injector_agent/methods_injector_agent.jar").getAbsolutePath());
 
@@ -766,41 +721,77 @@ public class JREUtils {
      * @return The name of the loaded library
      */
     public static String loadGraphicsLibrary(){
-        if(LOCAL_RENDERER == null) return null;
-        String renderLibrary;
-        switch (LOCAL_RENDERER){
-            case "opengles2":
-            case "opengles2_5":
-            case "opengles3":
-                renderLibrary = "libgl4es_115.so"; break;
-            case "vulkan_zink": renderLibrary = "libOSMesa.so"; break;
-            case "opengles_mobileglues": renderLibrary = "libmobileglues.so"; break;
-            case "opengles3_desktopgl_zink":
-            case "opengles3_desktopgl_zink_kopper": renderLibrary = "libglxshim.so"; break;
-            case "opengles3_ltw" : renderLibrary = "libltw.so"; break;
-            case "opengles3_KW" : renderLibrary = "libng_gl4es.so"; break;
-            // CS Task 5: OSMesa gallium renderers (arm64-only builds).
-            // Freedreno targets Adreno, Panfrost targets Mali. Both are
-            // self-contained gallium OSMesa builds driven through the existing
-            // osm_bridge path (same mechanism as vulkan_zink).
-            case "gallium_freedreno": renderLibrary = "libOSMesa_8.so"; break;
-            case "gallium_panfrost": renderLibrary = "libOSMesa_2300d.so"; break;
-            default:
-                Log.w("RENDER_LIBRARY", "No renderer selected, defaulting to Krypton Wrapper");
-                renderLibrary = "libng_gl4es.so";
-                break;
-        }
+        return loadGraphicsLibrary(null);
+    }
 
-        if (!dlopen(renderLibrary) && !dlopen(findInLdLibPath(renderLibrary))) {
-            // Never strand the user on legacy GL4ES 1.1.4 — it cannot run Sodium on
-            // modern Minecraft (invisible chunks/blocks). Krypton Wrapper is the
-            // maintained GL4ES successor and is bundled with the launcher.
-            Log.e("RENDER_LIBRARY","Failed to load renderer " + renderLibrary + ". Falling back to Krypton Wrapper");
-            LOCAL_RENDERER = "opengles3_KW";
-            renderLibrary = "libng_gl4es.so";
-            dlopen(NATIVE_LIB_DIR + "/libng_gl4es.so");
+    public static String loadGraphicsLibrary(@Nullable Context context) {
+        List<String> compatible;
+        if (context != null) {
+            Tools.RenderersList list = Tools.getCompatibleRenderers(context);
+            compatible = list == null ? Collections.emptyList() : list.rendererIds;
+        } else {
+            compatible = net.kdt.pojavlaunch.performance.DeviceCapability.current().availableRenderers;
         }
-        return renderLibrary;
+        String requested = LOCAL_RENDERER;
+        List<String> candidates = RuntimeRendererRules.candidates(requested, compatible);
+        for (String renderer : candidates) {
+            String library = RuntimeRendererRules.library(renderer);
+            // Only the package's active ABI native directory. No arbitrary LD_LIBRARY_PATH fallback:
+            // dlopen success validates loadable ABI/declared dependencies, not all lazy symbols,
+            // graphics-context creation or game/mod compatibility.
+            File installed = new File(NATIVE_LIB_DIR, library);
+            if (!installed.isFile() || !installed.canRead()) {
+                Log.w("RENDER_LIBRARY", "Installed library missing: " + renderer + " / " + library);
+                continue;
+            }
+            try { prepareRendererEnvironment(renderer); }
+            catch (Throwable e) {
+                throw new IllegalStateException("Cannot safely prepare renderer environment: " + renderer, e);
+            }
+            if (!dlopen(installed.getAbsolutePath())) {
+                Log.w("RENDER_LIBRARY", "Library load failed: " + renderer + " (" + installed + ")");
+                continue;
+            }
+            LOCAL_RENDERER = renderer;
+            net.kdt.pojavlaunch.performance.PerformancePolicy.reconcileRenderer(renderer);
+            if (!renderer.equals(requested)) {
+                Logger.appendToLog("Renderer fallback: " + requested + " -> " + renderer
+                        + "; compatible installed route, library loaded; game/mod support unverified.");
+            }
+            return installed.getAbsolutePath();
+        }
+        // Never pass an unloaded library to LWJGL or silently claim a particular wrapper supports Sodium.
+        throw new IllegalStateException("No compatible installed renderer could be loaded (requested "
+                + requested + ", attempted " + candidates + ")");
+    }
+
+    private static void clearRendererEnvironment() throws ErrnoException {
+        for (String key : RENDERER_ENV_KEYS) Os.unsetenv(key);
+    }
+
+    private static void prepareRendererEnvironment(String renderer) throws Throwable {
+        clearRendererEnvironment();
+        Map<String, String> env = RuntimeRendererRules.routingEnvironment(renderer);
+        env.put("POJAV_NATIVEDIR", NATIVE_LIB_DIR);
+        env.put("MG_DIR_PATH", Tools.DIR_DATA + "/MobileGlues");
+        env.put("FORCE_VSYNC", String.valueOf(LauncherPreferences.PREF_FORCE_VSYNC));
+        if (PREF_VSYNC_IN_ZINK && renderer.contains("zink")) env.put("POJAV_VSYNC_IN_ZINK", "1");
+        if (RuntimeRendererRules.isMesa(renderer)) {
+            env.put("MESA_GLSL_CACHE_DIR", Tools.DIR_CACHE.getAbsolutePath());
+            env.put("MESA_SHADER_CACHE_DIR", Tools.DIR_CACHE.getAbsolutePath());
+        }
+        if (renderer.contains("zink") && GLInfoUtils.getGlInfo().isAdreno()
+                && !PREF_ZINK_PREFER_SYSTEM_DRIVER) env.put("POJAV_LOAD_TURNIP", "1");
+        if ("opengles3_desktopgl_zink_kopper".equals(renderer) && Tools.shouldUseUBWC())
+            env.put("FD_DEV_FEATURES", "enable_tp_ubwc_flag_hint=1");
+        net.kdt.pojavlaunch.performance.PerformancePolicy policy =
+                net.kdt.pojavlaunch.performance.PerformancePolicy.current();
+        if (policy != null && policy.game != null) {
+            env.putAll(net.kdt.pojavlaunch.performance.RendererPolicy.envFor(policy.mode, policy.device,
+                    policy.game.withRenderer(renderer), policy.experimentalJvmFlags, null));
+        }
+        readCustomEnv(env); // explicit developer overrides stay authoritative, including on fallback
+        for (Map.Entry<String, String> entry : env.entrySet()) Os.setenv(entry.getKey(), entry.getValue(), true);
     }
 
     /**

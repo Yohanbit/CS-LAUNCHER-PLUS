@@ -207,6 +207,7 @@ EXTERNAL_API void pojavSetWindowHint(int hint, int value) {
     switch (value) {
         case GLFW_NO_API:
             pojav_environ->config_renderer = RENDERER_VULKAN;
+            pojav_frame_set_coverage(0); /* Native Vulkan has no counted boundary. */
             /* Nothing to do: initialization is handled in Java-side */
             // pojavInitVulkan();
             break;
@@ -235,27 +236,25 @@ EXTERNAL_API void pojavSwapBuffers() {
         br_swap_buffers();
         return;
     }
-    static __thread uint64_t previous_end_ns;
-    uint64_t start_ns = pojav_monotonic_ns();
+    uint32_t token = pojav_frame_timing_token();
+    uint64_t start_ns = (token & 1u) ? pojav_monotonic_ns() : 0;
     bool submitted = br_swap_buffers();
-    uint64_t end_ns = pojav_monotonic_ns();
-    bool has_gap = previous_end_ns != 0 && start_ns >= previous_end_ns;
-    pojav_frame_record(start_ns, end_ns,
-                       has_gap ? start_ns - previous_end_ns : 0, has_gap, submitted);
-    previous_end_ns = end_ns;
+    uint64_t end_ns = (token & 1u) ? pojav_monotonic_ns() : 0;
+    pojav_frame_record_swap(submitted, token, start_ns, end_ns);
+}
+
+/* Native Vulkan bypasses these bridges. Never report an uncounted path as 0 FPS. */
+static int frame_counter_coverage(void) {
+    return (int)pojav_frame_coverage();
 }
 
 JNIEXPORT jint JNICALL
 Java_net_kdt_pojavlaunch_utils_FpsCounter_nativeGetFps(JNIEnv* env, jclass clazz) {
     (void) env; (void) clazz;
-    static pthread_mutex_t rate_lock = PTHREAD_MUTEX_INITIALIZER;
-    static uint64_t previous_count, previous_time_ns;
-    pojav_frame_snapshot snapshot;
-    pthread_mutex_lock(&rate_lock);
-    pojav_frame_snapshot_read(&snapshot);
-    int fps = pojav_frame_rate(snapshot.submissions, pojav_monotonic_ns(),
+    static __thread uint64_t previous_count, previous_time_ns;
+    if (!frame_counter_coverage()) { previous_time_ns = 0; return -1; }
+    int fps = pojav_frame_rate(pojav_frame_submissions(), pojav_monotonic_ns(),
                                &previous_count, &previous_time_ns);
-    pthread_mutex_unlock(&rate_lock);
     return (jint)fps;
 }
 
@@ -264,13 +263,18 @@ Java_net_kdt_pojavlaunch_utils_FpsCounter_nativeGetFps(JNIEnv* env, jclass clazz
 JNIEXPORT jlong JNICALL
 Java_net_kdt_pojavlaunch_utils_FpsCounter_nativeGetTotalPresents(JNIEnv* env, jclass clazz) {
     (void) env; (void) clazz;
-    pojav_frame_snapshot snapshot;
-    pojav_frame_snapshot_read(&snapshot);
-    return (jlong)snapshot.submissions;
+    return frame_counter_coverage() ? (jlong)pojav_frame_submissions() : -1;
 }
 
-/* Caller-owned reusable long[11]; no allocation or reset, multiple readers
- * can independently calculate deltas. See frame_metrics.h for semantics. */
+JNIEXPORT void JNICALL
+Java_net_kdt_pojavlaunch_utils_FrameMetrics_nativeSetTimingEnabled(JNIEnv* env, jclass clazz,
+                                                                  jboolean enabled) {
+    (void)env; (void)clazz;
+    pojav_frame_set_timing_enabled(enabled == JNI_TRUE);
+}
+
+/* Original long[11] layout retained. New readers use long[13], appending the
+ * timing epoch and coverage (0 unknown, 1 EGL, 2 OSMesa native-window post). */
 JNIEXPORT jboolean JNICALL
 Java_net_kdt_pojavlaunch_utils_FrameMetrics_nativeReadSnapshot(JNIEnv* env, jclass clazz,
                                                              jlongArray values) {
@@ -278,12 +282,13 @@ Java_net_kdt_pojavlaunch_utils_FrameMetrics_nativeReadSnapshot(JNIEnv* env, jcla
     if (values == NULL || (*env)->GetArrayLength(env, values) < 11) return JNI_FALSE;
     pojav_frame_snapshot s;
     pojav_frame_snapshot_read(&s);
-    jlong data[11] = {(jlong)s.attempts, (jlong)s.submissions, (jlong)s.unsuccessful_swaps,
+    jlong data[13] = {(jlong)s.attempts, (jlong)s.submissions, (jlong)s.unsuccessful_swaps,
         (jlong)s.swap_ns_total, (jlong)s.swap_ns_last, (jlong)s.swap_ns_max,
         (jlong)s.inter_swap_ns_total, (jlong)s.inter_swap_samples,
         (jlong)s.inter_swap_ns_last, (jlong)s.sample_time_ns,
-        (jlong)pojav_monotonic_ns()};
-    (*env)->SetLongArrayRegion(env, values, 0, 11, data);
+        (jlong)pojav_monotonic_ns(), (jlong)s.timing_epoch, (jlong)frame_counter_coverage()};
+    (*env)->SetLongArrayRegion(env, values, 0,
+                             (*env)->GetArrayLength(env, values) >= 13 ? 13 : 11, data);
     return (*env)->ExceptionCheck(env) ? JNI_FALSE : JNI_TRUE;
 }
 

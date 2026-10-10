@@ -1089,12 +1089,12 @@ public class LauncherPreferenceFragment extends Fragment {
                 "Manual FPS limit", "Used only by Manual FPS policy; does not change resolution.", 120)
                 .setSliderConfig(10, 250, 10, " FPS"));
         items.add(new SettingItem("extremeFrameDiagnostics", SettingItem.TYPE_SWITCH,
-                "Frame diagnostics (A/B tests)", "Render/swap CPU wall timing, memory, thermal status and GC logs; not GPU/displayed FPS. Adds measurement overhead.", false));
+                "Frame diagnostics (A/B tests)", "Foreground swap submission rate, CPU wall swap wait, memory and thermal logs; not GPU work or displayed FPS. Adds measurement overhead; live opt-in.", false));
     }
 
     private void addDynamicResolutionSettings(List<SettingItem> items) {
         items.add(new SettingItem("extremeDynamicResolution", SettingItem.TYPE_SWITCH,
-                "Resolución dinámica (opcional)", "Reduce la resolución del juego al jugar. Inventario y menús recuperan la resolución manual. El HUD del mundo aún puede cambiar de escala. Desactívala para restaurar la calidad.", false));
+                "Resolución dinámica (experimental)", "Cambios en el próximo inicio. Puede reducir la resolución completa al jugar; no mide carga GPU. Menús intentan recuperar la resolución manual, pendiente de prueba física. El HUD no se renderiza independientemente. Desactívala para restaurar la calidad.", false));
         items.add(new SettingItem("extremeMinResolution", SettingItem.TYPE_SLIDER,
                 "Resolución mínima dinámica", "Porcentaje de la pantalla, no de la resolución manual: 60% manual y 30% mínimo significa entre 60% y 30%, no 18%. Nunca aumenta el valor manual.", 60)
                 .setSliderConfig(30, 100, 5, " %"));
