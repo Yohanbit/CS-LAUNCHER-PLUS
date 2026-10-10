@@ -25,8 +25,12 @@ def identity(apk, signer, aapt):
     return (package.group(1), int(package.group(2)), tuple(sorted(certs)), int(sdk.group(1))), sig, badging
 
 
-def inspect(apk, signer, aapt, previous=None):
+def inspect(apk, signer, aapt, previous=None, require_update=False, expected_min_sdk=21):
+    if require_update and not previous:
+        raise ValueError("Update continuity requires the identified previous APK")
     ident, sig, badging = identity(apk, signer, aapt)
+    if ident[3] != expected_min_sdk:
+        raise ValueError("Unexpected minSDK: " + str(ident[3]))
     print("APK:", os.path.basename(apk))
     with open(apk, "rb") as f:
         print("SHA256:", hashlib.file_digest(f, "sha256").hexdigest())
@@ -35,7 +39,11 @@ def inspect(apk, signer, aapt, previous=None):
                     if line.startswith(("package:", "sdkVersion:", "targetSdkVersion:", "native-code:"))))
     platform = {"libc.so", "libm.so", "libdl.so", "liblog.so", "libandroid.so", "libEGL.so",
                 "libGLESv1_CM.so", "libGLESv2.so", "libGLESv3.so", "libOpenSLES.so",
-                "libvulkan.so", "libz.so", "libjnigraphics.so", "libmediandk.so", "libaaudio.so"}
+                "libz.so", "libjnigraphics.so", "libmediandk.so"}
+    if ident[3] >= 24:
+        platform.add("libvulkan.so")
+    if ident[3] >= 26:
+        platform.add("libaaudio.so")
     with zipfile.ZipFile(apk) as z, tempfile.TemporaryDirectory() as temp:
         names = set(z.namelist())
         abis = {p.split("/")[1] for p in names if p.startswith("lib/") and p.endswith(".so")}
@@ -75,10 +83,14 @@ def inspect(apk, signer, aapt, previous=None):
         same_package = ident[0] == prior[0]
         same_cert = ident[2] == prior[2]
         monotonic_version = ident[1] > prior[1]
+        same_min_sdk = ident[3] == prior[3]
         print("Update prerequisites: same_package=", same_package, "same_certificate=", same_cert,
-              "higher_version_code=", monotonic_version)
-        print("MATCHED" if same_package and same_cert and monotonic_version else "NOT MATCHED",
+              "higher_version_code=", monotonic_version, "same_min_sdk=", same_min_sdk)
+        matched = same_package and same_cert and monotonic_version and same_min_sdk
+        print("MATCHED" if matched else "NOT MATCHED",
               "— metadata comparison only; update/data migration on device still untested.")
+        if require_update and not matched:
+            raise ValueError("APK update prerequisites did not match; publication blocked")
     else:
         print("No prior APK available: update continuity is NOT verified.")
 
@@ -89,5 +101,7 @@ if __name__ == "__main__":
     p.add_argument("--previous")
     p.add_argument("--apksigner", default="apksigner")
     p.add_argument("--aapt", default="aapt")
+    p.add_argument("--require-update", action="store_true")
+    p.add_argument("--expected-min-sdk", type=int, default=21)
     args = p.parse_args()
-    inspect(args.apk, args.apksigner, args.aapt, args.previous)
+    inspect(args.apk, args.apksigner, args.aapt, args.previous, args.require_update, args.expected_min_sdk)

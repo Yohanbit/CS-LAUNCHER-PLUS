@@ -3,7 +3,7 @@ name: Build Unamed launcher Vulkan 1.1 safety prerelease
 on:
   workflow_dispatch:
   push:
-    branches: [fix/vulkan11-native-round3]
+    branches: [fix/vulkan11-resume-validation]
     paths:
       - '**'
       - '!README.md'
@@ -54,7 +54,7 @@ jobs:
             echo "=== $test ===" | tee -a verification/tests.txt
             bash "$test" 2>&1 | tee -a verification/tests.txt
           done
-      - name: Identify and download the latest existing APK without changing releases
+      - name: Verify the identified 1.4.2 baseline without changing releases
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -64,20 +64,24 @@ jobs:
           mkdir -p previous
           gh api --paginate --slurp "repos/$GH_REPO/releases?per_page=100" > verification/releases-before.json
           python3 - <<'PY'
-          import json, os, urllib.request
+          import hashlib, json, os, urllib.request
           pages = json.load(open('verification/releases-before.json'))
-          releases = sorted((r for page in pages for r in page if not r['draft']), key=lambda r:r['published_at'] or r['created_at'], reverse=True)
+          releases = [r for page in pages for r in page if not r['draft'] and r['tag_name'] == 'runtime-1.4.2-38032930792']
           for release in releases:
               assets = [a for a in release['assets'] if a['name'].lower().endswith('.apk')]
               if not assets: continue
               asset = assets[0]
               urllib.request.urlretrieve(asset['browser_download_url'], 'previous/previous.apk')
+              with open('previous/previous.apk', 'rb') as f:
+                  digest = hashlib.file_digest(f, 'sha256').hexdigest()
+              if digest != '14c3e0256ea2508800c2f79b7e251caef1950e774eebe9eead2f97307649c6a6':
+                  raise SystemExit('Identified 1.4.2 APK checksum mismatch; publication blocked')
               with open('verification/previous-apk.json', 'w') as f:
-                  json.dump({'release':release['html_url'], 'tag':release['tag_name'], 'apk':asset['browser_download_url'], 'name':asset['name'], 'id':asset['id']}, f, indent=2)
+                  json.dump({'release':release['html_url'], 'tag':release['tag_name'], 'apk':asset['browser_download_url'], 'name':asset['name'], 'id':asset['id'], 'sha256':digest}, f, indent=2)
               print('Prior identified artifact (not physical validation):', release['html_url'], asset['name'])
               break
           else:
-              print('No previous APK available; continuity unverified')
+              raise SystemExit('Identified 1.4.2 APK is required; publication blocked')
           PY
       - name: Load Firebase configuration if supplied
         env:
@@ -139,23 +143,22 @@ jobs:
           PY
       - name: Name the downloadable APK
         run: mv app_pojavlauncher/build/outputs/apk/debug/app_pojavlauncher-debug.apk 'app_pojavlauncher/build/outputs/apk/debug/Unamed launcher.apk'
-      - name: Upload APK
+      - name: Verify signature and installation requirements
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s previous/previous.apk
+          for apk in app_pojavlauncher/build/outputs/apk/debug/*.apk; do
+            python3 tools/inspect_apk.py "$apk" --previous previous/previous.apk --require-update --expected-min-sdk 21 --apksigner "$ANDROID_HOME/build-tools/34.0.0/apksigner" --aapt "$ANDROID_HOME/build-tools/34.0.0/aapt" | tee verification/apk-inspection.txt
+          done
+          git rev-parse HEAD | tee verification/commit.txt
+      - name: Upload validated APK
         uses: actions/upload-artifact@v4
         with:
           name: Unamed-launcher-vulkan11-APK
           path: app_pojavlauncher/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
-      - name: Verify signature and installation requirements
-        shell: bash
-        run: |
-          set -euo pipefail
-          extra=()
-          if [ -f previous/previous.apk ]; then extra=(--previous previous/previous.apk); fi
-          for apk in app_pojavlauncher/build/outputs/apk/debug/*.apk; do
-            python3 tools/inspect_apk.py "$apk" "${extra[@]}" --apksigner "$ANDROID_HOME/build-tools/34.0.0/apksigner" --aapt "$ANDROID_HOME/build-tools/34.0.0/aapt" | tee verification/apk-inspection.txt
-          done
-          git rev-parse HEAD | tee verification/commit.txt
       - name: Upload verification results
         uses: actions/upload-artifact@v4
         if: always()
@@ -193,5 +196,5 @@ jobs:
             --target "$BUILD_SHA" \
             --title "Unamed launcher 1.4.3 — prerelease de prueba $BUILD_RUN" \
             --prerelease \
-            --notes-file source/docs/ROUND3-RELEASE-NOTES.md
+            --notes-file source/docs/RESUME-RELEASE-NOTES.md
           gh release view "vulkan11-1.4.3-$BUILD_RUN" --json name,url,assets --jq '{name,url,assets:[.assets[]|{name,size,url}]}'
