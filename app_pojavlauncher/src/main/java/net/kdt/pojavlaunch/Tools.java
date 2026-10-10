@@ -372,16 +372,20 @@ public final class Tools {
             localeString = R.string.memory_warning_msg;
         }
 
-        if(LauncherPreferences.PREF_RAM_ALLOCATION > freeDeviceMemory) {
+        int advisoryHeap = net.kdt.pojavlaunch.performance.RuntimeMemoryBudget.recommendedHeapMb(
+                getTotalDeviceMemory(activity), freeDeviceMemory, freeAddressSpace);
+        if(LauncherPreferences.PREF_RAM_ALLOCATION > freeDeviceMemory
+                || (advisoryHeap > 0 && LauncherPreferences.PREF_RAM_ALLOCATION > advisoryHeap)) {
             int finalDeviceMemory = freeDeviceMemory;
             int requestedMemory = LauncherPreferences.PREF_RAM_ALLOCATION;
-            int suggestedMemory = Math.max(256, (Math.max(256, finalDeviceMemory - 256) / 128) * 128);
+            int suggestedMemory = Math.max(256, advisoryHeap);
             java.util.concurrent.atomic.AtomicBoolean useSuggested = new java.util.concurrent.atomic.AtomicBoolean(false);
             LifecycleAwareAlertDialog.DialogCreator dialogCreator = (dialog, builder) ->
                 builder.setTitle("Minecraft RAM warning")
                         .setMessage(activity.getString(localeString, finalDeviceMemory, requestedMemory)
                                 + "\n\nSelected JVM heap: -Xmx" + requestedMemory + "M"
-                                + "\nSuggested safe value: -Xmx" + suggestedMemory + "M")
+                                + "\nAdvisory value reserving Android/native/GPU memory: -Xmx" + suggestedMemory + "M"
+                                + "\nThis budget is not a guarantee against memory pressure.")
                         .setPositiveButton("Launch with " + requestedMemory + " MB", (d, w)->{})
                         .setNegativeButton("Use " + suggestedMemory + " MB", (d, w)->useSuggested.set(true));
 
@@ -1924,15 +1928,8 @@ public final class Tools {
         boolean appHasLtw = new File(nativeDir, "libltw.so").exists();
         boolean appHasKrypton = new File(nativeDir, "libng_gl4es.so").exists();
         boolean appHasGl4es = new File(nativeDir, "libgl4es_115.so").exists();
-        GLInfoUtils.GLInfo gpuInfo = GLInfoUtils.getGlInfo();
-        boolean isAdreno = gpuInfo.isAdreno();
-        boolean isMali = gpuInfo.renderer != null
-                && gpuInfo.renderer.toLowerCase(Locale.ROOT).contains("mali");
-        // CS Task 5: OSMesa gallium renderers (Freedreno / VirGL / Panfrost).
-        // The binaries ship in arm64-v8a only, so the file check doubles as an
-        // ABI gate — on 32-bit/x86 builds these entries never show up.
-        boolean appHasFreedreno = new File(Tools.NATIVE_LIB_DIR, "libOSMesa_8.so").exists();
-        boolean appHasPanfrost = new File(Tools.NATIVE_LIB_DIR, "libOSMesa_2300d.so").exists();
+        // Gallium entries lack a complete native bridge/library-loader route here.
+        // A filename and Mali/Adreno name match alone cannot establish compatibility.
         List<String> rendererIds = new ArrayList<>(defaultRenderers.length);
         List<String> rendererNames = new ArrayList<>(defaultRendererNames.length);
         for(int i = 0; i < defaultRenderers.length; i++) {
@@ -1948,8 +1945,7 @@ public final class Tools {
             if (rendererId.contains("ltw") && (!deviceHasOpenGLES3 || !appHasLtw)) continue;
             if (rendererId.equals("opengles3_KW") && !appHasKrypton) continue;
             if (rendererId.equals("opengles2") && !appHasGl4es) continue;
-            if (rendererId.equals("gallium_freedreno") && (!appHasFreedreno || !isAdreno)) continue;
-            if (rendererId.equals("gallium_panfrost") && (!appHasPanfrost || !isMali)) continue;
+            if (rendererId.equals("gallium_freedreno") || rendererId.equals("gallium_panfrost")) continue;
             rendererIds.add(rendererId);
             rendererNames.add(defaultRendererNames[i]);
         }

@@ -49,10 +49,8 @@ public class ControlFps extends ControlButton {
 
     /** Matches the launch HUD's cadence: live, but never jittery. */
     private static final long TICK_INTERVAL_MS = 400L;
-    /** Presentation-only smoothing of real samples (no value is invented). */
-    private static final float SMOOTHING = 0.45f;
-
     private int mLastSample = -1;
+    private final FpsCounter.Window mFpsWindow = new FpsCounter.Window();
     private int mShownValue = -1;
     private int mState = STATE_EMPTY;
 
@@ -67,6 +65,7 @@ public class ControlFps extends ControlButton {
     private final Runnable mTicker = new Runnable() {
         @Override
         public void run() {
+            if (!isShown() || getWindowVisibility() != VISIBLE) return;
             sample();
             removeCallbacks(this);
             postDelayed(this, TICK_INTERVAL_MS);
@@ -103,6 +102,7 @@ public class ControlFps extends ControlButton {
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
+        mFpsWindow.reset();
         removeCallbacks(mTicker);
         postDelayed(mTicker, TICK_INTERVAL_MS);
     }
@@ -110,6 +110,7 @@ public class ControlFps extends ControlButton {
     @Override
     protected void onDetachedFromWindow() {
         removeCallbacks(mTicker);
+        mFpsWindow.reset();
         cancelPulse();
         super.onDetachedFromWindow();
     }
@@ -123,6 +124,8 @@ public class ControlFps extends ControlButton {
     @Override
     protected void onVisibilityChanged(android.view.View changedView, int visibility) {
         super.onVisibilityChanged(changedView, visibility);
+        if (mFpsWindow == null) return; // Superclass construction can dispatch this callback.
+        mFpsWindow.reset();
         if (visibility == VISIBLE) {
             removeCallbacks(mTicker);
             postDelayed(mTicker, 0L);
@@ -131,17 +134,24 @@ public class ControlFps extends ControlButton {
         }
     }
 
+    @Override
+    protected void onWindowVisibilityChanged(int visibility) {
+        super.onWindowVisibilityChanged(visibility);
+        if (mFpsWindow == null) return;
+        mFpsWindow.reset();
+        removeCallbacks(mTicker);
+        if (visibility == VISIBLE && isShown()) postDelayed(mTicker, TICK_INTERVAL_MS);
+    }
+
     // ─────────────────────────────── sampling ───────────────────────────────
 
     private void sample() {
-        int raw = FpsCounter.getFps();
+        int raw = mFpsWindow.getFps();
         int state;
         int value;
         if (raw > 0) {
             state = STATE_LIVE;
-            value = mLastSample < 0 || mState != STATE_LIVE
-                    ? raw
-                    : (int) Math.round(mLastSample * (1f - SMOOTHING) + raw * SMOOTHING);
+            value = raw; // Measured independent window, no cosmetic smoothing of the metric.
         } else if (raw == 0) {
             // frames not presented yet — show the truth, not a placeholder number
             state = STATE_WARMING;
@@ -176,7 +186,7 @@ public class ControlFps extends ControlButton {
             setText(number);
             return;
         }
-        String text = number + " FPS";
+        String text = number + " SWAP FPS";
         SpannableString out = new SpannableString(text);
         int unitStart = number.length();
         out.setSpan(new RelativeSizeSpan(0.66f), unitStart, text.length(),

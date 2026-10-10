@@ -9,7 +9,14 @@ import android.util.Log;
 /** System-awareness only; never changes Minecraft quality, FPS, VSync, or heap. */
 public final class AndroidGameStateController {
     private final GameManager manager;
-    public AndroidGameStateController(Context context){manager=Build.VERSION.SDK_INT>=33?context.getSystemService(GameManager.class):null;}
+    public AndroidGameStateController(Context context) {
+        GameManager available = null;
+        if (Build.VERSION.SDK_INT >= 33 && context != null) {
+            try { available = context.getSystemService(GameManager.class); }
+            catch (Throwable e) { Log.w("GameState", "Game Manager unavailable", e); }
+        }
+        manager = available;
+    }
     public void loading(){set(true,GameState.MODE_CONTENT);}
     public void playing(){set(false,GameState.MODE_GAMEPLAY_UNINTERRUPTIBLE);}
     public void paused(){set(false,GameState.MODE_GAMEPLAY_INTERRUPTIBLE);}

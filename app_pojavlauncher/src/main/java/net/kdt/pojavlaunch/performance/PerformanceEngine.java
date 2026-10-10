@@ -37,9 +37,9 @@ public final class PerformanceEngine {
      * Game visible again: the only moment the engine is allowed to run at all.
      *
      * <p>There is deliberately no window-level performance call anywhere in this class.
-     * {@code Window.setSustainedPerformanceMode()} used to be applied here and it is a frame-rate
-     * ceiling in disguise — on Android it asks the display for its reduced *sustained* refresh rate,
-     * which is how a "performance" profile ended up pinned at 60 on a 90/120 Hz panel.
+     * Sustained performance mode is a vendor-dependent power/thermal request, not a guaranteed
+     * refresh-rate API or an established cause of a 60 FPS limit. Leave it unset without a device
+     * experiment; request no fixed clocks or display mode here.
      * {@code WindowManager.LayoutParams.frameRateCategory} would be the modern equivalent but is not in
      * the SDK this module compiles against. So the game window is left exactly as the system created it;
      * the only refresh-rate request in the app is the one {@code MinecraftGLSurface} already makes on the

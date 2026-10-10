@@ -12,6 +12,7 @@
 #include "gl_bridge.h"
 #include "egl_loader.h"
 #include "../frame_pacing.h"
+#include "../frame_metrics.h"
 
 #define TAG __FILE_NAME__
 #include <unistd.h>
@@ -27,6 +28,7 @@ static __thread int requested_swap_interval = 1; /* EGL's normal default */
 static void gl_apply_swap_interval(void);
 
 bool gl_init() {
+    pojav_frame_set_coverage(0);
     if(!dlsym_EGL()) return false;
     g_EglDisplay = eglGetDisplay_p(EGL_DEFAULT_DISPLAY);
     if (g_EglDisplay == EGL_NO_DISPLAY) {
@@ -37,6 +39,7 @@ bool gl_init() {
         LOGE("eglInitialize_p() failed: %04x", eglGetError_p());
         return false;
     }
+    pojav_frame_set_coverage(1);
     return true;
 }
 

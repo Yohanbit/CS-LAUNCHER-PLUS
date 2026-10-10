@@ -19,7 +19,7 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Small append-only record of how long this device actually spent per frame, keyed by
+ * Small rolling record of sampled swap submission rates, keyed by
  * renderer + profile + game. This is descriptive history, not a controlled renderer benchmark:
  * resolution, world, mods and FPS cap are not recorded.
  *
@@ -179,8 +179,12 @@ public final class SessionStats {
                 if (o == null) continue;
                 if (rendererId != null && !rendererId.equals(o.optString("r", ""))) continue;
                 if (modeKey != null && !modeKey.equals(o.optString("m", ""))) continue;
-                hits.add(String.format(Locale.ROOT, "%d fps (worst second %d, %.1f ms/frame)",
-                        o.optInt("fps"), o.optInt("worst"), (float) o.optDouble("ms", 0.0)));
+                double inverseRateMs = o.optDouble("ms", Double.NaN);
+                String timing = Double.isNaN(inverseRateMs) || Double.isInfinite(inverseRateMs)
+                        ? "inverse median rate unavailable"
+                        : String.format(Locale.ROOT, "%.1f ms inverse median rate (not frame timing)", inverseRateMs);
+                hits.add(String.format(Locale.ROOT, "%d swap fps (worst second %d, %s)",
+                        o.optInt("fps"), o.optInt("worst"), timing));
             }
             if (hits.isEmpty()) return "";
             StringBuilder b = new StringBuilder("Session history (scene/settings may differ)");

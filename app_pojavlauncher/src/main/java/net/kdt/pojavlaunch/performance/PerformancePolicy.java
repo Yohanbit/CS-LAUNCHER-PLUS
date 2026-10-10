@@ -25,7 +25,8 @@ import java.util.Map;
  * <p>The policy is <b>frozen at launch</b>. Every axis except heat is fixed before the game starts,
  * because a setting that changes underneath a running JVM produces behaviour nobody can attribute to
  * a cause. Thermal state is the one live axis, applied by {@link ThermalGovernor}, and it can only
- * ever take levers away, never add them.
+ * ever take levers away, never add unrequested ones. A pre-JVM renderer fallback reconciles the
+ * renderer context/environment without resolving settings a second time.
  */
 public final class PerformancePolicy {
 
@@ -69,6 +70,7 @@ public final class PerformancePolicy {
     // ── JVM ──
     public final GcPlan gcPlan;
     public final int heapBiasPercent;
+    /** Advisory heap budget only; 0 means unknown/insufficient headroom. Never overrides user Xmx. */
     public final int maxHeapMb;
     public final boolean experimentalJvmFlags;
 
@@ -108,8 +110,35 @@ public final class PerformancePolicy {
         unavailable = Collections.unmodifiableList(new ArrayList<>(b.unavailable));
     }
 
-    /** The policy the current launch was given, if one was resolved. Never recomputed mid-session. */
+    /** Current launch policy; renderer facts may be reconciled before JVM creation after fallback. */
     public static PerformancePolicy current() {
+        return sFrozen;
+    }
+
+    /** Pre-JVM fallback only: preserve launch decisions, replace renderer-specific facts. */
+    public static synchronized PerformancePolicy reconcileRenderer(String renderer) {
+        PerformancePolicy old = sFrozen;
+        if (old == null || old.game == null || old.game.rendererId.equals(renderer)) return old;
+        Builder b = new Builder(old.mode, old.device, old.game.withRenderer(renderer));
+        b.boostGameThreads = old.boostGameThreads;
+        b.threadPriority = old.threadPriority;
+        b.maxBoostedThreads = old.maxBoostedThreads;
+        b.adpfSession = old.adpfSession;
+        b.playerVsync = old.playerVsync;
+        b.vsyncOwner = old.vsyncOwner;
+        b.gcPlan = old.gcPlan;
+        b.heapBiasPercent = old.heapBiasPercent;
+        b.maxHeapMb = old.maxHeapMb;
+        b.experimentalJvmFlags = old.experimentalJvmFlags;
+        b.quietLevel = old.quietLevel;
+        b.thermalShedAllowed = old.thermalShedAllowed;
+        b.thermalPolling = old.thermalPolling;
+        for (String note : old.unavailable) {
+            if (!note.startsWith("no driver tuning for the selected renderer")) b.unavailable.add(note);
+        }
+        b.rendererEnv.putAll(RendererPolicy.envFor(b.mode, b.device, b.game,
+                b.experimentalJvmFlags, b.unavailable));
+        sFrozen = b.build();
         return sFrozen;
     }
 
@@ -133,39 +162,36 @@ public final class PerformancePolicy {
         b.experimentalJvmFlags = mode.isExperimentalEnabled(prefs);
 
         // ── presentation: the launcher never asks the display to hold back.
-        // Window.setSustainedPerformanceMode() sounds like "stable clocks" but on Android it is
-        // implemented as a *reduced sustained refresh rate* on many panels — a frame-rate ceiling, which
-        // is exactly what a performance profile must not add. It used to be defaulted on for phones this
-        // launcher guessed were powerful, and the first version of this engine inherited that as the
-        // balanced profile's behaviour. Both are gone: nothing here touches the display's rate, and
-        // Minecraft's own vsync/FPS options are the only thing that can pace frames.
+        // Sustained performance mode is vendor-dependent power/thermal policy, not a refresh-rate
+        // setter and not proof of a 60 FPS limit. No unmeasured sustained-mode request is made here.
         b.playerVsync = RendererPolicy.playerAskedForVsync(game);
         b.vsyncOwner = RendererPolicy.vsyncReason(game);
 
         // ── scheduler
-        b.boostGameThreads = mode.requestsBoost();
-        b.maxBoostedThreads = mode == PerformanceMode.MAXIMUM ? 10 : 6;
-        b.threadPriority = mode == PerformanceMode.MAXIMUM
-                ? android.os.Process.THREAD_PRIORITY_URGENT_DISPLAY
-                : android.os.Process.THREAD_PRIORITY_DISPLAY;
-        // ADPF's Java performance-hint API is Android 12 (API 31); the NDK form arrived in 13.
-        boolean adpfPossible = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S;
-        b.adpfSession = mode == PerformanceMode.MAXIMUM && adpfPossible;
-        if (mode == PerformanceMode.MAXIMUM && !adpfPossible) {
-            b.unavailable.add("ADPF performance hints need Android 12");
+        b.boostGameThreads = mode.requestsBoost() && b.experimentalJvmFlags;
+        b.maxBoostedThreads = b.boostGameThreads ? 2 : 0;
+        // Favorable nice value only. Display/urgent display competes with composition/audio.
+        b.threadPriority = android.os.Process.THREAD_PRIORITY_DEFAULT - 2;
+        // FPS, swap duration and wall frame intervals are not genuine CPU work durations.
+        b.adpfSession = false;
+        if (mode == PerformanceMode.MAXIMUM) {
+            b.unavailable.add(Build.VERSION.SDK_INT < Build.VERSION_CODES.S
+                    ? "ADPF needs Android 12 and genuine CPU work timing (disabled)"
+                    : "ADPF disabled: genuine CPU work timing/membership unavailable");
+        }
+        if (mode.requestsBoost() && !b.experimentalJvmFlags) {
+            b.unavailable.add("scheduler/GC experiments off; no device benefit established");
         }
 
         // ── JVM: only what has a reason and a citation; sizing is clamped to what Android allows.
         int ceiling = ctx != null ? Tools.getMaximumRamAllocation(ctx) : Integer.MAX_VALUE;
-        // The already-sanitized value the settings UI committed: never re-guess it here.
         int base = LauncherPreferences.PREF_RAM_ALLOCATION > 0 ? LauncherPreferences.PREF_RAM_ALLOCATION : 1024;
-        int bias = mode == PerformanceMode.MAXIMUM ? 15 : (mode == PerformanceMode.PERFORMANCE ? 8 : 0);
-        if (!b.experimentalJvmFlags) bias = 0; // heap headroom is not shipped unmeasured
-        int wanted = base + (base * bias) / 100;
-        int avail = device.availRamMb > 0 ? (int) (device.availRamMb * 0.55f) : Integer.MAX_VALUE;
-        b.heapBiasPercent = bias;
-        b.maxHeapMb = Math.max(256, Math.min(Math.min(wanted, ceiling), avail));
-        if (device.partial) b.unavailable.add("Device profile still building — JVM sizing stays conservative");
+        b.heapBiasPercent = 0; // Heap inflation is not GPU headroom or a proven optimization.
+        b.maxHeapMb = RuntimeMemoryBudget.recommendedHeapMb(device.totalRamMb, device.availRamMb, ceiling);
+        if (b.maxHeapMb == 0) b.unavailable.add("Android/native/GPU headroom cannot be estimated safely");
+        else if (base > b.maxHeapMb) b.unavailable.add("selected heap exceeds advisory Android/native/GPU budget ("
+                + b.maxHeapMb + " MB); user heap preserved");
+        if (device.partial) b.unavailable.add("Device profile still building — user heap unchanged");
         b.gcPlan = pickGcPlan(mode, device, game, b.experimentalJvmFlags);
         if (mode == PerformanceMode.EXTREME) b.gcPlan = GcPlan.ERGONOMIC;
 
@@ -186,12 +212,12 @@ public final class PerformancePolicy {
 
     private static GcPlan pickGcPlan(PerformanceMode mode, DeviceCapability device, McContext game,
                                      boolean experimental) {
-        if (mode == PerformanceMode.NORMAL) return GcPlan.ERGONOMIC;
+        if (mode == PerformanceMode.NORMAL || !experimental) return GcPlan.ERGONOMIC;
         boolean heavySession = game.allocationPressureClass() >= 2;
         boolean bigHeap = device.totalRamMb >= 6144 || game.isModern() && heavySession;
         // Throughput tuning is a Maximum-Performance decision only: it trades pause time for total
         // work, which is the wrong shape for a profile whose promise is smoothness.
-        if (mode == PerformanceMode.MAXIMUM && bigHeap && (experimental || heavySession)) return GcPlan.G1_THROUGHPUT;
+        if (mode == PerformanceMode.MAXIMUM && bigHeap) return GcPlan.G1_THROUGHPUT;
         return GcPlan.G1_LOW_PAUSE;
     }
 
@@ -238,6 +264,10 @@ public final class PerformancePolicy {
     /** JVM arguments derived from this policy. Order is fixed so A/B runs are comparable. */
     public List<String> jvmFlags() {
         return JvmPolicy.flagsFor(this);
+    }
+
+    public List<String> jvmFlags(int javaVersion, List<String> userArgs) {
+        return JvmPolicy.flagsFor(this, javaVersion, userArgs);
     }
 
     public static void clear() {

@@ -511,6 +511,8 @@ public class MainActivity extends BaseActivity implements ControlButtonMenuListe
 
     // ── CS Perf: FPS overlay chip — purely cosmetic, launch chain untouched ──
     private TextView mFpsChip;
+    private final net.kdt.pojavlaunch.utils.FpsCounter.Window mHudFpsWindow =
+            new net.kdt.pojavlaunch.utils.FpsCounter.Window();
     private final Runnable mFpsTicker = new Runnable() {
         @Override public void run() { tickFpsOverlay(); }
     };
@@ -575,7 +577,7 @@ public class MainActivity extends BaseActivity implements ControlButtonMenuListe
     }
 
     private void renderFpsText(TextView chip, int fps, int color) {
-        android.text.SpannableString text = new android.text.SpannableString(fps + " FPS");
+        android.text.SpannableString text = new android.text.SpannableString(fps + " SWAP FPS");
         int numLen = String.valueOf(fps).length();
         text.setSpan(new android.text.style.RelativeSizeSpan(1.45f),
                 0, numLen, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -597,30 +599,12 @@ public class MainActivity extends BaseActivity implements ControlButtonMenuListe
         final int dotColor = fps >= 60 ? 0xFF62D99B : (fps >= 30 ? 0xFFE8C989 : 0xFFFF6B6B);
         mFpsDot.setColor(dotColor);
 
-        // ── Rolling odometer: the number glides from the old value to the
-        // new one instead of teleporting — feels like a real instrument.
-        if (mDisplayedFps < 0 || !chip.isShown()) {
+        // Report the measured window, not animated intermediate numbers.
+        // Formatting happens once per changed sample, not on every animation frame.
+        if (mDisplayedFps != fps) {
+            if (mFpsCountAnimator != null) mFpsCountAnimator.cancel();
             mDisplayedFps = fps;
             renderFpsText(chip, fps, color);
-        } else if (fps != mDisplayedFps) {
-            if (mFpsCountAnimator != null) mFpsCountAnimator.cancel();
-            mFpsCountAnimator = android.animation.ValueAnimator.ofInt(mDisplayedFps, fps);
-            mFpsCountAnimator.setDuration(420);
-            mFpsCountAnimator.setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f));
-            mFpsCountAnimator.addUpdateListener(a -> {
-                mDisplayedFps = (int) a.getAnimatedValue();
-                renderFpsText(chip, mDisplayedFps, color);
-            });
-            mFpsCountAnimator.start();
-        }
-
-        // Soft breathing pulse on meaningful jumps (≥5 fps).
-        if (mLastShownFps >= 0 && Math.abs(fps - mLastShownFps) >= 5) {
-            chip.animate().cancel();
-            chip.setScaleX(1.06f); chip.setScaleY(1.06f);
-            chip.animate().scaleX(1f).scaleY(1f).setDuration(260)
-                    .setInterpolator(new android.view.animation.DecelerateInterpolator(1.5f))
-                    .start();
         }
         mLastShownFps = fps;
     }
@@ -670,6 +654,7 @@ public class MainActivity extends BaseActivity implements ControlButtonMenuListe
         if (mFpsChip != null) armFpsChipDrag(mFpsChip, "fpsChipTx", "fpsChipTy");
         if (mMemChip != null) armFpsChipDrag(mMemChip, "memChipTx", "memChipTy");
         Tools.MAIN_HANDLER.removeCallbacks(mFpsTicker);
+        mHudFpsWindow.reset();
         boolean showFps = isDiagnosticHudEnabled("showFpsCounter");
         boolean showMem = isDiagnosticHudEnabled("showMemoryChip");
         if (!showFps && !showMem) {
@@ -768,6 +753,9 @@ public class MainActivity extends BaseActivity implements ControlButtonMenuListe
 
     private void stopFpsTicker() {
         Tools.MAIN_HANDLER.removeCallbacks(mFpsTicker);
+        mHudFpsWindow.reset();
+        mDisplayedFps = mLastShownFps = -1;
+        if (mFpsCountAnimator != null) mFpsCountAnimator.cancel();
     }
 
     private void tickFpsOverlay() {
@@ -789,8 +777,13 @@ public class MainActivity extends BaseActivity implements ControlButtonMenuListe
                 chip.setVisibility(View.VISIBLE);
                 restoreFpsChipPosition(chip, "fpsChipTx", "fpsChipTy");
             }
-            int fps = net.kdt.pojavlaunch.utils.FpsCounter.getFps();
+            int fps = mHudFpsWindow.getFps();
             if (fps >= 0) updateFpsChipAdvanced(chip, fps);
+            else if (mDisplayedFps != -1 || !"-- SWAP FPS".contentEquals(chip.getText())) {
+                if (mFpsCountAnimator != null) mFpsCountAnimator.cancel();
+                mDisplayedFps = mLastShownFps = -1;
+                chip.setText("-- SWAP FPS");
+            }
         }
 
         // RAM/PSS is a diagnostic query, not a frame metric. Sample it much
