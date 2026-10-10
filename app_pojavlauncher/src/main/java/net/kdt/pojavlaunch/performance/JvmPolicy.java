@@ -13,9 +13,10 @@ public final class JvmPolicy {
     }
 
     public static List<String> flagsFor(PerformancePolicy policy, int javaVersion, List<String> userArgs) {
-        if (policy == null || !policy.experimentalJvmFlags
-                || policy.gcPlan == PerformancePolicy.GcPlan.ERGONOMIC) return Collections.emptyList();
-        return Collections.unmodifiableList(RuntimeJvmArguments.g1Experiment(javaVersion,
+        if (policy == null) return Collections.emptyList();
+        boolean enabled = policy.experimentalJvmFlags && policy.gcPlan != PerformancePolicy.GcPlan.ERGONOMIC;
+        if (!enabled) return Collections.emptyList();
+        return Collections.unmodifiableList(RuntimeJvmArguments.g1Experiment(enabled, javaVersion,
                 policy.gcPlan == PerformancePolicy.GcPlan.G1_THROUGHPUT, policy.device.cores, userArgs));
     }
 }

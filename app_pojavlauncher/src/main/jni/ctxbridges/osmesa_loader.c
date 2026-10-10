@@ -20,23 +20,40 @@ void (*glClear_p) (GLbitfield mask);
 void (*glReadPixels_p) (GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, void * data);
 void* (*OSMesaGetProcAddress_p)(const char* funcName);
 
+#define OSMESA_BRIDGE_SYMBOLS(X) \
+    X(OSMesaMakeCurrent) X(OSMesaGetCurrentContext) X(OSMesaCreateContext) \
+    X(OSMesaDestroyContext) X(OSMesaPixelStore) X(glGetString) \
+    X(glClearColor) X(glClear) X(glFinish) X(glReadPixels)
+
+static void clear_osmesa_symbols(void) {
+#define CLEAR(N) N##_p = NULL;
+    OSMESA_BRIDGE_SYMBOLS(CLEAR)
+#undef CLEAR
+    OSMesaGetProcAddress_p = NULL;
+}
+
+static void* osmesa_bridge_symbol(void* handle, const char* name) {
+    void* symbol = OSMesaGetProcAddress_p != NULL ? OSMesaGetProcAddress_p(name) : NULL;
+    return symbol != NULL ? symbol : dlsym(handle, name);
+}
+
 bool dlsym_OSMesa() {
+    clear_osmesa_symbols();
     void* dl_handle = loader_dlopen("libOSMesa.so.8", "libOSMesa.so", RTLD_LOCAL | RTLD_LAZY);
     if(dl_handle == NULL) return false;
     OSMesaGetProcAddress_p = dlsym(dl_handle, "OSMesaGetProcAddress");
-    if(OSMesaGetProcAddress_p == NULL) {
-        printf("%s\n", dlerror());
-        return false;
+#define LOAD(N) \
+    N##_p = osmesa_bridge_symbol(dl_handle, #N); \
+    if (N##_p == NULL) { \
+        fprintf(stderr, "OSMesaBridge: missing required symbol %s\n", #N); \
+        goto fail; \
     }
-    OSMesaMakeCurrent_p = OSMesaGetProcAddress_p("OSMesaMakeCurrent");
-    OSMesaGetCurrentContext_p = OSMesaGetProcAddress_p("OSMesaGetCurrentContext");
-    OSMesaCreateContext_p = OSMesaGetProcAddress_p("OSMesaCreateContext");
-    OSMesaDestroyContext_p = OSMesaGetProcAddress_p("OSMesaDestroyContext");
-    OSMesaPixelStore_p = OSMesaGetProcAddress_p("OSMesaPixelStore");
-    glGetString_p = OSMesaGetProcAddress_p("glGetString");
-    glClearColor_p = OSMesaGetProcAddress_p("glClearColor");
-    glClear_p = OSMesaGetProcAddress_p("glClear");
-    glFinish_p = OSMesaGetProcAddress_p("glFinish");
-    glReadPixels_p = OSMesaGetProcAddress_p("glReadPixels");
+    OSMESA_BRIDGE_SYMBOLS(LOAD)
+#undef LOAD
     return true;
+
+fail:
+    clear_osmesa_symbols();
+    dlclose(dl_handle);
+    return false;
 }

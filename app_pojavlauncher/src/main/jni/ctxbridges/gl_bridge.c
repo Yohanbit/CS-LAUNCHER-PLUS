@@ -37,6 +37,7 @@ bool gl_init() {
     }
     if (eglInitialize_p(g_EglDisplay, 0, 0) != EGL_TRUE) {
         LOGE("eglInitialize_p() failed: %04x", eglGetError_p());
+        g_EglDisplay = EGL_NO_DISPLAY;
         return false;
     }
     pojav_frame_set_coverage(1);
@@ -64,40 +65,53 @@ static void gl4esi_get_display_dimensions(int* width, int* height) {
 }
 
 gl_render_window_t* gl_init_context(gl_render_window_t *share) {
-    gl_render_window_t* bundle = malloc(sizeof(gl_render_window_t));
-    memset(bundle, 0, sizeof(gl_render_window_t));
+    if (g_EglDisplay == EGL_NO_DISPLAY) return NULL;
+    gl_render_window_t* bundle = calloc(1, sizeof(gl_render_window_t));
+    if (bundle == NULL) return NULL;
     EGLint egl_attributes[] = { EGL_BLUE_SIZE, 8, EGL_GREEN_SIZE, 8, EGL_RED_SIZE, 8, EGL_ALPHA_SIZE, 8, EGL_DEPTH_SIZE, 24, EGL_SURFACE_TYPE, EGL_WINDOW_BIT|EGL_PBUFFER_BIT, EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT, EGL_NONE };
     EGLint num_configs = 0;
 
-    if (eglChooseConfig_p(g_EglDisplay, egl_attributes, NULL, 0, &num_configs) != EGL_TRUE) {
+    /* Request the first matching config directly: the previous count-only
+     * query was redundant and the second (unchecked) query could fail. */
+    if (eglChooseConfig_p(g_EglDisplay, egl_attributes, &bundle->config, 1, &num_configs) != EGL_TRUE) {
         LOGE("eglChooseConfig_p() failed: %04x", eglGetError_p());
         free(bundle);
         return NULL;
     }
-    if (num_configs == 0) {
+    if (num_configs == 0 || bundle->config == NULL) {
         LOGE("%s", "eglChooseConfig_p() found no matching config");
         free(bundle);
         return NULL;
     }
 
-    // Get the first matching config
-    eglChooseConfig_p(g_EglDisplay, egl_attributes, &bundle->config, 1, &num_configs);
-    eglGetConfigAttrib_p(g_EglDisplay, bundle->config, EGL_NATIVE_VISUAL_ID, &bundle->format);
+    if (!eglGetConfigAttrib_p(g_EglDisplay, bundle->config, EGL_NATIVE_VISUAL_ID, &bundle->format)) {
+        LOGE("eglGetConfigAttrib_p() failed: %04x", eglGetError_p());
+        free(bundle);
+        return NULL;
+    }
 
     {
         EGLBoolean bindResult;
-        if (strncmp(getenv("AMETHYST_RENDERER"), "opengles3_desktopgl", 19) == 0) {
+        const char* renderer = getenv("AMETHYST_RENDERER");
+        if (renderer != NULL && strncmp(renderer, "opengles3_desktopgl", 19) == 0) {
             printf("EGLBridge: Binding to desktop OpenGL\n");
             bindResult = eglBindAPI_p(EGL_OPENGL_API);
         } else {
             printf("EGLBridge: Binding to OpenGL ES\n");
             bindResult = eglBindAPI_p(EGL_OPENGL_ES_API);
         }
-        if (!bindResult) printf("EGLBridge: bind failed: %04x\n", eglGetError_p());
+        if (!bindResult) {
+            LOGE("EGLBridge: bind failed: %04x", eglGetError_p());
+            free(bundle);
+            return NULL;
+        }
     }
 
-    int libgl_es = strtol(getenv("LIBGL_ES"), NULL, 0);
-    if(libgl_es < 0 || libgl_es > INT16_MAX) libgl_es = 2;
+    const char* version = getenv("LIBGL_ES");
+    char* end = NULL;
+    long parsed_version = version != NULL ? strtol(version, &end, 0) : 0;
+    int libgl_es = version != NULL && end != version && *end == '\0' &&
+                   parsed_version > 0 && parsed_version <= INT16_MAX ? (int)parsed_version : 2;
     const EGLint egl_context_attributes[] = { EGL_CONTEXT_CLIENT_VERSION, libgl_es, EGL_NONE };
     bundle->context = eglCreateContext_p(g_EglDisplay, bundle->config, share == NULL ? EGL_NO_CONTEXT : share->context, egl_context_attributes);
 

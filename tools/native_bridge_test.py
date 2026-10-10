@@ -10,6 +10,8 @@ source = (root / "app_pojavlauncher/src/main/jni/egl_bridge.c").read_text()
 start = source.index("int pojavInitOpenGL() {")
 end = source.index("extern void updateMonitorSize", start)
 function = source[start:end]
+table = (root / "app_pojavlauncher/src/main/jni/ctxbridges/bridge_tbl.h").read_text()
+function = table[table.index("void clear_bridge_tbl() {"):table.index("void set_osm_bridge_tbl() {")] + function
 prefix = r'''
 #define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
@@ -21,12 +23,17 @@ struct state { int force_vsync; int config_renderer; } state;
 static struct state *pojav_environ = &state;
 static int (*br_init)(void);
 static void (*br_setup_window)(void);
+static int (*br_init_context)(void), (*br_make_current)(void), (*br_get_current)(void);
+static int (*br_swap_buffers)(void), (*br_swap_interval)(void);
 static int coverage, inits, setups, vulkan_loads, incomplete;
 static void pojav_frame_set_coverage(int value) { coverage=value; }
 static int init(void) { inits++; return 1; }
 static void setup(void) { setups++; }
-static void set_gl_bridge_tbl(void) { br_init=incomplete?NULL:init; br_setup_window=setup; }
-static void set_osm_bridge_tbl(void) { br_init=init; br_setup_window=setup; }
+static void set_gl_bridge_tbl(void) {
+    br_init=incomplete?NULL:init; br_setup_window=setup;
+    br_init_context=br_make_current=br_get_current=br_swap_buffers=br_swap_interval=init;
+}
+static void set_osm_bridge_tbl(void) { set_gl_bridge_tbl(); }
 static void load_vulkan(void) { vulkan_loads++; }
 '''
 suffix = r'''

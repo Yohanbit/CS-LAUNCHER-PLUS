@@ -1,9 +1,9 @@
-name: Build verified Unamed launcher prerelease
+name: Build Unamed launcher runtime prerelease
 
 on:
   workflow_dispatch:
   push:
-    branches: [fix/verified-performance-mali-g76]
+    branches: [fix/mali-runtime-round2]
     paths:
       - '**'
       - '!README.md'
@@ -45,6 +45,7 @@ jobs:
       - name: Run all host logic and native tests
         env:
           MEASUREMENT_REQUIRE_NDK: '1'
+          NATIVE_REQUIRE_NDK: '1'
         shell: bash
         run: |
           set -euo pipefail
@@ -106,7 +107,7 @@ jobs:
       - name: Build signed test APK
         run: |
           chmod +x gradlew
-          ./gradlew :app_pojavlauncher:assembleDebug :app_pojavlauncher:testDebugUnitTest -PallowMissingFirebase=true -PextremeVersion=1.4.1-verified-test -PverifiedVersionCode=10010001 --no-daemon --stacktrace
+          ./gradlew :app_pojavlauncher:assembleDebug :app_pojavlauncher:testDebugUnitTest -PallowMissingFirebase=true -PextremeVersion=1.4.2-runtime-test -PverifiedVersionCode="$((10010000 + GITHUB_RUN_NUMBER))" --no-daemon --stacktrace
       - name: Verify renderer is included in every APK
         shell: bash
         run: |
@@ -141,7 +142,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Unamed-launcher-verified-APK
+          name: Unamed-launcher-runtime-APK
           path: app_pojavlauncher/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
@@ -171,7 +172,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: Unamed-launcher-verified-APK
+          name: Unamed-launcher-runtime-APK
           path: apk
       - uses: actions/checkout@v4
         with:
@@ -188,9 +189,9 @@ jobs:
           BUILD_SHA: ${{ github.sha }}
           BUILD_RUN: ${{ github.run_id }}
         run: |
-          gh release create "verified-1.4.1-$BUILD_RUN" apk/*.apk verification/apk-inspection.txt verification/tests.txt verification/commit.txt \
+          gh release create "runtime-1.4.2-$BUILD_RUN" apk/*.apk verification/apk-inspection.txt verification/tests.txt verification/commit.txt verification/previous-apk.json \
             --target "$BUILD_SHA" \
-            --title "Unamed launcher 1.4.1 — prerelease de prueba $BUILD_RUN" \
+            --title "Unamed launcher 1.4.2 — prerelease de prueba $BUILD_RUN" \
             --prerelease \
-            --notes-file source/docs/VERIFIED-RELEASE-NOTES.md
-          gh release view "verified-1.4.1-$BUILD_RUN" --json name,url,assets --jq '{name,url,assets:[.assets[]|{name,size,url}]}'
+            --notes-file source/docs/ROUND2-RELEASE-NOTES.md
+          gh release view "runtime-1.4.2-$BUILD_RUN" --json name,url,assets --jq '{name,url,assets:[.assets[]|{name,size,url}]}'

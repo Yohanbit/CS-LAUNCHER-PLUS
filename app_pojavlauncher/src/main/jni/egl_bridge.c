@@ -4,6 +4,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -21,6 +22,7 @@
 #endif
 
 #include <android/native_window.h>
+#include <android/api-level.h>
 #include <android/native_window_jni.h>
 #include <android/rect.h>
 #include <string.h>
@@ -67,6 +69,9 @@ EXTERNAL_API void pojavTerminate() {
 
     switch (pojav_environ->config_renderer) {
         case RENDERER_GL4ES: {
+            /* The legacy PotatoBridge is not populated by ctxbridges. In
+             * particular, failed initialization must not call unloaded EGL. */
+            if (potatoBridge.eglDisplay == EGL_NO_DISPLAY || eglTerminate_p == NULL) break;
             eglMakeCurrent_p(potatoBridge.eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
             eglDestroySurface_p(potatoBridge.eglDisplay, potatoBridge.eglSurface);
             eglDestroyContext_p(potatoBridge.eglDisplay, potatoBridge.eglContext);
@@ -97,7 +102,7 @@ Java_net_kdt_pojavlaunch_utils_JREUtils_releaseBridgeWindow(ABI_COMPAT JNIEnv *e
 }
 
 EXTERNAL_API void* pojavGetCurrentContext() {
-    return br_get_current();
+    return br_get_current != NULL ? br_get_current() : NULL;
 }
 
 //#define ADRENO_POSSIBLE
@@ -159,6 +164,9 @@ void load_vulkan() {
 }
 
 int pojavInitOpenGL() {
+    clear_bridge_tbl();
+    pojav_environ->config_renderer = 0;
+    pojav_frame_set_coverage(0);
     // Only affects GL4ES as of now
     const char *forceVsync = getenv("FORCE_VSYNC");
     pojav_environ->force_vsync = forceVsync != NULL && strcmp(forceVsync, "true") == 0;
@@ -188,15 +196,24 @@ int pojavInitOpenGL() {
         fprintf(stderr, "EGLBridge: unsupported renderer %s; refusing bridge initialization\n", renderer);
         return 0;
     }
-    if (br_init == NULL || br_setup_window == NULL) {
+    if (br_init == NULL || br_setup_window == NULL || br_init_context == NULL ||
+        br_make_current == NULL || br_get_current == NULL || br_swap_buffers == NULL ||
+        br_swap_interval == NULL) {
+        clear_bridge_tbl();
+        pojav_environ->config_renderer = 0;
         pojav_frame_set_coverage(0);
         fprintf(stderr, "EGLBridge: incomplete bridge table\n");
         return 0;
     }
-    if(br_init()) {
-        br_setup_window();
+    if (!br_init()) {
+        clear_bridge_tbl();
+        pojav_environ->config_renderer = 0;
+        pojav_frame_set_coverage(0);
+        fprintf(stderr, "EGLBridge: backend initialization failed\n");
+        return 0;
     }
-    return 0;
+    br_setup_window();
+    return 1;
 }
 
 extern void updateMonitorSize(int width, int height);
@@ -207,12 +224,17 @@ EXTERNAL_API int pojavInit() {
         printf("Failed to attach Java-side JNIEnv to GLFW thread\n");
         return 0;
     }
+    if (pojav_environ->pojavWindow == NULL) return 0;
+    /* GLFW initialization precedes GLFW_CLIENT_API window hints. Set up the
+     * platform only: an unused/failed GL backend must not block NO_API windows. */
+    clear_bridge_tbl();
+    pojav_environ->config_renderer = 0;
+    pojav_frame_set_coverage(0);
     ANativeWindow_acquire(pojav_environ->pojavWindow);
     pojav_environ->savedWidth = ANativeWindow_getWidth(pojav_environ->pojavWindow);
     pojav_environ->savedHeight = ANativeWindow_getHeight(pojav_environ->pojavWindow);
     ANativeWindow_setBuffersGeometry(pojav_environ->pojavWindow,pojav_environ->savedWidth,pojav_environ->savedHeight,AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM);
     updateMonitorSize(pojav_environ->savedWidth, pojav_environ->savedHeight);
-    pojavInitOpenGL();
     return 1;
 }
 
@@ -225,16 +247,19 @@ EXTERNAL_API void pojavSetWindowHint(int hint, int value) {
             /* Nothing to do: initialization is handled in Java-side */
             // pojavInitVulkan();
             break;
-        case GLFW_OPENGL_API:
+        case GLFW_OPENGL_API: {
             const char *renderer = getenv("AMETHYST_RENDERER");
-            if (strncmp("opengles", renderer, 8) == 0) {
+            if (renderer != NULL && strncmp("opengles", renderer, 8) == 0) {
                 pojav_environ->config_renderer = RENDERER_GL4ES;
-            } else if (strcmp(renderer, "vulkan_zink") == 0) {
+            } else if (renderer != NULL && strcmp(renderer, "vulkan_zink") == 0) {
                 pojav_environ->config_renderer = RENDERER_VK_ZINK;
+            } else {
+                pojav_environ->config_renderer = 0;
             }
             /* Nothing to do: initialization is called in pojavCreateContext */
             // pojavInitOpenGL();
             break;
+        }
         default:
             printf("GLFW: Unimplemented API 0x%x\n", value);
             abort();
@@ -308,14 +333,18 @@ Java_net_kdt_pojavlaunch_utils_FrameMetrics_nativeReadSnapshot(JNIEnv* env, jcla
 
 
 EXTERNAL_API void pojavMakeCurrent(void* window) {
-    br_make_current((basic_render_window_t*)window);
+    if (br_make_current != NULL) br_make_current((basic_render_window_t*)window);
 }
 
 EXTERNAL_API void* pojavCreateContext(void* contextSrc) {
     if (pojav_environ->config_renderer == RENDERER_VULKAN) {
         return (void *) pojav_environ->pojavWindow;
     }
-    return br_init_context((basic_render_window_t*)contextSrc);
+    /* Only a GL context request needs the GL bridge. Failed initialization
+     * clears the table and returns NULL; successful setup is reused by shared
+     * contexts rather than repeated for every context creation. */
+    if (br_init_context == NULL && !pojavInitOpenGL()) return NULL;
+    return br_init_context != NULL ? br_init_context((basic_render_window_t*)contextSrc) : NULL;
 }
 
 void* maybe_load_vulkan() {

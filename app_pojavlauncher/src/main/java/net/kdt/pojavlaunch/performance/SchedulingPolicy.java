@@ -9,10 +9,9 @@ import android.util.Log;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 /** Optional nice -2 experiment for exact game comm names; no affinity, clocks or realtime priority.
@@ -21,13 +20,15 @@ import java.util.Map;
  */
 public final class SchedulingPolicy {
     private static final long TICK_MS = 1000L;
+    private static final Runnable[] NO_LISTENERS = new Runnable[0];
     private static volatile SchedulingPolicy sActive;
     private final PerformancePolicy policy;
     private final HandlerThread thread;
     private final Handler handler;
     private final Map<Integer, OwnedThread> owned = new LinkedHashMap<>();
     private final Map<Integer, String> yielded = new LinkedHashMap<>();
-    private final List<Runnable> tickListeners = new ArrayList<>();
+    // Copy only on registration changes, not on every foreground heartbeat.
+    private volatile Runnable[] tickListeners = NO_LISTENERS;
     private volatile boolean shedByThermal;
     private boolean stopped;
 
@@ -43,19 +44,30 @@ public final class SchedulingPolicy {
     private SchedulingPolicy(PerformancePolicy policy) {
         this.policy = policy;
         thread = new HandlerThread("CS-PerfEngine", Process.THREAD_PRIORITY_BACKGROUND);
-        thread.start();
-        handler = new Handler(thread.getLooper());
+        try {
+            thread.start();
+            handler = new Handler(thread.getLooper());
+        } catch (Exception unavailable) {
+            thread.quitSafely();
+            throw unavailable;
+        }
     }
 
     public static synchronized void begin(Context ctx, PerformancePolicy policy) {
         end();
-        if (ctx == null || policy == null || (!policy.boostGameThreads && !policy.thermalPolling)) return;
+        if (ctx == null || policy == null || (!policy.boostGameThreads
+                && (!policy.thermalPolling || !ThermalGovernor.canPoll(ctx)))) return;
         try {
             SchedulingPolicy s = new SchedulingPolicy(policy);
             sActive = s;
             // Let the synchronous initial thermal read run before any experimental priority request.
-            s.handler.postDelayed(s.tick, TICK_MS);
-        } catch (Throwable e) { Log.w("CSPerf", "Scheduler unavailable", e); }
+            if (!s.handler.postDelayed(s.tick, TICK_MS)) {
+                throw new IllegalStateException("Scheduler looper rejected start");
+            }
+        } catch (Throwable e) {
+            end();
+            Log.w("CSPerf", "Scheduler unavailable", e);
+        }
     }
 
     public static synchronized void end() {
@@ -77,24 +89,44 @@ public final class SchedulingPolicy {
         }
         owned.clear();
         yielded.clear();
-        synchronized (tickListeners) { tickListeners.clear(); }
+        tickListeners = NO_LISTENERS;
     }
 
     /** True only when priority experiments were requested, not for an observe-only heartbeat. */
     public static boolean isActive() { return sActive != null && sActive.policy.boostGameThreads; }
 
     public static void addTickListener(Runnable r) {
+        tryAddTickListener(r);
+    }
+
+    /** Lifecycle handshake: consumers must not claim sampling without a live heartbeat. */
+    static boolean tryAddTickListener(Runnable r) {
         SchedulingPolicy s = sActive;
-        if (s == null || r == null) return;
-        synchronized (s.tickListeners) {
-            if (!s.tickListeners.contains(r)) s.tickListeners.add(r);
+        if (s == null || r == null) return false;
+        synchronized (s) {
+            if (s.stopped) return false;
+            for (Runnable listener : s.tickListeners) if (listener == r) return true;
+            Runnable[] next = Arrays.copyOf(s.tickListeners, s.tickListeners.length + 1);
+            next[next.length - 1] = r;
+            s.tickListeners = next;
+            return true;
         }
     }
 
     public static void removeTickListener(Runnable r) {
         SchedulingPolicy s = sActive;
         if (s == null || r == null) return;
-        synchronized (s.tickListeners) { s.tickListeners.remove(r); }
+        synchronized (s) {
+            Runnable[] previous = s.tickListeners;
+            for (int i = 0; i < previous.length; i++) {
+                if (previous[i] != r) continue;
+                Runnable[] next = new Runnable[previous.length - 1];
+                System.arraycopy(previous, 0, next, 0, i);
+                System.arraycopy(previous, i + 1, next, i, previous.length - i - 1);
+                s.tickListeners = next;
+                return;
+            }
+        }
     }
 
     public static void setThermalShed(boolean shed) {
@@ -110,8 +142,7 @@ public final class SchedulingPolicy {
     private final Runnable tick = new Runnable() {
         @Override public void run() {
             synchronized (SchedulingPolicy.this) { if (stopped) return; }
-            List<Runnable> copy;
-            synchronized (tickListeners) { copy = new ArrayList<>(tickListeners); }
+            Runnable[] copy = tickListeners;
             // Sample heat before scanning new candidates.
             for (Runnable listener : copy) {
                 synchronized (SchedulingPolicy.this) { if (stopped) return; }

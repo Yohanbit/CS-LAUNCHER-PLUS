@@ -37,6 +37,18 @@ public final class ThermalGovernor {
     private ThermalGovernor() {}
     public static Level current() { return sLevel; }
 
+    /** No public thermal signal before Android 10; do not create an UNKNOWN-only heartbeat. */
+    public static boolean canPoll(Context ctx) {
+        return powerManager(ctx) != null;
+    }
+
+    private static PowerManager powerManager(Context ctx) {
+        if (ctx == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null;
+        try {
+            return (PowerManager) ctx.getApplicationContext().getSystemService(Context.POWER_SERVICE);
+        } catch (Throwable unavailable) { return null; }
+    }
+
     public static String describe(Context ctx) {
         String headroom = Float.isNaN(sHeadroom) ? "n/a"
                 : String.format(Locale.ROOT, "%.2f (%ds ago)", sHeadroom,
@@ -53,9 +65,9 @@ public final class ThermalGovernor {
         sPeak = 0;
         HYSTERESIS.reset();
         if (ctx == null || policy == null || !policy.thermalPolling) return;
+        sPowerManager = powerManager(ctx);
+        if (sPowerManager == null) return;
         sPolicy = policy;
-        try { sPowerManager = (PowerManager) ctx.getApplicationContext().getSystemService(Context.POWER_SERVICE); }
-        catch (Throwable ignored) { sPowerManager = null; }
         final Runnable listener = new Runnable() {
             @Override public void run() {
                 synchronized (ThermalGovernor.class) {
@@ -64,7 +76,12 @@ public final class ThermalGovernor {
             }
         };
         sTick = listener;
-        SchedulingPolicy.addTickListener(listener);
+        if (!SchedulingPolicy.tryAddTickListener(listener)) {
+            sTick = null;
+            sPowerManager = null;
+            sPolicy = null;
+            return;
+        }
         sample();
     }
 

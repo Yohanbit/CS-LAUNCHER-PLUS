@@ -21,6 +21,18 @@ bool (*br_swap_buffers)() = NULL;
 void (*br_setup_window)() = NULL;
 void (*br_swap_interval)(int swapInterval) = NULL;
 
+/* Failed initialization must not leave callable entries into an unloaded or
+ * incomplete backend. Configuration/initialization occurs before rendering. */
+void clear_bridge_tbl() {
+    br_init = NULL;
+    br_init_context = NULL;
+    br_make_current = NULL;
+    br_get_current = NULL;
+    br_swap_buffers = NULL;
+    br_setup_window = NULL;
+    br_swap_interval = NULL;
+}
+
 
 void set_osm_bridge_tbl() {
     br_init = osm_init;

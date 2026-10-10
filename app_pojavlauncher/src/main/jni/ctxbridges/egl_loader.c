@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <dlfcn.h>
 #include <string.h>
+#include <stdio.h>
 #include "egl_loader.h"
 #include "loader_dlopen.h"
 
@@ -32,39 +33,60 @@ EGLBoolean (*eglQuerySurface_p)( 	EGLDisplay display,
                                            EGLint * value);
 __eglMustCastToProperFunctionPointerType (*eglGetProcAddress_p) (const char *procname);
 
+/* Core EGL entry points are not guaranteed to be returned by
+ * eglGetProcAddress on EGL 1.4 implementations. Keep the selected library's
+ * resolver first (wrapper compatibility), then try its direct exports. */
+#define EGL_BRIDGE_SYMBOLS(X) \
+    X(eglBindAPI) X(eglChooseConfig) X(eglCreateContext) \
+    X(eglCreatePbufferSurface) X(eglCreateWindowSurface) \
+    X(eglDestroyContext) X(eglDestroySurface) X(eglGetConfigAttrib) \
+    X(eglGetCurrentContext) X(eglGetDisplay) X(eglGetError) \
+    X(eglInitialize) X(eglMakeCurrent) X(eglSwapBuffers) \
+    X(eglReleaseThread) X(eglSwapInterval) X(eglTerminate) \
+    X(eglGetCurrentSurface) X(eglQuerySurface)
+
+static void clear_egl_symbols(void) {
+#define CLEAR(N) N##_p = NULL;
+    EGL_BRIDGE_SYMBOLS(CLEAR)
+#undef CLEAR
+    eglGetProcAddress_p = NULL;
+}
+
+static void* egl_bridge_symbol(void* handle, const char* name) {
+    void* symbol = eglGetProcAddress_p != NULL ? (void*)eglGetProcAddress_p(name) : NULL;
+    return symbol != NULL ? symbol : dlsym(handle, name);
+}
+
 bool dlsym_EGL() {
+    clear_egl_symbols();
+    void* cutils_handle = NULL;
     char* gles = getenv("LIBGL_GLES");
     char* eglName = (strncmp(gles ? gles : "", "libGLESv2_angle.so", 18) == 0) ? "libEGL_angle.so" : getenv("POJAVEXEC_EGL");
     // Kopper needs this
     if (eglName != NULL && strncmp(eglName, "libEGL_mesa.so", 14) == 0) {
-        void* cutils_handle = loader_dlopen("libcutils.so", "libcutils.so", RTLD_GLOBAL|RTLD_NOW);
+        cutils_handle = loader_dlopen("libcutils.so", "libcutils.so", RTLD_GLOBAL|RTLD_NOW);
         if(cutils_handle == NULL) return false;
     }
     void* dl_handle = loader_dlopen(eglName,"libEGL.so", RTLD_LOCAL|RTLD_LAZY);
-    if(dl_handle == NULL) return false;
-    eglGetProcAddress_p = dlsym(dl_handle, "eglGetProcAddress");
-    if(eglGetProcAddress_p == NULL) {
-        printf("%s\n", dlerror());
+    if(dl_handle == NULL) {
+        if (cutils_handle != NULL) dlclose(cutils_handle);
         return false;
     }
-    eglBindAPI_p = (void*) eglGetProcAddress_p("eglBindAPI");
-    eglChooseConfig_p = (void*) eglGetProcAddress_p("eglChooseConfig");
-    eglCreateContext_p = (void*) eglGetProcAddress_p("eglCreateContext");
-    eglCreatePbufferSurface_p = (void*) eglGetProcAddress_p("eglCreatePbufferSurface");
-    eglCreateWindowSurface_p = (void*) eglGetProcAddress_p("eglCreateWindowSurface");
-    eglDestroyContext_p = (void*) eglGetProcAddress_p("eglDestroyContext");
-    eglDestroySurface_p = (void*) eglGetProcAddress_p("eglDestroySurface");
-    eglGetConfigAttrib_p = (void*) eglGetProcAddress_p("eglGetConfigAttrib");
-    eglGetCurrentContext_p = (void*) eglGetProcAddress_p("eglGetCurrentContext");
-    eglGetDisplay_p = (void*) eglGetProcAddress_p("eglGetDisplay");
-    eglGetError_p = (void*) eglGetProcAddress_p("eglGetError");
-    eglInitialize_p = (void*) eglGetProcAddress_p("eglInitialize");
-    eglMakeCurrent_p = (void*) eglGetProcAddress_p("eglMakeCurrent");
-    eglSwapBuffers_p = (void*) eglGetProcAddress_p("eglSwapBuffers");
-    eglReleaseThread_p = (void*) eglGetProcAddress_p("eglReleaseThread");
-    eglSwapInterval_p = (void*) eglGetProcAddress_p("eglSwapInterval");
-    eglTerminate_p = (void*) eglGetProcAddress_p("eglTerminate");
-    eglGetCurrentSurface_p = (void*) eglGetProcAddress_p("eglGetCurrentSurface");
-    eglQuerySurface_p = (void*) eglGetProcAddress_p("eglQuerySurface");
+    eglGetProcAddress_p = dlsym(dl_handle, "eglGetProcAddress");
+#define LOAD(N) \
+    N##_p = egl_bridge_symbol(dl_handle, #N); \
+    if (N##_p == NULL) { \
+        fprintf(stderr, "EGLBridge: missing required symbol %s\n", #N); \
+        goto fail; \
+    }
+    EGL_BRIDGE_SYMBOLS(LOAD)
+#undef LOAD
+    /* Successful libraries remain loaded for the lifetime of their pointers. */
     return true;
+
+fail:
+    clear_egl_symbols();
+    dlclose(dl_handle);
+    if (cutils_handle != NULL) dlclose(cutils_handle);
+    return false;
 }

@@ -36,8 +36,6 @@ public class MultiRTUtils {
     private static final HashMap<String,Runtime> sCache = new HashMap<>();
 
     private static final File RUNTIME_FOLDER = new File(Tools.MULTIRT_HOME);
-    private static final String JAVA_VERSION_STR = "JAVA_VERSION=\"";
-    private static final String OS_ARCH_STR = "OS_ARCH=\"";
 
     public static List<Runtime> getInstalledRuntimes() {
         if(!RUNTIME_FOLDER.exists() && !RUNTIME_FOLDER.mkdirs()) {
@@ -95,7 +93,7 @@ public class MultiRTUtils {
         runtimeInputStream.close();
         unpack200(nativeLibDir,RUNTIME_FOLDER + "/" + name);
         ProgressLayout.clearProgress(ProgressLayout.UNPACK_RUNTIME);
-        read(name);
+        forceReread(name);
     }
 
     public static void postPrepare(String name) throws IOException {
@@ -156,6 +154,7 @@ public class MultiRTUtils {
     }
 
     public static File getRuntimeHome(String name) {
+        if (name == null || name.trim().isEmpty()) throw new IllegalArgumentException("No Java runtime selected");
         File dest = new File(RUNTIME_FOLDER, name);
         Log.i("MiltiRTUitls", "Dest exists? "+dest.exists());
         if((!dest.exists()) || MultiRTUtils.forceReread(name).versionString == null) throw new RuntimeException("Selected runtime is broken!");
@@ -168,6 +167,7 @@ public class MultiRTUtils {
     }
 
     public static Runtime read(String name) {
+        if (name == null || name.trim().isEmpty()) return new Runtime(name);
         Runtime returnRuntime = sCache.get(name);
         if(returnRuntime != null) return returnRuntime;
         File release = new File(RUNTIME_FOLDER,name+"/release");
@@ -176,20 +176,7 @@ public class MultiRTUtils {
         }
         try {
             String content = Tools.read(release.getAbsolutePath());
-            String javaVersion = Tools.extractUntilCharacter(content, JAVA_VERSION_STR, '"');
-            String osArch = Tools.extractUntilCharacter(content, OS_ARCH_STR, '"');
-            if(javaVersion != null && osArch != null) {
-                String[] javaVersionSplit = javaVersion.split("\\.");
-                int javaVersionInt;
-                if (javaVersionSplit[0].equals("1")) {
-                    javaVersionInt = Integer.parseInt(javaVersionSplit[1]);
-                } else {
-                    javaVersionInt = Integer.parseInt(javaVersionSplit[0]);
-                }
-                returnRuntime = new Runtime(name, javaVersion, osArch, javaVersionInt);
-            }else{
-                returnRuntime =  new Runtime(name);
-            }
+            returnRuntime = Runtime.fromRelease(name, content);
         }catch(IOException e) {
             returnRuntime =  new Runtime(name);
         }
