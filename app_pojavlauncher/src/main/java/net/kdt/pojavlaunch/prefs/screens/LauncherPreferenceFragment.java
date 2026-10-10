@@ -88,8 +88,7 @@ public class LauncherPreferenceFragment extends Fragment {
     private EditText mSearchInput;
     private final java.util.Set<String> mAnimatedSettingIcons = new java.util.HashSet<>();
     private static final String[] ALL_CATEGORIES = {
-            "Launcher Customisation", "Launcher Settings", "Video & Graphics", "All Controls", "Java Runtime",
-            "Audio", "Account", "Experimental", "Maintenance", "Miscellaneous", "Sponsors", "Performance"};
+            "General", "Game", "Display", "Controls", "Advanced", "Account"};
 
     // ── Settings v6 · PLAIN SETTINGS ──────────────────────────────────────
     // Four short pages (General / Game / Display / Controls) hold ONLY the
@@ -98,22 +97,23 @@ public class LauncherPreferenceFragment extends Fragment {
     // grouped under its old section name — nothing was removed, it was moved.
     /** Keys shown on the four simple pages (filtered out of Advanced so nothing appears twice). */
     private static final java.util.Set<String> SIMPLE_KEYS = new java.util.HashSet<>(java.util.Arrays.asList(
-            "check_for_update_btn", "launcher_animations", "launcher_transition_style", "launcher_animate_speed",
+            "check_for_update_btn", "launcher_animations",
             "downloadSource", "game_log_display_mode", "force_english", "verifyManifest", "notification_permission_request",
-            "perf_presets_general", "perf_presets_game", "perf_presets_display", "perf_presets_launcher", "perf_presets_graphics", "perf_presets_java", "perf_presets",
-            "allocation", "ram_effective_info", PerformanceMode.PREF_KEY, "install_jre", "javaArgs", "java_sandbox", "disable_autojre_select",
-            "resolutionRatio", "force_vsync", "mg_renderer_setting_fsr", "alternate_surface", "ignoreNotch", "vsync_in_zink", "mg_renderer_setting_angle", "mg_renderer_setting_multidraw",
+            "allocation", "ram_effective_info", PerformanceMode.PREF_KEY, "install_jre",
+            "extremeFpsMode", "extremeManualFps", "extremeFrameDiagnostics", "developer_gc_variant",
+            "extremeDynamicResolution", "extremeMinResolution", "extremeTargetFps",
+            "resolutionRatio", "force_vsync", "mg_renderer_setting_fsr",
             "buttonscale", "mousescale", "mousespeed", "enableGyro", "gyroSensitivity", "gyroSmoothing",
-            "timeLongPressTrigger", "disableDoubleTap", "mouse_start", "always_grab_mouse",
-            "gamepad_remap_action", "gamepad_deadzone_scale", "gamepadPassthru", "touchControllerVibrateLength"));
+            "gamepad_remap_action"));
     /** Legacy pages that feed the Advanced page, in display order. */
     private static final String[] ADVANCED_SOURCES = {
             "Launcher Settings", "Launcher Customisation", "Audio", "Java Runtime", "Video & Graphics",
             "All Controls", "Performance", "Experimental", "Miscellaneous", "Maintenance"};
     private static final String[] SIMPLE_PERF_LABELS = {
             "Normal (recommended)",
-            "Performance \u2014 more FPS",
-            "Maximum \u2014 highest FPS, more heat"
+            "Performance \u2014 optional tuning",
+            "Maximum \u2014 experimental scheduling",
+            "EXTREME \u2014 reversible pacing"
     };
     /** One-shot: a pinned setting (Favorite/Recent) asked its page to flash a row. */
     private static String sPendingFocusKey;
@@ -244,7 +244,7 @@ public class LauncherPreferenceFragment extends Fragment {
         }
 
         setupSettingsList();
-        playSettingsStudioEntrance(view);
+        // Settings are immediately readable; launcher motion preferences remain available.
         updateSaveBar();
     }
 
@@ -546,9 +546,9 @@ public class LauncherPreferenceFragment extends Fragment {
             case "General":
                 return "Updates, animations, download server";
             case "Game":
-                return "RAM, performance mode, Java";
+                return "Performance profile, FPS policy, RAM and Java";
             case "Display":
-                return "Resolution, VSync, FSR";
+                return "Resolution, dynamic scaling, VSync and FSR";
             case "Advanced":
                 return "Everything else \u2014 only if you know what you are doing";
             case "Launcher Customisation":
@@ -684,21 +684,12 @@ public class LauncherPreferenceFragment extends Fragment {
         List<SettingItem> items = new ArrayList<>();
         switch (catName) {
             case "General":
-                items.add(new SettingItem("perf_presets_general", SettingItem.TYPE_PRESET_PANEL,
-                        "Quick Device Optimizer", "1-Click auto-tuning for your device", null));
                 items.add(new SettingItem("check_for_update_btn", SettingItem.TYPE_ACTION,
-                        "Check for updates", "See if a newer CS Launcher Plus is available", null)
+                        "Check for updates", "Check newer Unamed launcher", null)
                         .setAction(() -> net.kdt.pojavlaunch.remote.FirebaseSyncManager.checkForUpdateManual(requireActivity())));
                 items.add(new SettingItem("launcher_animations", SettingItem.TYPE_DROPDOWN,
                         "Animations", "Turn launcher animations on or off", "full")
                         .setDropdownOptions(new String[]{"On", "Off"}, new String[]{"full", "off"}));
-                items.add(new SettingItem("launcher_transition_style", SettingItem.TYPE_DROPDOWN,
-                        "Page transitions", "How screens move when you navigate", "slide")
-                        .setDropdownOptions(new String[]{"Slide (Default)", "Zoom", "Jelly Bounce", "Bounce", "Fade", "None"},
-                                new String[]{"slide", "zoom", "jelly", "bounce", "fade", "off"}));
-                items.add(new SettingItem("launcher_animate_speed", SettingItem.TYPE_SLIDER,
-                        "Animation speed", "Global UI animation speed multiplier", 100)
-                        .setSliderConfig(50, 200, 10, " %"));
                 items.add(new SettingItem("downloadSource", SettingItem.TYPE_DROPDOWN,
                         "Download server", "Where game files are downloaded from", "default")
                         .setDropdownOptions(new String[]{"Default", "Mirror (China)"}, new String[]{"default", "china"}));
@@ -716,51 +707,34 @@ public class LauncherPreferenceFragment extends Fragment {
             case "Game": {
                 int maxRAM = Tools.getMaximumRamAllocation(requireContext());
                 int selectedRam = LauncherPreferences.DEFAULT_PREF.getInt("allocation", 1024);
-                items.add(new SettingItem("perf_presets_game", SettingItem.TYPE_PRESET_PANEL,
-                        "Quick Device Optimizer", "1-Click auto-tuning for your device", null));
                 items.add(new SettingItem("allocation", SettingItem.TYPE_SLIDER,
                         "RAM for Minecraft", "Allocated heap for Minecraft and mods", 1024)
                         .setSliderConfig(256, Math.max(maxRAM, selectedRam), 128, " MB"));
                 items.add(new SettingItem("ram_effective_info", SettingItem.TYPE_INFO,
                         "Exact Minecraft heap", "Minecraft will launch with -Xmx" + selectedRam + "M", null));
                 items.add(new SettingItem(PerformanceMode.PREF_KEY, SettingItem.TYPE_DROPDOWN,
-                        "Performance mode", "Normal is balanced; Performance boosts FPS; Maximum unlocks hardware limits", PerformanceMode.NORMAL.key)
+                        "Performance profile", "Applied on next launch. Experimental profiles may increase heat; results depend on device and scene.", PerformanceMode.EXTREME.key)
                         .setDropdownOptions(SIMPLE_PERF_LABELS, PERF_MODE_VALUES));
+                addFpsSettings(items);
+                items.add(new SettingItem("developer_gc_variant", SettingItem.TYPE_DROPDOWN,
+                        "GC policy (A/B test)", "Next launch: compare launcher-managed GC flags with JVM defaults. Keep RAM and scene unchanged; neither guarantees higher FPS.", "current_cs")
+                        .setDropdownOptions(new String[]{"Launcher GC policy", "JVM ergonomic defaults"},
+                                new String[]{"current_cs", "ergonomic_defaults"}));
                 items.add(new SettingItem("install_jre", SettingItem.TYPE_ACTION,
                         "Java runtime", "Download, install, or pick installed Java runtimes", null)
                         .setAction(this::openMultiRTDialog));
-                items.add(new SettingItem("javaArgs", SettingItem.TYPE_INPUT,
-                        "Custom JVM arguments", "Extra JVM launch flags (e.g. -XX:+UseG1GC)", ""));
-                items.add(new SettingItem("java_sandbox", SettingItem.TYPE_SWITCH,
-                        "Java sandbox", "Isolate Minecraft environment for stability", true));
-                items.add(new SettingItem("disable_autojre_select", SettingItem.TYPE_SWITCH,
-                        "Disable auto JRE selection", "Stop automatic Java version picking", false));
                 break;
             }
             case "Display":
-                items.add(new SettingItem("perf_presets_display", SettingItem.TYPE_PRESET_PANEL,
-                        "Quick Device Optimizer", "1-Click auto-tuning for your device", null));
                 items.add(new SettingItem("resolutionRatio", SettingItem.TYPE_SLIDER,
-                        "Resolution", "Lower for more FPS. 100% is native sharpness.", 100)
+                        "Resolution", "Lower reduces pixel work and sharpness; benefit depends on the bottleneck. 100% is native scale.", 100)
                         .setSliderConfig(25, 100, 5, " %"));
+                addDynamicResolutionSettings(items);
                 items.add(new SettingItem("force_vsync", SettingItem.TYPE_SWITCH,
-                        "VSync", "Locks FPS to your display refresh rate for smooth tear-free motion", false));
+                        "VSync", "Request synchronized presentation; renderer support varies. Unlimited/Manual FPS policy overrides game VSync at launch.", false));
                 items.add(new SettingItem("mg_renderer_setting_fsr", SettingItem.TYPE_DROPDOWN,
-                        "FSR upscaling", "Render at lower resolution and upscale with AMD FSR for high FPS", "0")
+                        "FSR upscaling", "Renderer-specific upscaling; image quality and performance depend on renderer support.", "0")
                         .setDropdownOptions(new String[]{"Off", "25%", "50%", "75%", "100%"},
-                                new String[]{"0", "1", "2", "3", "4"}));
-                items.add(new SettingItem("alternate_surface", SettingItem.TYPE_SWITCH,
-                        "Alternate Surface (SurfaceView)", "Use direct SurfaceView rendering for lower latency and better frame pacing", true));
-                items.add(new SettingItem("ignoreNotch", SettingItem.TYPE_SWITCH,
-                        "Use notch area", "Draw the game under the camera cutout", false));
-                items.add(new SettingItem("vsync_in_zink", SettingItem.TYPE_SWITCH,
-                        "VSync in Zink (Vulkan)", "Allow Minecraft to control frame synchronization in Vulkan Zink", true));
-                items.add(new SettingItem("mg_renderer_setting_angle", SettingItem.TYPE_DROPDOWN,
-                        "ANGLE backend", "ANGLE translation backend configuration", "1")
-                        .setDropdownOptions(new String[]{"Vulkan", "OpenGL (System)", "OpenGLES"}, new String[]{"1", "2", "3"}));
-                items.add(new SettingItem("mg_renderer_setting_multidraw", SettingItem.TYPE_DROPDOWN,
-                        "Multidraw emulation", "Select multidraw emulation mode for complex scenes", "0")
-                        .setDropdownOptions(new String[]{"Auto", "Prefer Indirect", "Prefer BaseVertex", "Prefer MultiDraw Indirect", "Force DrawElements"},
                                 new String[]{"0", "1", "2", "3", "4"}));
                 break;
             case "Controls":
@@ -780,26 +754,9 @@ public class LauncherPreferenceFragment extends Fragment {
                         .setSliderConfig(10, 500, 10, " %"));
                 items.add(new SettingItem("gyroSmoothing", SettingItem.TYPE_SWITCH,
                         "Gyro smoothing", "Filter out tiny micro-shakes", true));
-                items.add(new SettingItem("timeLongPressTrigger", SettingItem.TYPE_SLIDER,
-                        "Long press delay", "Hold duration for virtual clicks", 300)
-                        .setSliderConfig(100, 1000, 50, " ms"));
-                items.add(new SettingItem("disableDoubleTap", SettingItem.TYPE_SWITCH,
-                        "Swipe to swap hand", "Quick swipe swaps secondary item", false));
-                items.add(new SettingItem("mouse_start", SettingItem.TYPE_SWITCH,
-                        "Virtual mouse auto-start", "Turn pointer cursor on automatically on game start", false));
-                items.add(new SettingItem("always_grab_mouse", SettingItem.TYPE_SWITCH,
-                        "Always grab mouse", "Keep mouse focus locked inside the window", false));
                 items.add(new SettingItem("gamepad_remap_action", SettingItem.TYPE_ACTION,
                         "Gamepad buttons", "Remap your controller's buttons", null)
                         .setAction(() -> Tools.swapFragment(requireActivity(), GamepadMapperFragment.class, "GAMEPAD_MAPPER", null)));
-                items.add(new SettingItem("gamepad_deadzone_scale", SettingItem.TYPE_SLIDER,
-                        "Gamepad deadzone", "Analog joystick drift ignore range", 100)
-                        .setSliderConfig(0, 100, 5, " %"));
-                items.add(new SettingItem("gamepadPassthru", SettingItem.TYPE_SWITCH,
-                        "Gamepad SDL passthrough", "Route controller input directly through SDL", true));
-                items.add(new SettingItem("touchControllerVibrateLength", SettingItem.TYPE_SLIDER,
-                        "Touch vibration length", "Haptic duration on touch presses", 100)
-                        .setSliderConfig(0, 500, 10, " ms"));
                 break;
             default:
                 return;
@@ -871,10 +828,9 @@ public class LauncherPreferenceFragment extends Fragment {
 
                 case "Launcher Settings":
                     List<SettingItem> launcherItems = new ArrayList<>();
-                    launcherItems.add(new SettingItem("perf_presets_launcher", SettingItem.TYPE_PRESET_PANEL, "Performance Presets", "", null));
                     launcherItems.add(new SettingItem("check_for_update_btn", SettingItem.TYPE_ACTION,
                             "Check for Update",
-                            "Check online for the latest CS LAUNCHER PLUS release",
+                            "Check newer Unamed launcher",
                             null).setAction(() -> {
                         net.kdt.pojavlaunch.remote.FirebaseSyncManager.checkForUpdateManual(requireActivity());
                     }));
@@ -914,7 +870,6 @@ public class LauncherPreferenceFragment extends Fragment {
 
                 case "Video & Graphics":
                     List<SettingItem> graphicsItems = new ArrayList<>();
-                    graphicsItems.add(new SettingItem("perf_presets_graphics", SettingItem.TYPE_PRESET_PANEL, "Performance Presets", "", null));
                     graphicsItems.add(new SettingItem("mg_renderer_setting_angle", SettingItem.TYPE_DROPDOWN, getString(R.string.mg_renderer_angle), "Select backend ANGLE configuration", "1").setDropdownOptions(new String[]{"Vulkan", "OpenGL (System)", "OpenGLES"}, new String[]{"1", "2", "3"}));
                     graphicsItems.add(new SettingItem("mg_renderer_setting_multidraw", SettingItem.TYPE_DROPDOWN, getString(R.string.mg_renderer_multidraw), "Select multidraw emulation style", "0").setDropdownOptions(new String[]{"Auto", "Prefer Indirect", "Prefer BaseVertex", "Prefer MultiDraw Indirect", "Force DrawElements"}, new String[]{"0", "1", "2", "3", "4"}));
                     graphicsItems.add(new SettingItem("mg_renderer_setting_fsr", SettingItem.TYPE_DROPDOWN, getString(R.string.mg_renderer_title_fsr), "Enable AMD FSR scaler", "0").setDropdownOptions(new String[]{"Disabled", "25%", "50%", "75%", "100%"}, new String[]{"0", "1", "2", "3", "4"}));
@@ -965,7 +920,6 @@ public class LauncherPreferenceFragment extends Fragment {
 
                 case "Java Runtime":
                     List<SettingItem> javaItems = new ArrayList<>();
-                    javaItems.add(new SettingItem("perf_presets_java", SettingItem.TYPE_PRESET_PANEL, "Performance Presets", "", null));
                     javaItems.add(new SettingItem("install_jre", SettingItem.TYPE_ACTION, getString(R.string.multirt_title), getString(R.string.multirt_subtitle), null).setAction(this::openMultiRTDialog));
                     javaItems.add(new SettingItem("javaArgs", SettingItem.TYPE_INPUT, getString(R.string.mcl_setting_title_javaargs), getString(R.string.mcl_setting_subtitle_javaargs), ""));
 
@@ -1057,11 +1011,9 @@ public class LauncherPreferenceFragment extends Fragment {
 
                 case "Performance":
                     List<SettingItem> perfItems = new ArrayList<>();
-                    // One control decides everything the engine does. The cards underneath print the
-                    // policy exactly as it resolves on THIS phone, so the promise and the behaviour are
-                    // produced by the same code and cannot drift apart.
+                    // Legacy deep link; the main controls also live on Game and Display.
                     perfItems.add(new SettingItem(PerformanceMode.PREF_KEY, SettingItem.TYPE_DROPDOWN,
-                            "Performance Mode", perfModeSummary(mDraftPrefs), PerformanceMode.NORMAL.key)
+                            "Performance Mode", perfModeSummary(mDraftPrefs), PerformanceMode.EXTREME.key)
                             .setDropdownOptions(PERF_MODE_LABELS, PERF_MODE_VALUES));
                     perfItems.add(new SettingItem("perfPolicyInfo", SettingItem.TYPE_INFO,
                             "What this means on this phone", perfPolicySummary(), null));
@@ -1074,10 +1026,8 @@ public class LauncherPreferenceFragment extends Fragment {
                     perfItems.add(new SettingItem("fpsCounterInfo", SettingItem.TYPE_INFO,
                             "FPS counter",
                             "Lives in Custom Controls now: add the FPS element from the control editor and style it there (transparent, size, unit).", null));
-                    perfItems.add(new SettingItem("perf_presets", SettingItem.TYPE_PRESET_PANEL,
-                            "Performance Presets",
-                            "Sets the mode and the RAM band for a device class. Never touches resolution, shaders, FSR or frame pacing.",
-                            null));
+                    addFpsSettings(perfItems);
+                    addDynamicResolutionSettings(perfItems);
                     categories.add(new SettingCategory("Performance", perfItems));
                     break;
 
@@ -1129,13 +1079,36 @@ public class LauncherPreferenceFragment extends Fragment {
             }
     }
 
+    /** Existing backend keys; shared with the legacy Performance deep link. */
+    private void addFpsSettings(List<SettingItem> items) {
+        items.add(new SettingItem("extremeFpsMode", SettingItem.TYPE_DROPDOWN,
+                "FPS policy", "Applied at next launch regardless of profile. Unlimited requests no game cap; mods, screen and driver may still limit presentation. Original restores saved FPS/VSync.", "unlimited")
+                .setDropdownOptions(new String[]{"Unlimited", "Manual limit", "Original / restore"},
+                        new String[]{"unlimited", "manual", "original"}));
+        items.add(new SettingItem("extremeManualFps", SettingItem.TYPE_SLIDER,
+                "Manual FPS limit", "Used only by Manual FPS policy; does not change resolution.", 120)
+                .setSliderConfig(10, 250, 10, " FPS"));
+        items.add(new SettingItem("extremeFrameDiagnostics", SettingItem.TYPE_SWITCH,
+                "Frame diagnostics (A/B tests)", "Render/swap CPU wall timing, memory, thermal status and GC logs; not GPU/displayed FPS. Adds measurement overhead.", false));
+    }
+
+    private void addDynamicResolutionSettings(List<SettingItem> items) {
+        items.add(new SettingItem("extremeDynamicResolution", SettingItem.TYPE_SWITCH,
+                "Resolución dinámica (opcional)", "Reduce la resolución del juego al jugar. Inventario y menús recuperan la resolución manual. El HUD del mundo aún puede cambiar de escala. Desactívala para restaurar la calidad.", false));
+        items.add(new SettingItem("extremeMinResolution", SettingItem.TYPE_SLIDER,
+                "Resolución mínima dinámica", "Porcentaje de la pantalla, no de la resolución manual: 60% manual y 30% mínimo significa entre 60% y 30%, no 18%. Nunca aumenta el valor manual.", 60)
+                .setSliderConfig(30, 100, 5, " %"));
+        items.add(new SettingItem("extremeTargetFps", SettingItem.TYPE_SLIDER,
+                "Dynamic resolution target", "Controller target, not an FPS cap or guaranteed frame rate. Used only when dynamic resolution is enabled.", 60)
+                .setSliderConfig(30, 144, 6, " FPS"));
+    }
+
     private void setupSettingsList() {
         mAdapter = new SettingsAdapter(buildCurrentCategories(), mDraftPrefs);
         mRecyclerView.setAdapter(mAdapter);
-        // Phase 3: every settings page gets its OWN entrance choreography
-        mRecyclerView.setLayoutAnimation(AnimationUtils.loadLayoutAnimation(
-                requireContext(), pickPageAnimation()));
-        mRecyclerView.scheduleLayoutAnimation();
+        // No list entrance choreography or implicit item animations in settings.
+        mRecyclerView.setLayoutAnimation(null);
+        mRecyclerView.setItemAnimator(null);
         flashPendingFocusRow();
     }
 
@@ -1293,21 +1266,18 @@ public class LauncherPreferenceFragment extends Fragment {
 
     private static final String[] PERF_MODE_LABELS = {
             "Normal — balanced (recommended)",
-            "Performance — higher FPS",
-            "Maximum Performance — highest sustainable FPS"
+            "Performance — optional tuning",
+            "Maximum Performance — experimental scheduling",
+            "EXTREME — unlimited and reversible"
     };
     private static final String[] PERF_MODE_VALUES = {
-            PerformanceMode.NORMAL.key, PerformanceMode.PERFORMANCE.key, PerformanceMode.MAXIMUM.key
+            PerformanceMode.NORMAL.key, PerformanceMode.PERFORMANCE.key, PerformanceMode.MAXIMUM.key, PerformanceMode.EXTREME.key
     };
 
     private static String perfModeSummary(SharedPreferences prefs) {
         PerformanceMode mode = PerformanceMode.fromPrefs(prefs);
-        String text = mode.headline + "\n" + mode.behaviour;
-        if (mode == PerformanceMode.MAXIMUM) {
-            text += "\nHeat and battery drain rise, and the device will throttle: the engine then sheds its own "
-                    + "boost instead of pushing through it.";
-        }
-        return text;
+        return "Selected profile: " + mode.key + ". Applies on next launch. Results are unmeasured on this device; "
+                + "experimental scheduling can increase heat and battery use. FPS policy and resolution are separate controls.";
     }
 
     /** Preview of the policy the next launch will freeze, from the draft settings on screen. */
@@ -1344,23 +1314,11 @@ public class LauncherPreferenceFragment extends Fragment {
                 onAccept.run();
                 return;
             }
-            String body = "Maximum Performance asks the phone for everything it is willing to give, "
-                    + "for as long as it can hold it: the game's render and present threads run at urgent "
-                    + "display priority, an ADPF hint session carries the frame budget on Android 12 and "
-                    + "newer, the launcher pauses its own background work while you play, and the JVM's "
-                    + "garbage collection is tuned for this device instead of its generic defaults."
-                    + "\n\n"
-                    + "What it costs: more heat and noticeably faster battery drain. It is not an overclock "
-                    + "and it cannot bypass the thermals — when the device reports throttling, the engine "
-                    + "reduces its own requests rather than pushing through, which is why the promise is the "
-                    + "highest sustainable frame rate, not the highest number in the first minute."
-                    + "\n\n"
-                    + "Nothing about your game changes: resolution, render distance, particles, shaders and "
-                    + "any frame cap you set stay exactly as you left them. Do not use it while charging "
-                    + "under a pillow or in a hot car."
-                    + "\n\n"
-                    + "Applies from the next launch of Minecraft. A phone that gets too warm will settle "
-                    + "back toward normal clocks on its own.";
+            String body = "Maximum uses experimental scheduling and launcher-managed JVM tuning on the next launch. "
+                    + "It is not an overclock and cannot bypass Android thermal limits. Higher FPS or lower latency is not guaranteed."
+                    + "\n\nHeat and battery use may increase. Return to Normal to undo this profile on the next launch. "
+                    + "FPS policy, GC variant and dynamic resolution are separate settings; review those controls too."
+                    + "\n\nCompare the same scene after warm-up. Stop if the device becomes too hot, and avoid charging in an enclosed space.";
             new AlertDialog.Builder(ctx)
                     .setTitle("Maximum Performance")
                     .setMessage(body)
@@ -2155,9 +2113,11 @@ public class LauncherPreferenceFragment extends Fragment {
                 params.topMargin = (int) (8 * holder.itemView.getResources().getDisplayMetrics().density);
                 params.bottomMargin = (int) (8 * holder.itemView.getResources().getDisplayMetrics().density);
                 holder.itemView.setLayoutParams(params);
-                // Premium entrance: the whole category card fades + rises in,
-                // staggered by its position, and its rows cascade after it.
-                animateCardEntrance(holder, position);
+                holder.itemView.animate().cancel();
+                holder.itemView.setAlpha(1f);
+                holder.itemView.setTranslationY(0f);
+                holder.itemView.setScaleX(1f);
+                holder.itemView.setScaleY(1f);
             }
         }
 
@@ -2721,13 +2681,8 @@ public class LauncherPreferenceFragment extends Fragment {
         ImageView icon = itemView.findViewById(R.id.setting_icon);
         if (icon == null) return;
         icon.setImageResource(resolveSettingIcon(item.key));
-        if (item.key != null && mAnimatedSettingIcons.add(item.key)) {
-            icon.animate().cancel();
-            icon.setAlpha(0f);
-            icon.animate().alpha(1f).setDuration(120).withLayer().start();
-        } else {
-            icon.setAlpha(1f);
-        }
+        icon.animate().cancel();
+        icon.setAlpha(1f);
     }
 
     private int resolveSettingIcon(@Nullable String key) {

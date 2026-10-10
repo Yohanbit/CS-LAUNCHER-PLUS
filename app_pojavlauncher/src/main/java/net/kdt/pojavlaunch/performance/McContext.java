@@ -77,6 +77,11 @@ public final class McContext {
                 snapshot.gameDirectory, count, sodium, optifine, shaders);
     }
 
+    public McContext withRenderer(String renderer) {
+        return new McContext(versionId, runtimeName, renderer, gameDirectory,
+                modCount, hasSodium, hasOptifine, hasIrisOrShaders);
+    }
+
     /** Modern client (1.17+) where the big-heap, high-allocation behaviour applies. */
     public boolean isModern() {
         return majorVersion == 1 && minorVersion >= 17;

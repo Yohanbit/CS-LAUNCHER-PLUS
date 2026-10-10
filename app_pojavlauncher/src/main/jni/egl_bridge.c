@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <time.h>
+#include <pthread.h>
 
 #include <EGL/egl.h>
 #include <GL/osmesa.h>
@@ -28,6 +29,7 @@
 #include "utils.h"
 #include "ctxbridges/bridge_tbl.h"
 #include "ctxbridges/osm_bridge.h"
+#include "frame_metrics.h"
 
 #define GLFW_CLIENT_API 0x22001
 /* Consider GLFW_NO_API as Vulkan API */
@@ -159,8 +161,7 @@ void load_vulkan() {
 int pojavInitOpenGL() {
     // Only affects GL4ES as of now
     const char *forceVsync = getenv("FORCE_VSYNC");
-    if (strcmp(forceVsync, "true") == 0)
-        pojav_environ->force_vsync = true;
+    pojav_environ->force_vsync = forceVsync != NULL && strcmp(forceVsync, "true") == 0;
 
     // NOTE: Override for now.
     const char *renderer = getenv("AMETHYST_RENDERER");
@@ -225,48 +226,65 @@ EXTERNAL_API void pojavSetWindowHint(int hint, int value) {
     }
 }
 
-// ── CS Perf: swap-boundary frame counter (feeds the in-game FPS overlay) ──
-static volatile uint64_t sCsFrames;
-static volatile uint64_t sCsWindowStartMs;
-// Cumulative presented frames (never reset). Shared with osm_bridge.c so the
-// loading-video release can latch onto the FIRST real frame for every
-// software/GL bridge. Extern (non-static) by design — osm_bridge increments it.
-volatile uint64_t g_csPresentsTotal;
-
-static uint64_t cs_time_ms(void) {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (uint64_t) ts.tv_sec * 1000ull + (uint64_t) ts.tv_nsec / 1000000ull;
-}
-
 EXTERNAL_API void pojavSwapBuffers() {
-    sCsFrames++;
-    g_csPresentsTotal++;
-    br_swap_buffers();
+    if (br_swap_buffers == NULL || br_get_current == NULL) return;
+    basic_render_window_t *current = br_get_current();
+    if (current == NULL) return;
+    /* Shared/upload contexts and dummy surfaces are not displayed frames. */
+    if (current != pojav_environ->mainWindowBundle) {
+        br_swap_buffers();
+        return;
+    }
+    static __thread uint64_t previous_end_ns;
+    uint64_t start_ns = pojav_monotonic_ns();
+    bool submitted = br_swap_buffers();
+    uint64_t end_ns = pojav_monotonic_ns();
+    bool has_gap = previous_end_ns != 0 && start_ns >= previous_end_ns;
+    pojav_frame_record(start_ns, end_ns,
+                       has_gap ? start_ns - previous_end_ns : 0, has_gap, submitted);
+    previous_end_ns = end_ns;
 }
 
 JNIEXPORT jint JNICALL
 Java_net_kdt_pojavlaunch_utils_FpsCounter_nativeGetFps(JNIEnv* env, jclass clazz) {
     (void) env; (void) clazz;
-    uint64_t now = cs_time_ms();
-    if(sCsWindowStartMs == 0 || now < sCsWindowStartMs) {
-        sCsWindowStartMs = now;
-        sCsFrames = 0;
-        return (jint) 0;
-    }
-    uint64_t elapsed = now - sCsWindowStartMs;
-    if(elapsed < 200) return (jint) -1; // window too small — caller keeps last value
-    jint fps = (jint) ((sCsFrames * 1000ull) / (elapsed == 0 ? 1 : elapsed));
-    sCsWindowStartMs = now;
-    sCsFrames = 0;
-    return fps;
+    static pthread_mutex_t rate_lock = PTHREAD_MUTEX_INITIALIZER;
+    static uint64_t previous_count, previous_time_ns;
+    pojav_frame_snapshot snapshot;
+    pthread_mutex_lock(&rate_lock);
+    pojav_frame_snapshot_read(&snapshot);
+    int fps = pojav_frame_rate(snapshot.submissions, pojav_monotonic_ns(),
+                               &previous_count, &previous_time_ns);
+    pthread_mutex_unlock(&rate_lock);
+    return (jint)fps;
 }
 
-/* Cumulative presented frames — loading-video "first frame" latch. */
+/* Legacy name retained for binary compatibility: successful queue submissions,
+ * NOT compositor presentation or scanout. No count for pbuffer/failed swaps. */
 JNIEXPORT jlong JNICALL
 Java_net_kdt_pojavlaunch_utils_FpsCounter_nativeGetTotalPresents(JNIEnv* env, jclass clazz) {
     (void) env; (void) clazz;
-    return (jlong) g_csPresentsTotal;
+    pojav_frame_snapshot snapshot;
+    pojav_frame_snapshot_read(&snapshot);
+    return (jlong)snapshot.submissions;
+}
+
+/* Caller-owned reusable long[11]; no allocation or reset, multiple readers
+ * can independently calculate deltas. See frame_metrics.h for semantics. */
+JNIEXPORT jboolean JNICALL
+Java_net_kdt_pojavlaunch_utils_FrameMetrics_nativeReadSnapshot(JNIEnv* env, jclass clazz,
+                                                             jlongArray values) {
+    (void)clazz;
+    if (values == NULL || (*env)->GetArrayLength(env, values) < 11) return JNI_FALSE;
+    pojav_frame_snapshot s;
+    pojav_frame_snapshot_read(&s);
+    jlong data[11] = {(jlong)s.attempts, (jlong)s.submissions, (jlong)s.unsuccessful_swaps,
+        (jlong)s.swap_ns_total, (jlong)s.swap_ns_last, (jlong)s.swap_ns_max,
+        (jlong)s.inter_swap_ns_total, (jlong)s.inter_swap_samples,
+        (jlong)s.inter_swap_ns_last, (jlong)s.sample_time_ns,
+        (jlong)pojav_monotonic_ns()};
+    (*env)->SetLongArrayRegion(env, values, 0, 11, data);
+    return (*env)->ExceptionCheck(env) ? JNI_FALSE : JNI_TRUE;
 }
 
 
@@ -296,6 +314,6 @@ Java_org_lwjgl_vulkan_VK_getVulkanDriverHandle(ABI_COMPAT JNIEnv *env, ABI_COMPA
 }
 
 EXTERNAL_API void pojavSwapInterval(int interval) {
-    br_swap_interval(interval);
+    if (br_swap_interval != NULL) br_swap_interval(interval);
 }
 

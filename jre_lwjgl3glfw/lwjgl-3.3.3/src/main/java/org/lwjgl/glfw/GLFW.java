@@ -573,7 +573,8 @@ public class GLFW
         memPutInt(mGLFWVideoMode.address() + mGLFWVideoMode.REDBITS, 8);
         memPutInt(mGLFWVideoMode.address() + mGLFWVideoMode.GREENBITS, 8);
         memPutInt(mGLFWVideoMode.address() + mGLFWVideoMode.BLUEBITS, 8);
-        memPutInt(mGLFWVideoMode.address() + mGLFWVideoMode.REFRESHRATE, 60);
+        // Display metadata only; never use panel refresh as a render FPS cap.
+        memPutInt(mGLFWVideoMode.address() + mGLFWVideoMode.REFRESHRATE, androidRefreshRate());
 
         // A way to generate key code names
         Field[] thisFieldArr = GLFW.class.getFields();
@@ -1043,6 +1044,16 @@ public class GLFW
     public static void glfwSwapBuffers(@NativeType("GLFWwindow *") long window) {
         long __functionAddress = Functions.SwapBuffers;
         invokePV(window, __functionAddress);
+    }
+
+    private static int androidRefreshRate() {
+        try {
+            double hz = Double.parseDouble(System.getenv("POJAV_DISPLAY_REFRESH_HZ"));
+            if (Double.isFinite(hz) && hz >= 1 && hz <= 1000) return (int)Math.round(hz);
+        } catch (RuntimeException ignored) {
+            // Older launch paths don't provide display metadata.
+        }
+        return 60;
     }
 
     public static void glfwSwapInterval(int interval) {

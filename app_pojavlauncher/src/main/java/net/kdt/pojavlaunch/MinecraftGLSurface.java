@@ -13,6 +13,10 @@ import android.app.Activity;
 import android.content.Context;
 import android.graphics.SurfaceTexture;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
+import android.content.SharedPreferences;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Display;
@@ -41,6 +45,10 @@ import net.kdt.pojavlaunch.customcontrols.mouse.InGUIEventProcessor;
 import net.kdt.pojavlaunch.customcontrols.mouse.InGameEventProcessor;
 import net.kdt.pojavlaunch.customcontrols.mouse.TouchEventProcessor;
 import net.kdt.pojavlaunch.prefs.LauncherPreferences;
+import net.kdt.pojavlaunch.performance.DynamicResolutionController;
+import net.kdt.pojavlaunch.performance.PerformancePolicy;
+import net.kdt.pojavlaunch.performance.ThermalGovernor;
+import net.kdt.pojavlaunch.utils.FpsCounter;
 import net.kdt.pojavlaunch.utils.JREUtils;
 import net.kdt.pojavlaunch.utils.MCOptionUtils;
 import net.kdt.pojavlaunch.utils.TouchControllerUtils;
@@ -107,6 +115,191 @@ public class MinecraftGLSurface extends View implements GrabListener, DirectGame
     public static boolean sdlEnabled = false;
     boolean useSurfaceView = LauncherPreferences.PREF_USE_ALTERNATE_SURFACE;
 
+    private final Handler mResolutionHandler = new Handler(Looper.getMainLooper());
+    private final DynamicResolutionController mResolutionController = new DynamicResolutionController();
+    private boolean mHostResumed, mResolutionSurfaceReady, mResolutionReleased;
+    private boolean mDynamicResolutionActive, mApplyingDynamicResolution;
+    private float mOriginalResolution;
+    // While a menu is open the framebuffer uses the user's scale, not this saved world scale.
+    private float mPausedWorldResolution = Float.NaN;
+    private float mLastAppliedResolution = LauncherPreferences.PREF_SCALE_FACTOR;
+    private int mDynamicMinimum, mDynamicTarget;
+    private long mLastResolutionPresents = -1L, mLastResolutionSampleAt, mLastValidResolutionSampleAt;
+    private SharedPreferences mResolutionPreferences;
+    private Runnable mResolutionChangedListener;
+    private final SharedPreferences.OnSharedPreferenceChangeListener mResolutionPreferenceListener = (prefs, key) -> {
+        if ("resolutionRatio".equals(key)) {
+            // A player may explicitly choose exactly the current temporary scale. Float comparison
+            // alone cannot distinguish that from a surface callback; the persisted selection can.
+            Runnable manualChange = () -> {
+                if (!mDynamicResolutionActive || mResolutionReleased) return;
+                try {
+                    float selected = prefs.getInt("resolutionRatio", Math.round(mOriginalResolution * 100f)) / 100f;
+                    mOriginalResolution = selected;
+                    mResolutionController.configure(selected, mDynamicMinimum, mDynamicTarget, SystemClock.uptimeMillis());
+                    mPausedWorldResolution = Float.NaN;
+                    mLastResolutionPresents = -1L;
+                    applyDynamicResolution(selected);
+                    updateResolutionGrabState(CallbackBridge.isGrabbing());
+                } catch (Throwable error) {
+                    restoreDynamicResolution();
+                    Log.w(TAG, "Invalid manual resolution setting", error);
+                }
+            };
+            if (Looper.myLooper() == Looper.getMainLooper()) manualChange.run();
+            else mResolutionHandler.post(manualChange);
+        }
+        if ("extremeDynamicResolution".equals(key) || "extremeMinResolution".equals(key)
+                || "extremeTargetFps".equals(key)) {
+            mResolutionHandler.removeCallbacks(this.mResolutionTick);
+            mResolutionHandler.post(this.mResolutionTick);
+        }
+    };
+    private final Runnable mResolutionTick = new Runnable() {
+        @Override public void run() {
+            if (mResolutionReleased || !mHostResumed || !mResolutionSurfaceReady || !isAttachedToWindow()) {
+                restoreDynamicResolution();
+                return;
+            }
+            try {
+                SharedPreferences prefs = LauncherPreferences.DEFAULT_PREF;
+                boolean enabled = prefs != null && prefs.getBoolean("extremeDynamicResolution", false);
+                if (!enabled) {
+                    restoreDynamicResolution();
+                    return; // Default-off has no polling heartbeat; the preference listener wakes it.
+                } else if (!CallbackBridge.isGrabbing()) {
+                    updateResolutionGrabState(false);
+                } else {
+                    updateResolutionGrabState(true);
+                    if (!Float.isNaN(mPausedWorldResolution)) {
+                        // Surface recovery has not accepted the resume resize; retry without
+                        // treating menu-resolution swaps as world-performance samples.
+                        mResolutionHandler.postDelayed(this, 1000L);
+                        return;
+                    }
+                    long now = SystemClock.uptimeMillis();
+                    int minimum = prefs.getInt("extremeMinResolution", 60);
+                    int target = prefs.getInt("extremeTargetFps", 60);
+                    if (!mDynamicResolutionActive || minimum != mDynamicMinimum || target != mDynamicTarget) {
+                        restoreDynamicResolution();
+                        mOriginalResolution = LauncherPreferences.PREF_SCALE_FACTOR;
+                        mDynamicMinimum = minimum;
+                        mDynamicTarget = target;
+                        mResolutionController.configure(mOriginalResolution, minimum, target, now);
+                        mDynamicResolutionActive = true;
+                        mLastResolutionPresents = -1L;
+                        mLastValidResolutionSampleAt = now;
+                    }
+                    long presents = FpsCounter.getTotalPresents();
+                    long elapsed = now - mLastResolutionSampleAt;
+                    boolean validSample = false;
+                    if (presents >= 0 && mLastResolutionPresents >= 0 && presents > mLastResolutionPresents
+                            && elapsed >= 500L && elapsed <= 2500L) {
+                        double fps = (presents - mLastResolutionPresents) * 1000.0 / elapsed;
+                        if (fps > 0 && fps <= 1000) {
+                            validSample = true;
+                            mLastValidResolutionSampleAt = now;
+                            // UNKNOWN is not a thermal event. Heat can veto recovery, never fabricate load.
+                            PerformancePolicy policy = PerformancePolicy.current();
+                            boolean hot = policy != null && policy.thermalPolling
+                                    && ThermalGovernor.current().atLeast(ThermalGovernor.Level.MODERATE);
+                            applyDynamicResolution(mResolutionController.sample(fps, hot, now));
+                        }
+                    }
+                    if (!validSample) mResolutionController.sample(-1, false, now);
+                    mLastResolutionPresents = presents;
+                    mLastResolutionSampleAt = now;
+                    // Unsupported/reset/stalled counters are not evidence of low FPS. Fail open to quality.
+                    if (now - mLastValidResolutionSampleAt > 3000L) restoreDynamicResolution();
+                }
+            } catch (Throwable error) {
+                restoreDynamicResolution();
+                Log.w(TAG, "Dynamic resolution unavailable; keeping user resolution", error);
+                return; // A preference change or lifecycle restart may retry; do not spam a bad renderer.
+            }
+            mResolutionHandler.postDelayed(this, 1000L);
+        }
+    };
+
+    private boolean applyDynamicResolution(float scale) {
+        if (Math.abs(LauncherPreferences.PREF_SCALE_FACTOR - scale) < 0.0001f) return true;
+        if (getWidth() < 2 || getHeight() < 2 || mNativeSurface == null || !mNativeSurface.isValid()) return false;
+        if (Tools.getDisplayFriendlyRes(getWidth(), scale) < 2
+                || Tools.getDisplayFriendlyRes(getHeight(), scale) < 2) return false;
+        mApplyingDynamicResolution = true;
+        try {
+            LauncherPreferences.PREF_SCALE_FACTOR = scale; // Input coordinates use the same live scale.
+            refreshSize(true); // Existing fixed-buffer + GLFW window-size callback, always on UI thread.
+        } finally {
+            mApplyingDynamicResolution = false;
+        }
+        return true;
+    }
+
+    private void restoreDynamicResolution() {
+        mPausedWorldResolution = Float.NaN;
+        if (!mDynamicResolutionActive) return;
+        mDynamicResolutionActive = false;
+        mLastResolutionPresents = -1L;
+        mApplyingDynamicResolution = true;
+        try {
+            LauncherPreferences.PREF_SCALE_FACTOR = mOriginalResolution;
+            if (mResolutionSurfaceReady && !mResolutionReleased) refreshSize(true);
+        } catch (Throwable error) {
+            // Keep the user scale even if a disappearing renderer cannot accept a resize now.
+            Log.w(TAG, "Unable to restore game buffer immediately", error);
+        } finally {
+            mApplyingDynamicResolution = false;
+        }
+    }
+
+    private void startResolutionTicker() {
+        if (mResolutionReleased) return;
+        if (mResolutionPreferences == null && LauncherPreferences.DEFAULT_PREF != null) {
+            mResolutionPreferences = LauncherPreferences.DEFAULT_PREF;
+            mResolutionPreferences.registerOnSharedPreferenceChangeListener(mResolutionPreferenceListener);
+        }
+        mResolutionHandler.removeCallbacks(mResolutionTick);
+        mResolutionHandler.post(mResolutionTick);
+    }
+
+    /** Menus keep the manually selected size; returning to play restores the saved world scale.
+     * This is a menu safeguard, not separate world/HUD render targets. UI-thread only.
+     */
+    private void updateResolutionGrabState(boolean grabbing) {
+        if (!mDynamicResolutionActive || mResolutionReleased || !mHostResumed || !mResolutionSurfaceReady) return;
+        long now = SystemClock.uptimeMillis();
+        if (!grabbing && Float.isNaN(mPausedWorldResolution)) {
+            float world = mResolutionController.getScale();
+            if (!applyDynamicResolution(mOriginalResolution)) return; // Ticker retries after surface recovery.
+            mPausedWorldResolution = world;
+            mResolutionController.pause(now);
+            mLastResolutionPresents = -1L;
+        } else if (grabbing && !Float.isNaN(mPausedWorldResolution)) {
+            float world = mPausedWorldResolution;
+            if (!applyDynamicResolution(world)) return;
+            mPausedWorldResolution = Float.NaN;
+            mResolutionController.pause(now);
+            mLastResolutionPresents = -1L;
+            mLastValidResolutionSampleAt = now;
+        }
+    }
+
+    private void stopResolutionTicker() {
+        mResolutionHandler.removeCallbacks(mResolutionTick);
+        restoreDynamicResolution();
+    }
+
+    /** Manual selection, not the transient scale used for buffers and input coordinates. */
+    public float getUserResolutionScale() {
+        return mDynamicResolutionActive ? mOriginalResolution : LauncherPreferences.PREF_SCALE_FACTOR;
+    }
+
+    /** Host uses this to update resolution-dependent overlays, including the touch hotbar. */
+    public void setResolutionChangedListener(Runnable listener) {
+        mResolutionChangedListener = listener;
+    }
+
     public MinecraftGLSurface(Context context) {
         this(context, null);
     }
@@ -167,6 +360,8 @@ public class MinecraftGLSurface extends View implements GrabListener, DirectGame
                 private boolean isCalled = isAlreadyRunning;
                 @Override
                 public void surfaceCreated(@NonNull SurfaceHolder holder) {
+                    mResolutionSurfaceReady = true;
+                    startResolutionTicker();
                     net.kdt.pojavlaunch.customcontrols.mouse.CustomCursorRenderer.setSurfaceAttached(true);
                     if(isCalled) {
                         JREUtils.setupBridgeWindow(mNativeSurface);
@@ -184,6 +379,8 @@ public class MinecraftGLSurface extends View implements GrabListener, DirectGame
 
                 @Override
                 public void surfaceDestroyed(@NonNull SurfaceHolder holder) {
+                    mResolutionSurfaceReady = false;
+                    stopResolutionTicker();
                     clearSurfaceFrameRate(holder.getSurface());
                     net.kdt.pojavlaunch.customcontrols.mouse.CustomCursorRenderer.setSurfaceAttached(false);
                     /*
@@ -208,6 +405,8 @@ public class MinecraftGLSurface extends View implements GrabListener, DirectGame
                 @Override
                 public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surface, int width, int height) {
                     mNativeSurface = new Surface(surface);
+                    mResolutionSurfaceReady = true;
+                    startResolutionTicker();
                     net.kdt.pojavlaunch.customcontrols.mouse.CustomCursorRenderer.setSurfaceAttached(true);
                     setupSDL(getContext(), mNativeSurface, (ViewGroup) getParent());
                     if(isCalled) {
@@ -226,6 +425,8 @@ public class MinecraftGLSurface extends View implements GrabListener, DirectGame
 
                 @Override
                 public boolean onSurfaceTextureDestroyed(@NonNull SurfaceTexture surface) {
+                    mResolutionSurfaceReady = false;
+                    stopResolutionTicker();
                     clearSurfaceFrameRate(mNativeSurface);
                     net.kdt.pojavlaunch.customcontrols.mouse.CustomCursorRenderer.setSurfaceAttached(false);
                     net.kdt.pojavlaunch.customcontrols.mouse.CustomCursorRenderer.setCursorVisible(false);
@@ -445,6 +646,19 @@ public class MinecraftGLSurface extends View implements GrabListener, DirectGame
 
     /** Same as refreshSize, but allows you to force an immediate size update **/
     public void refreshSize(boolean immediate) {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            mResolutionHandler.post(() -> refreshSize(immediate));
+            return;
+        }
+        // A live manual change becomes the new ceiling; surface resize callbacks alone do not.
+        if (mDynamicResolutionActive && !mApplyingDynamicResolution) {
+            float requested = LauncherPreferences.PREF_SCALE_FACTOR;
+            if (Math.abs(requested - mLastAppliedResolution) > 0.0001f) {
+                mOriginalResolution = requested;
+                mResolutionController.configure(requested, mDynamicMinimum, mDynamicTarget, SystemClock.uptimeMillis());
+                mLastResolutionPresents = -1L;
+            }
+        }
         if(isInLayout() && !immediate) {
             post(this::refreshSize);
             return;
@@ -458,12 +672,15 @@ public class MinecraftGLSurface extends View implements GrabListener, DirectGame
             Log.e("MGLSurface", String.format("Impossible resolution : %dx%d", newWidth, newHeight));
             return;
         }
-        windowWidth = newWidth;
-        windowHeight = newHeight;
         if(mSurface == null){
             Log.w("MGLSurface", "Attempt to refresh size on null surface");
             return;
         }
+        boolean changed = windowWidth != newWidth || windowHeight != newHeight
+                || Math.abs(mLastAppliedResolution - LauncherPreferences.PREF_SCALE_FACTOR) > 0.0001f;
+        windowWidth = newWidth;
+        windowHeight = newHeight;
+        mLastAppliedResolution = LauncherPreferences.PREF_SCALE_FACTOR;
         if(useSurfaceView){
             SurfaceView view = (SurfaceView) mSurface;
             if(view.getHolder() != null){
@@ -477,6 +694,7 @@ public class MinecraftGLSurface extends View implements GrabListener, DirectGame
         }
 
         CallbackBridge.sendUpdateWindowSize(windowWidth, windowHeight);
+        if (changed && mResolutionChangedListener != null) mResolutionChangedListener.run();
 
     }
 
@@ -492,7 +710,13 @@ public class MinecraftGLSurface extends View implements GrabListener, DirectGame
         if (supported.isEmpty()) return display.getRefreshRate();
 
         float desired = supported.last(); // Unlimited/VSync path: highest actually supported rate.
-        String maxFps = MCOptionUtils.get("maxFps");
+        // The surface is created before runCraft applies options.txt. Reading only
+        // the old game cap here could request 60 Hz even after selecting Unlimited.
+        String pacingMode = LauncherPreferences.DEFAULT_PREF.getString("extremeFpsMode", "unlimited");
+        String maxFps = "unlimited".equals(pacingMode) ? "260"
+                : "manual".equals(pacingMode)
+                ? String.valueOf(LauncherPreferences.DEFAULT_PREF.getInt("extremeManualFps", 120))
+                : MCOptionUtils.get("maxFps");
         try {
             int configured = Integer.parseInt(maxFps);
             // Minecraft's 260 slider value represents Unlimited. A lower value
@@ -566,7 +790,18 @@ public class MinecraftGLSurface extends View implements GrabListener, DirectGame
 
     @Override
     public void onGrabState(boolean isGrabbing) {
-        post(()->updateGrabState(isGrabbing));
+        post(() -> {
+            // Bridge callbacks are deferred. Ignore a queued event superseded by a newer one.
+            boolean current = CallbackBridge.isGrabbing();
+            if (current != isGrabbing) return;
+            try {
+                updateResolutionGrabState(current);
+            } catch (Throwable error) {
+                restoreDynamicResolution();
+                Log.w(TAG, "Menu resolution safeguard unavailable", error);
+            }
+            updateGrabState(current);
+        });
     }
 
     private TouchEventProcessor pickEventProcessor(boolean isGrabbing) {
@@ -595,15 +830,26 @@ public class MinecraftGLSurface extends View implements GrabListener, DirectGame
     }
 
     public void onHostPause() {
+        mHostResumed = false;
+        stopResolutionTicker();
         net.kdt.pojavlaunch.customcontrols.mouse.CustomCursorRenderer.setHostResumed(false);
         if (mGamepadHandler instanceof Gamepad) ((Gamepad) mGamepadHandler).setPaused(true);
     }
 
     public void onHostResume() {
+        mHostResumed = true;
+        startResolutionTicker();
         if (mGamepadHandler instanceof Gamepad) ((Gamepad) mGamepadHandler).setPaused(false);
     }
 
     public void releaseHostResources() {
+        stopResolutionTicker();
+        mResolutionReleased = true;
+        mResolutionChangedListener = null;
+        if (mResolutionPreferences != null) {
+            mResolutionPreferences.unregisterOnSharedPreferenceChangeListener(mResolutionPreferenceListener);
+            mResolutionPreferences = null;
+        }
         clearSurfaceFrameRate(mNativeSurface);
         net.kdt.pojavlaunch.customcontrols.mouse.CustomCursorRenderer.setSurfaceAttached(false);
         net.kdt.pojavlaunch.customcontrols.mouse.CustomCursorRenderer.setCursorVisible(false);
@@ -617,6 +863,18 @@ public class MinecraftGLSurface extends View implements GrabListener, DirectGame
     @Override
     public void onDirectGamepadEnabled() {
         releaseGamepadHandler(); // Recreate in the newly selected mode on the next event.
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        stopResolutionTicker();
+        super.onDetachedFromWindow();
+    }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        if (mHostResumed && mResolutionSurfaceReady) startResolutionTicker();
     }
 
     /** A small interface called when the listener is ready for the first time */

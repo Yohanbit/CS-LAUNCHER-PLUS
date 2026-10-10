@@ -12,13 +12,9 @@ import java.util.List;
 /**
  * Server storage.
  *
- * <p>Two rules shape this class:
- * <ul>
- *   <li><b>Per profile.</b> Every launcher profile owns its own server list, keyed by the profile
- *       key, so a server added while editing "1.21 Fabric" never shows up under "1.8.9 PvP".</li>
- *   <li><b>The built-in server is global.</b> It lives in its own slot, is returned first for
- *       every profile, and cannot be removed, edited or duplicated by list operations.</li>
- * </ul>
+ * <p>Every launcher profile owns its own user-created server list, keyed by the profile
+ * key. No launcher-supplied entries are added. Legacy featured caches are left on disk
+ * but are not displayed or injected into Minecraft.
  *
  * <p><b>Storage.</b> This is deliberately NOT backed by SharedPreferences. The Server Hub is
  * edited in the launcher process while the launch path (queued join, servers.dat sync) runs in
@@ -75,12 +71,10 @@ public class ServerStore {
     }
 
     /**
-     * Built-in servers first, then this profile's own servers.
+     * Only this profile's own servers; no promotional/default entries.
      */
     public static List<ServerEntry> load(Context ctx, String profileKey) {
-        List<ServerEntry> out = FeaturedServers.entries(ctx);
-        out.addAll(loadUserServers(ctx, profileKey));
-        return out;
+        return loadUserServers(ctx, profileKey);
     }
 
     public static List<ServerEntry> loadUserServers(Context ctx, String profileKey) {
@@ -104,9 +98,11 @@ public class ServerStore {
             Type t = new TypeToken<List<ServerEntry>>(){}.getType();
             List<ServerEntry> l = GSON.fromJson(json, t);
             if (l == null) return new ArrayList<>();
-            // Built-in servers come from FeaturedServers, never from this list: storing them per
-            // profile is how one user's copy would shadow a launcher-owned entry.
+            // Keep every valid user address; no address is reserved by the launcher.
             l.removeIf(s -> s == null || s.address == null || FeaturedServers.is(s.address));
+            // Old builds used this flag for promotional cards, not a user pin feature.
+            // Normalize only the in-memory presentation; never remove saved entries.
+            for (ServerEntry s : l) s.pinned = false;
             return l;
         } catch (Exception e) { return new ArrayList<>(); }
     }
@@ -198,7 +194,7 @@ public class ServerStore {
         List<ServerEntry> userOnly = new ArrayList<>();
         for (ServerEntry s : list) {
             if (s == null || s.address == null) continue;
-            if (s.pinned || FeaturedServers.is(s.address)) { saveBuiltIn(ctx, s); continue; }
+            if (FeaturedServers.is(s.address)) { saveBuiltIn(ctx, s); continue; }
             userOnly.add(s);
         }
         if (userOnly.isEmpty() && !allowEmpty && !loadUserServers(ctx, profileKey).isEmpty()) {
@@ -229,7 +225,7 @@ public class ServerStore {
 
     public static void update(Context ctx, String profileKey, ServerEntry updated) {
         if (updated == null || updated.address == null) return;
-        if (updated.pinned || FeaturedServers.is(updated.address)) { saveBuiltIn(ctx, updated); return; }
+        if (FeaturedServers.is(updated.address)) { saveBuiltIn(ctx, updated); return; }
         List<ServerEntry> l = loadUserServers(ctx, profileKey);
         if (l.isEmpty()) return; // nothing to update — never rewrite the list with an empty one
         boolean found = false;

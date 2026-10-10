@@ -28,18 +28,20 @@ public enum PerformanceMode {
 
     /** Noticeably higher FPS, at moderate heat. Safe Android APIs only. */
     PERFORMANCE("performance",
-            "Higher FPS with increased CPU/GPU usage and moderate heat",
+            "Conservative scheduling and G1 experiment",
             "Game threads raised to display priority · short GC pauses · launcher goes quiet "
                     + "while Minecraft is on screen · no sustained-clock cap and no frame-rate limit"),
 
     /** Everything the device can hold, until the thermal API says stop. */
     MAXIMUM("maximum",
-            "Maximum safe performance the device will give, for the highest sustainable FPS",
-            "Nothing held back: no FPS cap, no vsync, no sustained-clock request, no resolution or "
-                    + "graphics change · game threads at urgent display priority · ADPF hint session "
-                    + "(Android 12+) targeting the display's highest refresh rate · JVM tuned per device · "
-                    + "launcher fully quiet · the only limiter left is the device's own thermal report, "
-                    + "which sheds boost when it says severe throttling");
+            "Experimental scheduling; device performance not measured",
+            "Game threads request urgent display priority · ADPF target-only hints where available · "
+                    + "G1 policy · quiet launcher · thermal shedding · quality unchanged. "
+                    + "FPS/VSync policy is chosen separately; driver/display limits still apply."),
+
+    EXTREME("extreme", "EXTREME — unlimited software pacing, reversible defaults",
+            "Compatible renderer · quiet launcher · unchanged quality · JVM ergonomic defaults · "
+            + "optional dynamic resolution and frame diagnostics");
 
     /** Preference key. One key, one decision — nothing else may store a mode. */
     public static final String PREF_KEY = "perfMode";
@@ -80,7 +82,7 @@ public enum PerformanceMode {
     public static PerformanceMode fromPrefs(SharedPreferences prefs) {
         if (prefs == null) return NORMAL;
         try {
-            return fromKey(prefs.getString(PREF_KEY, NORMAL.key));
+            return fromKey(prefs.getString(PREF_KEY, EXTREME.key));
         } catch (Throwable ignored) {
             return NORMAL;
         }

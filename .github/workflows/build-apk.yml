@@ -1,21 +1,25 @@
-name: Build downloadable APK
+name: Build Unamed launcher APK
 
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [cs-1.4-full-fps-extreme]
     paths:
-      - '.github/workflows/build-apk.yml'
+      - '**'
+      - '!README.md'
+      - '!CREDITS.md'
+      - '!docs/**'
 
 permissions:
   contents: read
 
 concurrency:
   group: apk-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
+    if: ${{ github.event_name != 'push' || (!contains(github.event.head_commit.message, '[release-cleanup]') && !contains(github.event.head_commit.message, '[skip apk]')) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -36,6 +40,10 @@ jobs:
         run: sdkmanager 'platforms;android-34' 'build-tools;34.0.0' 'ndk;27.3.13750724'
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+      - name: Test reversible FPS settings
+        run: sh tools/test-extreme-options.sh
+      - name: Test dynamic resolution menu policy
+        run: sh tools/test-dynamic-resolution.sh
       - name: Load Firebase configuration if supplied
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
@@ -59,10 +67,12 @@ jobs:
             readelf -h "$out/libmobileglues.so"
             readelf -d "$out/libmobileglues.so" | grep NEEDED
           done
+      - name: Package checksum-pinned Android LWJGL and SDL natives
+        run: python3 tools/package_android_natives.py
       - name: Build signed test APK
         run: |
           chmod +x gradlew
-          ./gradlew :app_pojavlauncher:assembleDebug -PallowMissingFirebase=true --no-daemon --stacktrace
+          ./gradlew :app_pojavlauncher:assembleDebug -PallowMissingFirebase=true -PextremeVersion=1.4.0-extreme-test --no-daemon --stacktrace
       - name: Verify renderer is included in every APK
         shell: bash
         run: |
@@ -81,15 +91,35 @@ jobs:
                       path = f'lib/{abi}/libmobileglues.so'
                       if path not in z.namelist() or z.getinfo(path).file_size == 0:
                           raise SystemExit(f'Missing MobileGlues for {abi} in {apk}')
+                  for version in ['3.3.3', '3.4.1']:
+                      for abi in abis:
+                          core = f'assets/components/lwjgl-{version}-natives/{abi}/liblwjgl.so'
+                          if core not in z.namelist() or z.getinfo(core).file_size == 0:
+                              raise SystemExit(f'Missing Android LWJGL {version}/{abi}')
+                  for abi in abis:
+                      for lib in ['libSDL3.so', 'libSDL2.so', 'libopenal.so', 'libspirv-cross-c-shared.so']:
+                          if f'lib/{abi}/{lib}' not in z.namelist():
+                              raise SystemExit(f'Missing {lib}/{abi}')
                   print(f'Verified MobileGlues in {apk}: {sorted(abis)}')
           PY
+      - name: Name the downloadable APK
+        run: mv app_pojavlauncher/build/outputs/apk/debug/app_pojavlauncher-debug.apk 'app_pojavlauncher/build/outputs/apk/debug/Unamed launcher.apk'
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: CS-Launcher-Plus-test-APK
+          name: Unamed-launcher-1.4-EXTREME-APK
           path: app_pojavlauncher/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
+      - name: Verify signature and installation requirements
+        shell: bash
+        run: |
+          set -euo pipefail
+          for apk in app_pojavlauncher/build/outputs/apk/debug/*.apk; do
+            "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose "$apk"
+            "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | grep -E 'package:|sdkVersion:|targetSdkVersion:|native-code:'
+            sha256sum "$apk"
+          done
   publish:
     needs: build
     runs-on: ubuntu-24.04
@@ -98,7 +128,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: CS-Launcher-Plus-test-APK
+          name: Unamed-launcher-1.4-EXTREME-APK
           path: apk
       - name: Publish public test download
         env:
@@ -107,8 +137,32 @@ jobs:
           BUILD_SHA: ${{ github.sha }}
           BUILD_RUN: ${{ github.run_id }}
         run: |
-          gh release create "test-build-$BUILD_RUN" apk/*.apk \
+          gh release create "extreme-1.4-$BUILD_RUN" apk/*.apk \
             --target "$BUILD_SHA" \
-            --title "CS Launcher Plus — test build $BUILD_RUN" \
+            --title "Unamed launcher 1.4 EXTREME — test $BUILD_RUN" \
             --prerelease \
-            --notes 'APK de prueba compilada desde este repositorio. Incluye MobileGlues 2.0.0 (MobileGL-Dev, LGPL-2.1), obtenido del paquete oficial con SHA-256 verificado. Fuentes y licencia: https://github.com/MobileGL-Dev/MobileGlues y https://github.com/MobileGL-Dev/MobileGlues-release/releases/tag/V2.0.0 . Sin GOOGLE_SERVICES_JSON, las notificaciones y la sincronización Firebase quedan inactivas. No es una versión oficial; no ha sido probada en un dispositivo. Usa el identificador de aplicación debug y la firma de prueba del proyecto.'
+            --notes 'Cambios técnicos en esta versión:
+          - Inventario y menús recuperan la resolución manual al liberar el cursor, sin esperar al siguiente muestreo de resolución dinámica.
+          - Al cerrar un menú se restaura la última resolución dinámica del mundo y se descartan las muestras de la transición.
+          - Resolución dinámica con pasos de 2,5 puntos, cinco muestras bajas, diez muestras de recuperación y cinco segundos entre ajustes.
+          - Estado del cursor con visibilidad explícita entre hilos.
+          - Ajustes aclaran que el mínimo dinámico es un porcentaje absoluto de la pantalla; el HUD del mundo todavía comparte el framebuffer.
+          - Añadidas pruebas automatizadas de histéresis, límites y pausa de la resolución dinámica.'
+          gh release view "extreme-1.4-$BUILD_RUN" --json name,url,assets --jq '{name,url,assets:[.assets[]|{name,size,url}]}'
+      - name: Keep only the current published prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          KEEP_TAG: extreme-1.4-${{ github.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/$GH_REPO/releases/tags/$KEEP_TAG" > current.json
+          jq -e '.prerelease == true and .draft == false and any(.assets[]; .name == "Unamed.launcher.apk" and .size > 1000000)' current.json
+          created=$(jq -r .created_at current.json)
+          gh api --paginate --slurp "repos/$GH_REPO/releases?per_page=100" > releases.json
+          jq -r --arg keep "$KEEP_TAG" --arg created "$created" '.[][] | select(.prerelease == true and .draft == false and .tag_name != $keep and .created_at <= $created) | .id' releases.json > old-ids.txt
+          while IFS= read -r id; do
+            gh api --method DELETE "repos/$GH_REPO/releases/$id"
+            echo "Deleted older prerelease $id; source tag retained"
+          done < old-ids.txt

@@ -1,27 +1,15 @@
 package net.kdt.pojavlaunch.servers;
 
-import net.kdt.pojavlaunch.R;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
 /**
- * The servers that ship inside the launcher.
- *
- * <p>An entry here is not user data: it is always present at the top of the Server Hub for every
- * profile, it cannot be deleted or edited by list operations, and it is drawn with its own
- * featured card (banner artwork + server mark + tagline). Everything else about it behaves like
- * a normal server — it is pinged live, its MOTD and favicon come from the real handshake, it is
- * written into {@code servers.dat} so the game's own multiplayer list shows it too, and it can be
- * joined with one tap.
- *
- * <p>This list is the single source of truth: identity, tagline and artwork all live here, and
- * {@code ServerStore} routes its per-address cache off {@link Item#address}. Artwork is bundled ({@code drawable-nodpi}) rather than fetched from a
- * URL on purpose: the hub has to look right on a plane, on a fresh install and before the first
- * ping answers, and a launcher that shows a blank grey box where a partner's banner belongs is
- * worse than one that carries 400 KB of PNG.
+ * Compatibility API for the former featured-server cards.
+ * The launcher ships no server entries and reserves no addresses. Existing user lists
+ * and in-game multiplayer files are intentionally not cleaned by address: an old default
+ * cannot reliably be distinguished from a server the player chose to save.
  */
 public final class FeaturedServers {
 
@@ -59,18 +47,9 @@ public final class FeaturedServers {
         }
     }
 
-    private static final List<Item> ALL = build();
-
-    private static List<Item> build() {
-        List<Item> l = new ArrayList<>();
-        // Phase 8: PlantMC removed from the built-in list (user request).
-        l.add(new Item("play.indianpvp.fun", 19015, "Indian PvP & Lifesteal",
-                "PvP \u2022 Grind \u2022 Steal \u2022 Dominate",
-                null,
-                R.drawable.featured_indianpvp_logo,
-                R.drawable.featured_indianpvp_banner));
-        return Collections.unmodifiableList(l);
-    }
+    // No launcher-supplied servers. Keep the lookup API for existing hub callers;
+    // user-created entries (including former featured addresses) remain ordinary servers.
+    private static final List<Item> ALL = Collections.emptyList();
 
     private FeaturedServers() {}
 

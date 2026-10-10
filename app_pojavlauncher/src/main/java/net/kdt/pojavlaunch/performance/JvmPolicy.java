@@ -7,13 +7,8 @@ import java.util.List;
 /**
  * Turns a resolved {@link PerformancePolicy} into the small set of JVM arguments it earned.
  *
- * <p>Deliberately short. The old engine pushed {@code -XX:SoftRefLRUPolicyMSPerMB=16} (which evicts
- * Minecraft's soft-referenced caches about sixty times sooner than the JVM default of 1000 ms/MB — the
- * comment in that file had it backwards), {@code -XX:+DisableExplicitGC} (which removes the only
- * mechanism the launcher has for returning native memory, risking an OOM the JVM cannot help with) and
- * a launch-time {@code System.gc()}. None of those had a measurement behind them, so none of them are
- * here; {@code ExplicitGCInvokesConcurrent} is the safe form of "don't stop the world for an explicit
- * GC" and is the only behavioural change shipped by default.
+ * <p>No forced startup GC, pre-touch, or disabling explicit GC. The G1 profiles request concurrent
+ * handling of explicit GC, but that is not a guarantee of zero pauses or improved device FPS.
  *
  * <p>Everything that is plausible but needs a device number first (code-cache sizing, tiered-compilation
  * caps, G1 region and survivor tuning, {@code AlwaysPreTouch}) sits behind
@@ -27,9 +22,7 @@ public final class JvmPolicy {
         if (policy == null) return Collections.emptyList();
         List<String> out = new ArrayList<>();
 
-        // ---- always (safe by construction, documented, and independent of any one SoC) ----
-        // The JVM's perf-data file normally lives in /tmp, which on Android is a slow
-        // tmpfs/fuse-backed write made on every GC and deoptimization.
+        // Disable shared perf-data backing; do not infer a game-FPS improvement from this flag.
         out.add("-XX:+PerfDisableSharedMem");
 
         switch (policy.gcPlan) {
@@ -61,12 +54,8 @@ public final class JvmPolicy {
                 out.add("-XX:ReservedCodeCacheSize=" + codeCacheMb + "m");
                 out.add("-XX:+UseCodeCacheFlushing");
             }
-            if (policy.mode == PerformanceMode.MAXIMUM && policy.game.isModern()) {
-                // Larger young generation for allocation-heavy modern clients, expressed as a
-                // percentage so it scales with whatever heap the user picked.
-                out.add("-XX:G1NewSizePercent=40");
-                out.add("-XX:G1MaxNewSizePercent=60");
-            }
+            // Leave G1 young-generation sizing ergonomic: these percentage flags require
+            // experimental unlocking on common runtimes. No runtime capability probe exists here.
         }
 
         return Collections.unmodifiableList(out);

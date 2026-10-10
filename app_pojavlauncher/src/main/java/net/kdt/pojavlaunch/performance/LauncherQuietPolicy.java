@@ -59,7 +59,7 @@ public final class LauncherQuietPolicy {
     }
 
     public static PerformancePolicy.QuietLevel quietLevelFor(PerformanceMode mode) {
-        if (mode == PerformanceMode.MAXIMUM) return PerformancePolicy.QuietLevel.MINIMAL;
+        if (mode == PerformanceMode.MAXIMUM || mode == PerformanceMode.EXTREME) return PerformancePolicy.QuietLevel.MINIMAL;
         if (mode == PerformanceMode.PERFORMANCE) return PerformancePolicy.QuietLevel.REDUCED;
         return PerformancePolicy.QuietLevel.OFF;
     }

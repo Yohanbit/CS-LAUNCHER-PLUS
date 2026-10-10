@@ -1944,7 +1944,7 @@ public final class Tools {
                 rendererId = "opengles3_desktopgl_zink_kopper";
             }
             if (rendererId.contains("zink") && (!deviceHasVulkan || !appHasZink)) continue;
-            if (rendererId.equals("opengles_mobileglues") && !appHasMobileGlues) continue;
+            if (rendererId.equals("opengles_mobileglues") && (!appHasMobileGlues || !deviceHasOpenGLES3)) continue;
             if (rendererId.contains("ltw") && (!deviceHasOpenGLES3 || !appHasLtw)) continue;
             if (rendererId.equals("opengles3_KW") && !appHasKrypton) continue;
             if (rendererId.equals("opengles2") && !appHasGl4es) continue;

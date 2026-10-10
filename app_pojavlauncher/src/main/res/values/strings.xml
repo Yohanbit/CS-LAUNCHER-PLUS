@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <!-- App name part -->
-    <string name="app_name" translatable="false">CS Launcher Plus</string>
+    <string name="app_name" translatable="false">Unamed launcher</string>
 
     <!-- Action bar part -->
 
@@ -313,10 +313,10 @@
     <string name="cs_navtip_settings">Settings</string>
 
     <!-- ── Launch screen: black stage + optional user GIF (video removed) ── -->
-    <string name="cs_about_title">About CS LAUNCHER PLUS</string>
+    <string name="cs_about_title">About Unamed launcher</string>
     <string name="cs_launch_color_set">Launch color set</string>
     <string name="cs_launch_color_reset">Launch color reset to black</string>
-    <string name="cs_about_name">CS LAUNCHER PLUS</string>
+    <string name="cs_about_name">Unamed launcher</string>
     <string name="cs_about_tagline">YOUR MINECRAFT. REIMAGINED.</string>
     <string name="cs_about_made_for">MADE WITH ❤ FOR MINECRAFT: JAVA EDITION ON ANDROID</string>
     <string name="cs_about_credits_heading">Built on Legends</string>
@@ -330,12 +330,12 @@
     <string name="cs_about_links_heading">Find Us</string>
     <string name="cs_about_discord_title">Discord Community</string>
     <string name="cs_about_discord_sub">Join the server — help, mods, builds &amp; friends</string>
-    <string name="cs_about_website_title">Official Website</string>
-    <string name="cs_about_website_sub">cs-launcher.netlify.app — news, guides &amp; downloads</string>
+    <string name="cs_about_website_title">Downloads</string>
+    <string name="cs_about_website_sub">GitHub Releases — APKs &amp; version changes</string>
     <string name="cs_about_github_title">GitHub</string>
-    <string name="cs_about_github_sub">craftstudioteam — open source, free forever</string>
+    <string name="cs_about_github_sub">Yohanbit/CS-LAUNCHER-PLUS — source code</string>
     <string name="cs_about_legal_heading">Legal Notice</string>
-    <string name="cs_about_legal_text">CS LAUNCHER PLUS is free, open-source software released under the GNU General Public License v3.0 (GPL v3). It is a fork of Amethyst (AngelAuraMC/Amethyst-Android), which itself builds upon PojavLauncher (PojavLauncherTeam/PojavLauncher) and the original Boardwalk by zhuowei. We are deeply grateful to all of these projects and their contributors.
+    <string name="cs_about_legal_text">Unamed launcher is a fork of CS LAUNCHER PLUS, free, open-source software released under the GNU General Public License v3.0 (GPL v3). CS LAUNCHER PLUS is a fork of Amethyst (AngelAuraMC/Amethyst-Android), which itself builds upon PojavLauncher (PojavLauncherTeam/PojavLauncher) and the original Boardwalk by zhuowei. We are deeply grateful to all of these projects and their contributors.
 
 Minecraft is a trademark of Mojang Synergies AB / Microsoft Corporation. CS LAUNCHER PLUS is an independent community project and is NOT affiliated with, endorsed by, or sponsored by Mojang or Microsoft. All Minecraft assets and content belong to their respective owners. To play online you need a legitimate Minecraft: Java Edition account.
 
@@ -366,7 +366,7 @@ Third-party components (GL4ES, MobileGlues, ANGLE, Zink/Mesa, LWJGL, OpenJDK, SD
     <string name="download_console_cancelled_clean">Stopped by user</string>
     <!-- Shortcut boot — premium "Opening Game…" interstitial -->
     <string name="sg_opening_game">Opening Game…</string>
-    <string name="sg_boot_eyebrow">CS LAUNCHER PLUS</string>
+    <string name="sg_boot_eyebrow">Unamed launcher</string>
     <string name="sg_resolving_profile">Resolving profile…</string>
     <string name="sg_preparing">Preparing your game…</string>
     <string name="sg_verifying">Verifying game files…</string>
@@ -673,7 +673,7 @@ Third-party components (GL4ES, MobileGlues, ANGLE, Zink/Mesa, LWJGL, OpenJDK, SD
     <string name="mg_renderer_summary_computeShaderext">May help with shaderpack glitches. Disable if not needed, can cause crashes.</string>
     <string name="mg_renderer_title_multidrawCompute">Use Compute Multidraw Emulation</string>
     <string name="mg_renderer_summary_multidrawCompute">Uses compute shaders for multidraw emulation</string>
-    <string name="app_short_name" translatable="false">CS LAUNCHER PLUS</string>
+    <string name="app_short_name" translatable="false">Unamed launcher</string>
     <string name="demo_versions_supported">Only Vanilla 1.3.1 and above are supported on demo accounts</string>
     <string name="demo_unsupported">Demo Profile not supported</string>
     <string name="change_account">Please change accounts to use this function</string>
@@ -726,7 +726,7 @@ Third-party components (GL4ES, MobileGlues, ANGLE, Zink/Mesa, LWJGL, OpenJDK, SD
     <string name="mod_deps_install_without">Install without deps</string>
 
     <!-- Launcher Landscape Layout Strings -->
-    <string name="cs_launcher_title">CS LAUNCHER PLUS</string>
+    <string name="cs_launcher_title">Unamed launcher</string>
     <string name="cs_launcher_subtitle">YOUR MINECRAFT. YOUR WAY.</string>
     <string name="cs_welcome_back_label">· WELCOME BACK,</string>
     <string name="cs_welcome_username">STEVE</string>
@@ -1248,7 +1248,7 @@ Third-party components (GL4ES, MobileGlues, ANGLE, Zink/Mesa, LWJGL, OpenJDK, SD
     <string name="hub_edit_title">Edit server</string>
     <string name="hub_field_address">SERVER ADDRESS</string>
     <string name="hub_field_name">SERVER NAME (OPTIONAL)</string>
-    <string name="hub_hint_address">play.indianpvp.fun:19015</string>
+    <string name="hub_hint_address">play.example.com:25565</string>
     <string name="hub_hint_name">My server</string>
     <string name="hub_helper_address">Port is optional · 25565 is used when you leave it out</string>
     <string name="hub_save">Save</string>

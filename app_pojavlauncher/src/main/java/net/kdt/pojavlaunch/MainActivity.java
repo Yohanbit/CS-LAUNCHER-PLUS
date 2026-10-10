@@ -410,6 +410,9 @@ public class MainActivity extends BaseActivity implements ControlButtonMenuListe
         touchCharInput = findViewById(R.id.mainTouchCharInput);
         mDrawerPullButton = findViewById(R.id.drawer_button);
         mHotbarView = findViewById(R.id.hotbar_view);
+        minecraftGLView.setResolutionChangedListener(() -> {
+            if (mHotbarView != null) mHotbarView.onResolutionChanged();
+        });
     }
 
     @Override
@@ -417,7 +420,9 @@ public class MainActivity extends BaseActivity implements ControlButtonMenuListe
         super.onResume();
         // CS PERFORMANCE ENGINE: raise the game threads for as long as the session is
         // foregrounded, attach the thermal governor to the same heartbeat, and start measuring.
+        net.kdt.pojavlaunch.prefs.SharedSettings.syncIntoPreferences(this);
         net.kdt.pojavlaunch.performance.PerformanceEngine.onResume(this);
+        net.kdt.pojavlaunch.utils.FrameMetrics.start(this);
         net.kdt.pojavlaunch.customcontrols.mouse.CustomCursorRenderer.setHostResumed(true);
         if (minecraftGLView != null) minecraftGLView.onHostResume();
         if(mGameStateController!=null){if(mFirstGameFramePresented)mGameStateController.playing();else mGameStateController.loading();}
@@ -428,6 +433,7 @@ public class MainActivity extends BaseActivity implements ControlButtonMenuListe
 
     @Override
     protected void onPause() {
+        net.kdt.pojavlaunch.utils.FrameMetrics.stop();
         net.kdt.pojavlaunch.performance.PerformanceEngine.onBackground(this);
         stopFpsTicker();
         if(mGameStateController!=null)mGameStateController.paused();
@@ -454,6 +460,7 @@ public class MainActivity extends BaseActivity implements ControlButtonMenuListe
 
     @Override
     protected void onStop() {
+        net.kdt.pojavlaunch.utils.FrameMetrics.stop();
         net.kdt.pojavlaunch.performance.PerformanceEngine.onBackground(this);
         stopFpsTicker();
         net.kdt.pojavlaunch.customcontrols.mouse.CustomCursorRenderer.setHostResumed(false);
@@ -467,6 +474,7 @@ public class MainActivity extends BaseActivity implements ControlButtonMenuListe
         super.onDestroy();
         net.kdt.pojavlaunch.performance.GameSessionState.clear();
         Tools.MAIN_HANDLER.removeCallbacks(mFirstFrameWatcher);
+        net.kdt.pojavlaunch.utils.FrameMetrics.stop();
         net.kdt.pojavlaunch.performance.PerformanceEngine.onSessionEnd(this);
         stopFpsTicker(); // CS Perf
         net.kdt.pojavlaunch.customcontrols.mouse.CustomCursorRenderer.setHostResumed(false);
@@ -935,10 +943,18 @@ public class MainActivity extends BaseActivity implements ControlButtonMenuListe
             }
         }
 
+        try {
+            net.kdt.pojavlaunch.performance.ExtremeLaunchOptions.apply(
+                    Tools.getGameDirPath(minecraftProfile),
+                    LauncherPreferences.DEFAULT_PREF.getString("extremeFpsMode", "unlimited"),
+                    LauncherPreferences.DEFAULT_PREF.getInt("extremeManualFps", 120));
+        } catch (java.io.IOException error) {
+            throw new RuntimeException("Cannot safely apply/revert FPS policy", error);
+        }
         // Minecraft owns every graphics/quality default. The launcher does not
         // create a performance preset or mutate render distance, simulation
         // distance, VSync, FPS limit, particles, clouds, shadows, or related
-        // visual settings. Existing options.txt remains user/Minecraft-owned.
+        // visual settings. Only the selected FPS/VSync fields are changed reversibly.
 
         // Use the exact account carried across the launcher → game process
         // boundary. Re-reading async SharedPreferences here could select a stale

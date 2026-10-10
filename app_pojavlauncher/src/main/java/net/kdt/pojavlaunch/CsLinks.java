@@ -9,21 +9,15 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 
 /**
- * Phase 8 — the launcher's community links in ONE place.
- *
- * <p>The About page, the CS Client promo and now the home brand cluster all
- * point at the same channels; keeping the URLs here means one edit updates
- * every button. {@link #open} tries the native app first (the YouTube /
- * Discord app claims these URLs) and falls back to the browser.
+ * Support and project links used by the About page.
+ * {@link #open} lets Android choose a native app or browser.
  */
 public final class CsLinks {
 
     /** Same invite as {@code AboutFragment}. */
     public static final String DISCORD = "https://discord.gg/bpgYQMA59D";
-    /** Same channel as {@code CsClientPromoDialog}. */
-    public static final String YOUTUBE = "https://youtube.com/@craft-studio-official";
-    public static final String WEBSITE = "https://cs-launchel.vercel.app/";
-    public static final String GITHUB = "https://github.com/craftstudioteam";
+    public static final String WEBSITE = "https://github.com/Yohanbit/CS-LAUNCHER-PLUS/releases";
+    public static final String GITHUB = "https://github.com/Yohanbit/CS-LAUNCHER-PLUS";
 
     private CsLinks() {}
 
