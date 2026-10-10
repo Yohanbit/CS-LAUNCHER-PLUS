@@ -135,17 +135,8 @@ jobs:
             --target "$BUILD_SHA" \
             --title "Unamed launcher 1.4 EXTREME — test $BUILD_RUN" \
             --prerelease \
-            --notes 'Cambios en 1.4 EXTREME:
-          - Añadidas las librerías Android LWJGL, SDL, OpenAL y SPIRV-Cross que faltaban en el arranque.
-          - Configuración de MobileGlues exportada antes de cargar el renderer.
-          - Añadidos modos FPS Unlimited, Manual y Original con restauración de ajustes.
-          - La solicitud de frecuencia de pantalla usa el modo FPS elegido y respeta VSync explícito.
-          - Añadida resolución dinámica opcional con escala mínima configurable.
-          - Corregidos el doble conteo de FPS, las prioridades de hilos y el guardado del historial.
-          - Añadidos diagnósticos de swaps, memoria, temperatura y GC.
-          - Ajustes de drivers limitados al backend correspondiente; retiradas opciones G1 incompatibles.
-          - Eliminados el servidor promocional automático, las referencias regionales del inicio y los tutoriales/promociones automáticos.
-          - Configuración simplificada: rendimiento en Game y calidad/resolución en Display, sin controles duplicados.
-          - Nuevo nombre Unamed launcher para la app, APK y prereleases, con icono propio.
-          - Inicio rediseñado con instancia seleccionada, Jugar destacado y accesos simplificados.'
+            --notes 'Cambios en esta versión:
+          - Nueva imagen de Unamed launcher: engranaje con corazón en el icono, también adaptativo en Android.
+          - Ilustración de la comunidad integrada como fondo estático del inicio, con contraste para los controles.
+          - Actualizado el subtítulo a Edición de la Comunidad.'
           gh release view "extreme-1.4-$BUILD_RUN" --json name,url,assets --jq '{name,url,assets:[.assets[]|{name,size,url}]}'

@@ -9,6 +9,13 @@
     android:background="#101317"
     tools:ignore="HardcodedText">
 
+    <!-- Static user artwork: no animation or per-frame rendering in the launcher. -->
+    <ImageView android:layout_width="match_parent" android:layout_height="match_parent"
+        android:src="@drawable/unamed_brand_art" android:scaleType="centerCrop"
+        android:contentDescription="@null" />
+    <View android:layout_width="match_parent" android:layout_height="match_parent"
+        android:background="#D9101317" />
+
     <!-- Retained IDs for compatibility; Home no longer renders an animated stage. -->
     <ImageView android:id="@+id/lh_bg_a" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" android:contentDescription="@null" />
     <ImageView android:id="@+id/lh_bg_b" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" android:contentDescription="@null" />
@@ -51,7 +58,7 @@
                             android:textSize="21sp"
                             android:textStyle="bold" />
                     </LinearLayout>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Minecraft Java Edition" android:textColor="#9DA7B4" android:textSize="12sp" android:layout_marginTop="2dp" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Edición de la Comunidad" android:textColor="#9DA7B4" android:textSize="12sp" android:layout_marginTop="2dp" />
                 </LinearLayout>
 
                 <LinearLayout
