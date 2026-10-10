@@ -46,7 +46,7 @@ jobs:
       - name: Build signed test APK
         run: |
           chmod +x gradlew
-          ./gradlew :app_pojavlauncher:assembleDebug --no-daemon --stacktrace
+          ./gradlew :app_pojavlauncher:assembleDebug -PallowMissingFirebase=true --no-daemon --stacktrace
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
@@ -75,4 +75,4 @@ jobs:
             --target "$BUILD_SHA" \
             --title "CS Launcher Plus — test build $BUILD_RUN" \
             --prerelease \
-            --notes 'APK de prueba compilada desde este repositorio. No es una versión oficial; no ha sido probada en un dispositivo. Usa el identificador de aplicación debug y la firma de prueba del proyecto.'
+            --notes 'APK de prueba compilada desde este repositorio. Sin GOOGLE_SERVICES_JSON, las notificaciones y la sincronización Firebase quedan inactivas. No es una versión oficial; no ha sido probada en un dispositivo. Usa el identificador de aplicación debug y la firma de prueba del proyecto.'

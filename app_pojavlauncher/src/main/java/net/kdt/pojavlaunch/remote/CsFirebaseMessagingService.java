@@ -78,6 +78,7 @@ public class CsFirebaseMessagingService extends FirebaseMessagingService {
         createNotificationChannels(context);
         if (net.kdt.pojavlaunch.performance.GameSessionState.isGameActive()) return;
 
+        if (com.google.firebase.FirebaseApp.getApps(context).isEmpty()) return;
         FirebaseMessaging messaging = FirebaseMessaging.getInstance();
 
         // Subscribe to required topics automatically

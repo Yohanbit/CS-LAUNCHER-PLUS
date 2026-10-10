@@ -1,6 +1,14 @@
 plugins {
     id 'com.android.application' version '8.7.2'
-    id 'com.google.gms.google-services'
+    id 'com.google.gms.google-services' apply false
+}
+
+// Test builds may omit Firebase; normal builds still require real configuration.
+def csWithoutFirebase = (project.findProperty("allowMissingFirebase") ?: "false").toBoolean() &&
+        !file("google-services.json").exists() && !file("src/debug/google-services.json").exists() &&
+        !file("src/google-services.json").exists()
+if (!csWithoutFirebase) {
+    apply plugin: 'com.google.gms.google-services'
 }
 
 static def getDate() { return new Date().format('yyyyMMdd') }
@@ -83,6 +91,9 @@ android {
 
     defaultConfig {
         applicationId "com.cslaucher.plus"
+        if (csWithoutFirebase) {
+            resValue "string", "firebase_database_url", ""
+        }
         minSdkVersion 21
         targetSdkVersion 34
         versionCode 10010000

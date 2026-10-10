@@ -112,6 +112,7 @@ public final class FirebaseSyncManager {
     }
 
     public static boolean isConfigured(Context ctx) {
+        if (com.google.firebase.FirebaseApp.getApps(ctx).isEmpty()) return false;
         String url = effectiveDbUrl(ctx);
         if (url == null || url.isEmpty()) return false;
         return prefs(ctx).getBoolean(PREF_ENABLED, true);
