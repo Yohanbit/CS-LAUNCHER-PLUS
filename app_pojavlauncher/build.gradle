@@ -126,8 +126,8 @@ android {
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.customDebug
-            resValue "string", "app_name", "CS Launcher Plus"
-            resValue "string", "app_short_name", "CS Launcher Plus"
+            resValue "string", "app_name", "Unamed launcher"
+            resValue "string", "app_short_name", "Unamed launcher"
             resValue 'string', 'application_package', 'com.cslaucher.plus.debug'
             resValue 'string', 'storageProviderAuthorities', 'com.cslaucher.plus.scoped.gamefolder.debug'
             resValue 'string', 'shareProviderAuthority', 'com.cslaucher.plus.scoped.controlfolder.debug'
@@ -150,8 +150,8 @@ android {
             // defaultConfig already set
             // multiDexEnabled = true
             signingConfig signingConfigs.release
-            resValue "string", "app_name", "CS Launcher Plus"
-            resValue "string", "app_short_name", "CS Launcher Plus"
+            resValue "string", "app_name", "Unamed launcher"
+            resValue "string", "app_short_name", "Unamed launcher"
             resValue 'string', 'storageProviderAuthorities', 'com.cslaucher.plus.gamefolder'
             resValue 'string', 'application_package', 'com.cslaucher.plus'
         }

@@ -16,8 +16,8 @@ public final class CsLinks {
 
     /** Same invite as {@code AboutFragment}. */
     public static final String DISCORD = "https://discord.gg/bpgYQMA59D";
-    public static final String WEBSITE = "https://cs-launchel.vercel.app/";
-    public static final String GITHUB = "https://github.com/craftstudioteam";
+    public static final String WEBSITE = "https://github.com/Yohanbit/CS-LAUNCHER-PLUS/releases";
+    public static final String GITHUB = "https://github.com/Yohanbit/CS-LAUNCHER-PLUS";
 
     private CsLinks() {}
 

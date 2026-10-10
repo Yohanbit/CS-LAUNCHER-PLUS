@@ -4,10 +4,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Rect;
-import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -42,10 +40,8 @@ import net.kdt.pojavlaunch.extra.ExtraListener;
 import net.kdt.pojavlaunch.multirt.MultiRTUtils;
 import net.kdt.pojavlaunch.multirt.Runtime;
 import net.kdt.pojavlaunch.prefs.LauncherPreferences;
-import net.kdt.pojavlaunch.profiles.ProfileIconCache;
 import net.kdt.pojavlaunch.tutorial.DragTutorialHost;
 import net.kdt.pojavlaunch.ui.PremiumPlayButtonView;
-import net.kdt.pojavlaunch.ui.SkinGLRenderer;
 import net.kdt.pojavlaunch.value.MinecraftAccount;
 import net.kdt.pojavlaunch.value.launcherprofiles.LauncherProfiles;
 import net.kdt.pojavlaunch.value.launcherprofiles.MinecraftProfile;
@@ -65,23 +61,9 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * ═══════════════════════════════════════════════════════════════════════════
- *  LAUNCHER HOME — "STAGE" (complete redesign)
- *
- *  The screen itself becomes the primary instance: its artwork fills the
- *  display under a legibility scrim, and every control floats on glass.
- *
- *    left dock .......... Home / Cursor / Controls / About / Settings
- *    account chip ....... avatar + name + auth badge → account dialog
- *    3D player .......... real skin, breathing bob + one-shot greeting wave
- *    launch cluster ..... eyebrow / instance name / meta / PLAY capsule
- *    continue pill ...... most-recent NON-primary instance, one-tap relaunch
- *    library carousel ... every instance as an artwork card + New Instance tile
- *
- *  Primary instance = first entry of the saved order (LauncherProfiles).
- *  Tap a card → it becomes primary (whole stage re-themes + background
- *  crossfades). Long-press → drag reorder. ⋮ → contextual action sheet.
- * ═══════════════════════════════════════════════════════════════════════════
+ * Compact launcher home with an explicit instance selector and direct play action.
+ * Saved profile order, account switching, and instance management keep their
+ * existing behavior. No animated GL stage is created on this screen.
  */
 public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
 
@@ -90,39 +72,30 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
     private List<String> mKeys = new ArrayList<>();
     private List<MinecraftProfile> mProfiles = new ArrayList<>();
     private String mPrimaryKey = null;
-    private int mPrimaryMods = -1;
-
-    // Background crossfade pair
-    private ImageView mBgA, mBgB;
-    private boolean mBgFrontIsA = true;
-
-    // Stage
     private TextView mLaunchLabel;
-    private TextView mHeroName;
     private PremiumPlayButtonView mLaunchButton;
     private View mLaunchSpecs;
-    private TextView mSpecJavaText;
-    private TextView mSpecRamText;
-    private android.opengl.GLSurfaceView mPlayer;
-    private SkinGLRenderer mRenderer;
-    /** Delayed re-fetch budget when the character had to fall back to Steve. */
-    private int mSkinRetries = 0;
-    // Light-weight pose driver: idles the shared GL renderer only while visible.
-    private android.animation.ValueAnimator mPoseAnim;
-    private static final float PLAYER_BASE_YAW = -32f;
+    private TextView mSpecJavaText, mSpecRamText;
+    private TextView mInstanceName, mInstanceMeta;
+    private View mInstanceSelector, mEditButton;
+    private androidx.appcompat.app.AlertDialog mInstancePicker;
+    private net.kdt.pojavlaunch.multirt.MultiRTConfigDialog mRuntimePicker;
+    private final androidx.activity.result.ActivityResultLauncher<Object> mRuntimeInstallLauncher =
+            registerForActivityResult(new net.kdt.pojavlaunch.contracts.OpenDocumentWithExtension("xz"), data -> {
+                Context context = getContext();
+                if (data != null && context != null) Tools.installRuntimeFromUri(context, data);
+            });
 
     // Chrome
     private LinearLayout mAccountChip;
     private ImageView mAccountHead;
     private TextView mAccountName, mAccountType;
-    private String mLastAccountLabel = null;
     private View mEmptyHint;
 
     // Library
     private RecyclerView mLibrary;
     private InstanceLibraryAdapter mAdapter;
     private ItemTouchHelper mTouchHelper;
-    private boolean mLibraryIntroduced = false;
 
     // ── Drag tutorial host (transient demo cards, never persisted) ──
     private static final String DEMO_KEY_STEVE = "\0tutorial.demo.steve";
@@ -132,30 +105,42 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
 
     // ── Compact download progress pill ──
     private View mDlPill;
-    private View mDlIconWrap;
     private TextView mDlTitle, mDlPercent, mDlDetail;
     private ProgressBar mDlBar;
     private boolean mDlListening = false;
-    private android.animation.ValueAnimator mDlIconPulse;
-    private android.animation.ValueAnimator mDlShimmer;
-    private int mDlLastProgress = 0;
-
     public LauncherHomeFragment() {
         super(R.layout.fragment_launcher_home);
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        mBgA = view.findViewById(R.id.lh_bg_a);
-        mBgB = view.findViewById(R.id.lh_bg_b);
         mLaunchButton = view.findViewById(R.id.lh_launch_button);
         mLaunchLabel = view.findViewById(R.id.lh_launch_label);
         mLaunchSpecs = view.findViewById(R.id.lh_launch_specs);
         mSpecJavaText = view.findViewById(R.id.lh_spec_java_text);
         mSpecRamText = view.findViewById(R.id.lh_spec_ram_text);
-        mHeroName = view.findViewById(R.id.lh_hero_name);
-        mPlayer = view.findViewById(R.id.lh_player);
-        setupPlayer();
+        mInstanceName = view.findViewById(R.id.lh_instance_name);
+        mInstanceMeta = view.findViewById(R.id.lh_instance_meta);
+        mInstanceSelector = view.findViewById(R.id.lh_instance_selector);
+        mInstanceSelector.setOnClickListener(v -> showInstancePicker());
+        view.findViewById(R.id.lh_new_instance).setOnClickListener(v -> CreationTypeDialog.show(this));
+        view.findViewById(R.id.lh_tool_skins).setOnClickListener(v ->
+                navigateTo(SkinLibraryOverviewFragment.class, SkinLibraryOverviewFragment.TAG, null));
+        view.findViewById(R.id.lh_tool_controls).setOnClickListener(v ->
+                startActivity(new Intent(requireContext(), CustomControlsActivity.class)));
+        view.findViewById(R.id.lh_tool_runtime).setOnClickListener(v -> {
+            if (mRuntimePicker == null) {
+                mRuntimePicker = new net.kdt.pojavlaunch.multirt.MultiRTConfigDialog();
+                mRuntimePicker.prepare(requireActivity(), mRuntimeInstallLauncher);
+            }
+            mRuntimePicker.show();
+        });
+        view.findViewById(R.id.lh_tool_cursor).setOnClickListener(v ->
+                navigateTo(CursorCustomizationFragment.class, CursorCustomizationFragment.TAG, null));
+        view.findViewById(R.id.lh_tool_settings).setOnClickListener(v ->
+                navigateTo(net.kdt.pojavlaunch.prefs.screens.LauncherPreferenceFragment.class,
+                        net.kdt.pojavlaunch.LauncherActivity.SETTING_FRAGMENT_TAG, null));
+        styleInstancePanel(view.findViewById(R.id.lh_instance_panel));
         mAccountChip = view.findViewById(R.id.lh_account_chip);
         mAccountHead = view.findViewById(R.id.lh_account_head);
         mAccountName = view.findViewById(R.id.lh_account_name);
@@ -164,7 +149,6 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
         mLibrary = view.findViewById(R.id.lh_library);
 
         mDlPill = view.findViewById(R.id.lh_dl_pill);
-        mDlIconWrap = view.findViewById(R.id.lh_dl_icon_wrap);
         mDlTitle = view.findViewById(R.id.lh_dl_title);
         mDlPercent = view.findViewById(R.id.lh_dl_percent);
         mDlDetail = view.findViewById(R.id.lh_dl_detail);
@@ -173,9 +157,8 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
         setupLibrary();
 
         // PENCIL → edit page of the SELECTED profile (same flow as ⋮ Edit Instance).
-        View editBtn = view.findViewById(R.id.lh_edit_btn);
+        View editBtn = mEditButton = view.findViewById(R.id.lh_edit_btn);
         if (editBtn != null) {
-            UiMotion.pressFeedback(editBtn);
             editBtn.setOnClickListener(v -> {
                 if (mPrimaryKey == null) return;
                 LauncherPreferences.DEFAULT_PREF.edit()
@@ -188,35 +171,22 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
         mLaunchButton.setOnClickListener(v -> {
             if (mLaunchButton.isStopMode()) {
                 mLaunchButton.cancelPendingLaunch();
-                cancelLaunchVisuals();
                 v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
                 return;
             }
+            if (mLaunchButton.isLaunching()) return;
             if (mPrimaryKey == null) {
                 CreationTypeDialog.show(this);
                 return;
             }
             mLaunchButton.beginLaunch();
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-            playLaunchAnimationThenLaunch(mPrimaryKey);
+            launch(mPrimaryKey);
         });
 
         mAccountChip.setOnClickListener(v -> switchAccount());
 
-        // Launcher identity only; no promotional community buttons.
-        View brand = view.findViewById(R.id.lh_brand_cluster);
-        if (brand != null) {
-            net.kdt.pojavlaunch.Anime.in(brand, net.kdt.pojavlaunch.Anime.Fx.FADE_RIGHT, 80, 620, net.kdt.pojavlaunch.Anime.OUT_EXPO);
-            net.kdt.pojavlaunch.Anime.in(mAccountChip, net.kdt.pojavlaunch.Anime.Fx.FADE_LEFT, 80, 620, net.kdt.pojavlaunch.Anime.OUT_EXPO);
-        }
-
-        // One pass of elastic press feedback for everything on the stage.
-        UiMotion.attachTouchFeedback(view.findViewById(R.id.lh_content));
-
-        // ── Display-cutout safety (works for top-left / top-center / top-right
-        //    punch-holes and any orientation — never hardcoded). The artwork
-        //    stays full-bleed behind; only the interactive layer is padded out
-        //    of the real cutout area using platform insets. ──
+        // Pad interactive content out of real cutouts in either orientation.
         final View content = view.findViewById(R.id.lh_content);
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(content, (v, insets) -> {
             int l = 0, t = 0, r = 0, b = 0;
@@ -232,22 +202,9 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
         });
         // The activity consumes insets at its root, so the listener above may
         // never fire under edge-to-edge. Apply the real cutout padding directly
-        // from the root window insets as well, so the account chip / stage stay
+        // from the root window insets as well, so the account chip / controls stay
         // clear of a notch in fullscreen landscape regardless of dispatch.
         content.post(() -> applyCutoutPaddingDirect(content));
-
-        // Background artwork: dim + desaturate so it stays atmospheric and
-        // never competes with the player, titles or controls.
-        android.graphics.ColorMatrix cm = new android.graphics.ColorMatrix(new float[]{
-                0.90f, 0, 0, 0, 0,
-                0, 0.90f, 0, 0, 0,
-                0, 0, 0.94f, 0, 0,
-                0, 0, 0, 1, 0});
-        android.graphics.ColorMatrixColorFilter filter = new android.graphics.ColorMatrixColorFilter(cm);
-        mBgA.setColorFilter(filter);
-        mBgB.setColorFilter(filter);
-
-        playEntrance(view);
 
         // Real account switches (spinner pick / add / remove) refresh Home instantly.
         ExtraCore.addExtraListener(ExtraConstants.ACCOUNT_CHANGED, mAccountChangedListener);
@@ -260,8 +217,7 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
     /**
      * Pads the interactive layer out of the real display cutout using the root
      * window insets directly — independent of the inset-dispatch chain (the
-     * activity consumes insets at its root). Full-bleed artwork stays behind;
-     * only controls are inset. Safe on all orientations / cutout positions.
+     * activity consumes insets at its root). Safe in either orientation.
      */
     private void applyCutoutPaddingDirect(@NonNull View content) {
         if (android.os.Build.VERSION.SDK_INT < 28) return;
@@ -275,7 +231,6 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
         } catch (Throwable ignored) {}
     }
 
-    /** Rebinds chip + 3D player whenever the selected account really changes. */
     /**
      * Phase 11 (item 1): profiles written behind Home's back (a modloader
      * installer that just finished, a rename applied by InstallerHandoff) show
@@ -289,11 +244,8 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
     };
 
     private final ExtraListener<String> mAccountChangedListener = (key, value) -> {
-        if (!isAdded()) return false;
+        if (!isAdded() || getView() == null) return false;
         bindAccount();
-        loadPlayerSkin();
-        // Replay the "Hello" greeting so the new character introduces itself.
-        mPoseStartMs = android.os.SystemClock.uptimeMillis();
         try {
             net.kdt.pojavlaunch.value.MinecraftAccount acc =
                     PojavProfile.getCurrentProfileContent(requireContext(), null);
@@ -304,393 +256,40 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
     };
 
 
-    // ── 3D player (SHARED renderer — the exact Skin Management pipeline) ───
+    private void styleInstancePanel(View panel) {
+        android.graphics.drawable.GradientDrawable background = new android.graphics.drawable.GradientDrawable();
+        background.setColor(0xFF1B2027);
+        background.setCornerRadius(16f * getResources().getDisplayMetrics().density);
+        background.setStroke(Math.max(1, Math.round(getResources().getDisplayMetrics().density)), 0xFF303943);
+        panel.setBackground(background);
+    }
 
-    private void setupPlayer() {
-        if (mPlayer == null) return;
-        // A GLSurfaceView accepts setRenderer() exactly once. If this view
-        // instance is already wired, just restart the pose driver + skin load.
-        if (Boolean.TRUE.equals(mPlayer.getTag())) {
-            startPoseDriver();
-            loadPlayerSkin();
+    /** Explicit selector; selection uses the same persisted order as card taps. */
+    private void showInstancePicker() {
+        if (mKeys.isEmpty()) {
+            CreationTypeDialog.show(this);
             return;
         }
-        mRenderer = new SkinGLRenderer(requireContext());
-        mRenderer.mAngleX = PLAYER_BASE_YAW;   // front + char-left three-quarter
-        mRenderer.mAngleY = 5f;
-        // Bigger, centred figure. Zoom is as large as possible while still
-        // keeping the WHOLE body — raised (left) hand up beside the head and
-        // both legs/feet — inside the surface. (Home framing only; Skin
-        // Management is separate.) The GL surface fills the middle band and is
-        // horizontally centred over the LAUNCH capsule.
-        // Framing tuned so the WHOLE figure fits inside the band whose top is
-        // the name tag: the head + raised hand keep clear top headroom (no
-        // clip at the surface's top edge) and the feet stay above the launch
-        // row. The band's top is now the account chip (tall), so the head, the
-        // raised hand AND the in-scene name tag above the head all have clear
-        // headroom and none of them touches the surface's top edge = no clip
-        // line. Skin size is unchanged (kept large per user request).
-        // Slightly bigger figure than last build (0.92 -> 0.96). A NEGATIVE
-        // vertical shift pushes the whole figure DOWN in the frame, keeping the
-        // head + raised (left) hand clear of the ortho frustum's top edge so
-        // NOTHING clips (empirically -1.4 was clean; -1.5 keeps that margin at
-        // the larger zoom), while the feet stay above the launch row.
-        mRenderer.mZoomFactor = 1.06f;
-        mRenderer.mVerticalShift = -1.9f;
-        // The 3/4-view yaw + raised left hand push the visible body mass toward
-        // screen-right, so the figure reads as offset from the LAUNCH button
-        // axis. Nudge the whole scene left so the head/torso sit dead-centre
-        // over the button. (Home framing only; Skin Management is untouched.)
-        mRenderer.mHorizontalShift = -2.8f;
-        mRenderer.mAutoRotate = false;
-        // Home draws its name tag in the UI layer (lh_hero_name TextView) above
-        // the GL surface. The surface top is anchored BELOW that TextView, so it
-        // never paints over the tag. Disable the in-scene GL name plate to keep
-        // exactly ONE name tag (and because the GL plate sits outside the ortho
-        // frustum and would be clipped anyway).
-        mRenderer.setNametag(null);
-        // Persist GL phase markers so a native driver crash is diagnosable.
-        SkinGLRenderer.sBreadcrumbFile = new java.io.File(
-                requireContext().getFilesDir(), "gl_breadcrumb.txt");
-        // EGL config / surface format / z-order MUST be set BEFORE setRenderer():
-        // after it, GLSurfaceView rejects every config call (IllegalStateException).
-        try {
-            // ROOT CAUSE of the silent Home crash: GLSurfaceView creates a
-            // GLES *1.0* context by default. This renderer is pure GLES20 —
-            // calling ES2 entry points on an ES1 context SIGSEGVs natively
-            // inside the vendor driver (no Java exception = no crash report).
-            // The working Skin Management page sets exactly this before its
-            // renderer; Home must mirror it.
-            mPlayer.setEGLContextClientVersion(2);
-            mPlayer.getHolder().setFormat(android.graphics.PixelFormat.TRANSLUCENT);
-            // See-through compositing: the GL surface must float ABOVE the window
-            // layer with an alpha channel — media-overlay translucency renders as
-            // an opaque BLACK rectangle on several OEM compositors, which is the
-            // black box bug. Nothing overlaps the player's bounds here (Manage
-            // Skin sits below it, instance cards below the column), so on-top is
-            // the safe, canonical transparent-SurfaceView recipe.
-            mPlayer.setZOrderOnTop(true);
-            mPlayer.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
-            mPlayer.setRenderer(mRenderer);
-            // Battery-safe: frames are drawn only when we ask (pose ticks / skin swap).
-            mPlayer.setRenderMode(android.opengl.GLSurfaceView.RENDERMODE_WHEN_DIRTY);
-            mPlayer.setTag(Boolean.TRUE);
-        } catch (Throwable t) {
-            // This device refused the GL setup — Home must survive without the
-            // 3D player rather than crash-loop on every launch.
-            android.util.Log.e("LauncherHome", "3D player disabled on this device", t);
-            mRenderer = null;
-            mPlayer.setVisibility(android.view.View.GONE);
-            return;
+        if (mInstancePicker != null && mInstancePicker.isShowing()) return;
+        final List<String> keys = new ArrayList<>(mKeys);
+        final List<MinecraftProfile> profiles = new ArrayList<>(mProfiles);
+        String[] labels = new String[profiles.size()];
+        for (int i = 0; i < profiles.size(); i++) {
+            MinecraftProfile profile = profiles.get(i);
+            labels[i] = profile.name + " — " + displayVersion(profile.lastVersionId);
         }
-        // Tapping the character opens Skin Management — restricted to actual character bounds.
-        mPlayer.setClickable(true);
-        final float density = getResources().getDisplayMetrics().density;
-        final float characterHalfWidth = 85f * density;
-        mPlayer.setOnTouchListener(new android.view.View.OnTouchListener() {
-            private float downX, downY;
-            private boolean downOnCharacter;
-
-            @Override
-            public boolean onTouch(android.view.View v, android.view.MotionEvent event) {
-                float x = event.getX();
-                float y = event.getY();
-                float cx = v.getWidth() / 2f;
-                float top = v.getHeight() * 0.10f;
-                float bottom = v.getHeight() * 0.95f;
-                boolean onCharacter = Math.abs(x - cx) <= characterHalfWidth && y >= top && y <= bottom;
-
-                switch (event.getActionMasked()) {
-                    case android.view.MotionEvent.ACTION_DOWN:
-                        downX = x;
-                        downY = y;
-                        downOnCharacter = onCharacter;
-                        return onCharacter;
-                    case android.view.MotionEvent.ACTION_UP:
-                        if (downOnCharacter && onCharacter) {
-                            float dx = Math.abs(x - downX);
-                            float dy = Math.abs(y - downY);
-                            if (dx < 20f * density && dy < 20f * density) {
-                                v.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP);
-                                Tools.swapFragment(requireActivity(), SkinLibraryOverviewFragment.class,
-                                        SkinLibraryOverviewFragment.TAG, null);
-                                return true;
-                            }
-                        }
-                        downOnCharacter = false;
-                        break;
-                    case android.view.MotionEvent.ACTION_CANCEL:
-                        downOnCharacter = false;
-                        break;
-                }
-                return false;
-            }
-        });
-        startPoseDriver();
-        loadPlayerSkin();
+        mInstancePicker = new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle("Choose instance")
+                .setSingleChoiceItems(labels, Math.max(0, keys.indexOf(mPrimaryKey)), (dialog, which) -> {
+                    promoteToPrimary(keys.get(which), profiles.get(which));
+                    dialog.dismiss();
+                })
+                .setPositiveButton("New instance", (dialog, which) -> CreationTypeDialog.show(this))
+                .setNegativeButton(android.R.string.cancel, null)
+                .create();
+        mInstancePicker.show();
     }
 
-    /** Loads the active account's skin into the shared renderer (async). */
-    private void loadPlayerSkin() {
-        if (mRenderer == null) return;
-        final android.content.Context ctx = getContext() == null ? null : getContext().getApplicationContext();
-        if (ctx == null) return;
-        PojavApplication.sExecutorService.execute(() -> {
-            android.graphics.Bitmap skin = null;
-            android.graphics.Bitmap cape = null;
-            String name = null;
-            try {
-                MinecraftAccount account = PojavProfile.getCurrentProfileContent(ctx, null);
-                if (account != null && account.username != null
-                        && !account.username.trim().isEmpty()) {
-                    name = account.username;
-                    // SAME source as the Skin Management page: the launcher's
-                    // per-account skin file. Microsoft/premium skins are written
-                    // here by updateOfficialSkin(); local/ely.by skins too.
-                    File f = new File(Tools.DIR_DATA + "/skins/" + account.username + "_skin.png");
-                    // Phase 10: a premium account also re-validates a sheet that
-                    // is NOT marked as its exact Mojang skin (stale local/default
-                    // sheet of the same name) — the home 3D + head then swap to
-                    // the real skin as soon as it lands.
-                    boolean stalePremium = account.isMicrosoft && !account.isSkinSlotManaged()
-                            && !net.kdt.pojavlaunch.skins.SkinResolver.isPremiumCache(f, account);
-                    if (!net.kdt.pojavlaunch.skins.SkinResolver.isUsableSkin(f) || stalePremium) {
-                        // Not cached yet: resolve per account kind (Microsoft →
-                        // Mojang UUID; ely.by → skinsystem https; local → Mojang
-                        // by name / ely.by / mc-heads) and cache it where every
-                        // other skin surface reads. Falls back to the default
-                        // character offline.
-                        try {
-                            File got = net.kdt.pojavlaunch.skins.SkinResolver.resolve(account);
-                            if (got != null) {
-                                // Phase 9: the 3D head (top chip + nav icon) is
-                                // rendered from the same sheet — drop its cached
-                                // render so it picks the real skin up too.
-                                net.kdt.pojavlaunch.ui.SkinHead3DRenderer.invalidate(account.username);
-                                // Phase 11: the flat face PNG (account list /
-                                // nav icon) was cut from the OLD sheet — drop
-                                // it so every surface re-reads the new skin.
-                                try { new File(Tools.DIR_CACHE, account.username + ".png").delete(); } catch (Throwable ignored) {}
-                                try { new File(Tools.DIR_DATA + "/skins/" + account.username + "_face.png").delete(); } catch (Throwable ignored) {}
-                                final MinecraftAccount headAcc = account;
-                                Tools.runOnUiThread(() -> {
-                                    if (!isAdded()) return;
-                                    loadAccountHead(headAcc);
-                                    Activity a = getActivity();
-                                    if (a instanceof net.kdt.pojavlaunch.LauncherActivity)
-                                        ((net.kdt.pojavlaunch.LauncherActivity) a).updateNavSkinIcon();
-                                });
-                            }
-                        }
-                        catch (Throwable ignored) {}
-                    }
-                    if (f.isFile()) {
-                        try { skin = net.kdt.pojavlaunch.skins.SkinResolver.decode(f); }
-                        catch (Throwable ignored) {}
-                    }
-                    // Cape parity with Skin Management (optional, may be absent).
-                    File capeFile = new File(Tools.DIR_DATA + "/capes/" + account.username + "_cape.png");
-                    if (capeFile.isFile()) {
-                        try { cape = android.graphics.BitmapFactory.decodeFile(capeFile.getAbsolutePath()); }
-                        catch (Throwable ignored) {}
-                    }
-                }
-            } catch (Throwable ignored) {}
-            // Robust fallback: a valid cached skin is always preferred; only
-            // when none is available do we show the bundled default character.
-            final boolean usedFallback = name != null && (skin == null || skin.getWidth() < 64);
-            if (skin == null || skin.getWidth() < 64) {
-                android.graphics.BitmapFactory.Options o = new android.graphics.BitmapFactory.Options();
-                o.inScaled = false;
-                skin = android.graphics.BitmapFactory.decodeResource(getResources(), R.drawable.cs_default_skin, o);
-            }
-            final android.graphics.Bitmap fSkin = skin;
-            final android.graphics.Bitmap fCape = cape;
-            final String fName = name;
-            Tools.runOnUiThread(() -> {
-                if (!isAdded() || mRenderer == null) return;
-                mRenderer.setTexture(fSkin, fCape);
-                // A fresh login writes the skin file a moment after the account
-                // appears; one delayed retry catches it without polling.
-                if (usedFallback && mSkinRetries < 3 && mPlayer != null) {
-                    mSkinRetries++;
-                    mPlayer.postDelayed(() -> { if (isAdded()) loadPlayerSkin(); }, 2500L * mSkinRetries);
-                } else if (!usedFallback) {
-                    mSkinRetries = 0;
-                }
-                // The name tag is the UI-layer TextView (lh_hero_name); the GL
-                // nametag stays disabled so the raised hand is never clipped.
-                if (mPlayer != null) mPlayer.requestRender();
-            });
-        });
-    }
-
-
-    // ── Greeting state machine ("Hello 👋") ─────────────────────────────────
-    //
-    // IMPORTANT: SkinGLRenderer applies every pose field through
-    // Matrix.rotateM(), which takes DEGREES. The previous rig fed radian-sized
-    // numbers (arm = 2.62 => 2.6°), so the "raised hand" was invisible. All the
-    // constants below are therefore in DEGREES.
-    //
-    // The greeting is driven by the actual LEFT-ARM shoulder joint (mPoseLeftArmZ)
-    // — the whole body is never rotated to fake it. Timeline (ms):
-    //   0 ─ NOTICE ─ 380 ─ RAISE ─ 900 ─ WAVE ─ 2100 ─ (settle) ─ 2450 ─> HOLD
-    // After the one-shot greeting the character HOLDS a relaxed left-hand-up
-    // pose, kept alive by breathing / micro-sway / occasional glances.
-    private long mPoseStartMs = 0L;
-    private static final float GREET_ARM_UP_DEG   = 156f; // shoulder lift: hand up beside the head
-    private static final float GREET_ARM_HOLD_DEG = 150f; // relaxed held pose (hand stays UP) between waves
-    private static final float GREET_ARM_OUT_DEG  = 10f;  // slight outward (X) so the hand clears the head
-    // Greeting timeline (ms): 0 ─ NOTICE ─ RAISE ─ WAVE ─ SETTLE ─> HOLD(loop)
-    private static final long  T_NOTICE = 340L, T_RAISE = 860L, T_WAVE = 2200L, T_SETTLE = 2520L;
-    // While HOLDing (hand up), replay a friendly wave every this-many ms.
-    private static final long  REWAVE_PERIOD = 5200L, REWAVE_DUR = 1500L;
-
-    /**
-     * One light animator drives the whole greet + idle performance and requests
-     * GL frames on demand — nothing renders when Home is not visible.
-     */
-    private void startPoseDriver() {
-        stopPoseDriver();
-        mPoseStartMs = android.os.SystemClock.uptimeMillis();
-        mPoseAnim = android.animation.ValueAnimator.ofFloat(0f, 1f);
-        mPoseAnim.setDuration(4000);
-        mPoseAnim.setRepeatCount(android.animation.ValueAnimator.INFINITE);
-        mPoseAnim.setInterpolator(new android.view.animation.LinearInterpolator());
-        mPoseAnim.addUpdateListener(a -> drivePose());
-        mPoseAnim.start();
-    }
-
-    private void stopPoseDriver() {
-        if (mPoseAnim != null) { mPoseAnim.cancel(); mPoseAnim = null; }
-    }
-
-    /**
-     * Advanced "Hello" rig. A one-shot greeting (notice → raise → wave → hold)
-     * plays every time Home becomes visible; afterwards the character holds a
-     * friendly left-hand-up pose with subtle life. All angles are DEGREES.
-     */
-    private void drivePose() {
-        if (mRenderer == null || mPlayer == null) return;
-
-        long t = android.os.SystemClock.uptimeMillis() - mPoseStartMs;
-        // Continuous, slow "alive" clock (seconds) for breathing / sway.
-        float sec = t / 1000f;
-        float breathe = (float) Math.sin(sec * 1.7f);          // ~0.27 Hz
-        float sway    = (float) Math.sin(sec * 0.9f);
-
-        float armZ, armX, headYaw, headPitch;
-
-        if (t < T_NOTICE) {
-            // NOTICE — arm still down, head turns toward the user.
-            float k = smooth(t / (float) T_NOTICE);
-            armZ = 4f;
-            armX = 0f;
-            headYaw = -7f * k;
-            headPitch = -3f * k;
-        } else if (t < T_RAISE) {
-            // RAISE — smooth eased lift of the LEFT arm from the side to up.
-            float k = smooth((t - T_NOTICE) / (float) (T_RAISE - T_NOTICE));
-            armZ = 4f + (GREET_ARM_UP_DEG - 4f) * k;
-            armX = GREET_ARM_OUT_DEG * k;
-            headYaw = -7f;
-            headPitch = -3f - 2f * k;
-        } else if (t < T_WAVE) {
-            // WAVE — natural side-to-side wave from the shoulder joint, with a
-            // soft ease-in/ease-out envelope so it starts and stops smoothly.
-            float p = (t - T_RAISE) / (float) (T_WAVE - T_RAISE);
-            float wave = (float) Math.sin(p * Math.PI * 6.0);   // 3 full waves
-            float envelope = (float) Math.sin(p * Math.PI);     // ease in/out
-            armZ = GREET_ARM_UP_DEG + wave * 17f * envelope;    // swing amplitude
-            armX = GREET_ARM_OUT_DEG + wave * 3f * envelope;    // tiny forward/back
-            headYaw = -6f + wave * 2.2f * envelope;             // head bobs with the wave
-            headPitch = -5f;
-        } else if (t < T_SETTLE) {
-            // SETTLE — ease from the raised wave into the relaxed HOLD pose
-            // (hand stays UP the whole time — it never drops back down).
-            float k = smooth((t - T_WAVE) / (float) (T_SETTLE - T_WAVE));
-            armZ = GREET_ARM_UP_DEG + (GREET_ARM_HOLD_DEG - GREET_ARM_UP_DEG) * k;
-            armX = GREET_ARM_OUT_DEG;
-            headYaw = -6f * (1f - k);
-            headPitch = -5f + 2f * k;
-        } else {
-            // HOLD — hand stays raised, character stays alive: gentle breathing
-            // micro-wave, occasional glance, AND a full friendly re-wave every
-            // few seconds so it keeps saying "hello" without ever lowering.
-            long hold = (t - T_SETTLE) % REWAVE_PERIOD;
-            float micro = (float) Math.sin(sec * 2.1f) * 3.0f;   // small living wave
-            float glance = (float) Math.sin(sec * 0.5f);
-            if (hold < REWAVE_DUR) {
-                // periodic full wave burst
-                float p = hold / (float) REWAVE_DUR;
-                float wave = (float) Math.sin(p * Math.PI * 4.0);   // 2 waves
-                float envelope = (float) Math.sin(p * Math.PI);
-                armZ = GREET_ARM_HOLD_DEG + wave * 15f * envelope;
-                armX = GREET_ARM_OUT_DEG + wave * 2.5f * envelope;
-                headYaw = wave * 2.0f * envelope;
-                headPitch = -3f + breathe * 0.8f;
-            } else {
-                armZ = GREET_ARM_HOLD_DEG + micro;
-                armX = GREET_ARM_OUT_DEG + breathe * 1.2f;
-                headYaw = glance * 5f;
-                headPitch = -3f + breathe * 0.8f;
-            }
-        }
-
-        // Whole-scene: only breathing bob + a hair of yaw sway. Body is NOT spun.
-        mRenderer.mAngleX = PLAYER_BASE_YAW + sway * 1.4f;
-        mRenderer.mPoseBobY = breathe * 0.22f;
-
-        // Head joint.
-        mRenderer.mPoseHeadYaw = headYaw;
-        mRenderer.mPoseHeadPitch = headPitch;
-
-        // Torso: subtle shoulder/chest life (degrees).
-        mRenderer.mPoseTorsoZ = sway * 1.1f;
-        mRenderer.mPoseTorsoX = breathe * 0.8f;
-
-        // LEFT arm = the greeting arm (real shoulder joint). RIGHT arm relaxed.
-        mRenderer.mPoseLeftArmZ = armZ;
-        mRenderer.mPoseLeftArmX = armX;
-        mRenderer.mPoseRightArmZ = 2f + breathe * 1.5f;
-        mRenderer.mPoseRightArmX = sway * 1.2f;
-
-        // Legs: barely-there weight shift so the stance isn't stiff.
-        mRenderer.mPoseLeftLegX = sway * 1.0f;
-        mRenderer.mPoseRightLegX = -sway * 1.0f;
-
-        mPlayer.requestRender();
-    }
-
-    private static float smooth(float t) {
-        t = Math.max(0f, Math.min(1f, t));
-        return t * t * (3 - 2 * t);
-    }
-
-    // ── Entrance choreography ───────────────────────────────────────────────
-
-    private void playEntrance(@NonNull View root) {
-        UiMotion.revealScreen(root);
-        root.post(() -> {
-            // Player rises out of the ground and greets.
-            if (mPlayer != null) {
-                mPlayer.setAlpha(0f);
-                mPlayer.setTranslationY(30f);
-                mPlayer.setScaleX(0.94f);
-                mPlayer.setScaleY(0.94f);
-                mPlayer.animate().alpha(1f).translationY(0f).scaleX(1f).scaleY(1f)
-                        .setDuration(480).start();
-            }
-            UiMotion.heroIn(mLaunchButton);
-            UiMotion.slideIn(mLibrary, 2, 140);
-            UiMotion.slideIn(mAccountChip, 1, 90);
-        });
-    }
-
-    // ── Data ────────────────────────────────────────────────────────────────
-
-    // ── Compact download progress pill ───────────────────────────────────────
     private final ProgressListener mDlListener = new ProgressListener() {
         @Override public void onProgressStarted() {
             if (getActivity() != null) getActivity().runOnUiThread(() -> showDlPill(true));
@@ -736,87 +335,14 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
         return null;
     }
 
-    /** Smoothly ease the determinate bar to its new value instead of snapping. */
+    /** Honest progress only: no decorative polling, shimmer or pulse. */
     private void animateBarTo(int target) {
-        if (mDlBar == null) return;
-        int from = mDlLastProgress;
-        mDlLastProgress = target;
-        if (Math.abs(target - from) <= 1) { mDlBar.setProgress(target); return; }
-        android.animation.ValueAnimator va = android.animation.ValueAnimator.ofInt(from, target);
-        va.setDuration(320);
-        va.setInterpolator(new android.view.animation.DecelerateInterpolator());
-        va.addUpdateListener(a -> {
-            if (mDlBar != null) mDlBar.setProgress((int) a.getAnimatedValue());
-        });
-        va.start();
-    }
-
-    /** Infinite shimmer that sweeps a soft band across the bar (secondaryProgress). */
-    private void startDlShimmer() {
-        if (mDlBar == null || mDlShimmer != null) return;
-        mDlShimmer = android.animation.ValueAnimator.ofInt(0, 100);
-        mDlShimmer.setDuration(1200);
-        mDlShimmer.setRepeatCount(android.animation.ValueAnimator.INFINITE);
-        mDlShimmer.setInterpolator(new android.view.animation.LinearInterpolator());
-        mDlShimmer.addUpdateListener(a -> {
-            if (mDlBar != null) mDlBar.setSecondaryProgress((int) a.getAnimatedValue());
-        });
-        mDlShimmer.start();
-    }
-
-    /** Gentle breathing pulse on the download glyph disc. */
-    private void startDlIconPulse() {
-        if (mDlIconWrap == null || mDlIconPulse != null) return;
-        mDlIconPulse = android.animation.ValueAnimator.ofFloat(1f, 1.14f);
-        mDlIconPulse.setDuration(760);
-        mDlIconPulse.setRepeatCount(android.animation.ValueAnimator.INFINITE);
-        mDlIconPulse.setRepeatMode(android.animation.ValueAnimator.REVERSE);
-        mDlIconPulse.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
-        mDlIconPulse.addUpdateListener(a -> {
-            if (mDlIconWrap != null) {
-                float s = (float) a.getAnimatedValue();
-                mDlIconWrap.setScaleX(s);
-                mDlIconWrap.setScaleY(s);
-            }
-        });
-        mDlIconPulse.start();
-    }
-
-    private void stopDlAnimators() {
-        if (mDlIconPulse != null) { mDlIconPulse.cancel(); mDlIconPulse = null; }
-        if (mDlShimmer != null) { mDlShimmer.cancel(); mDlShimmer = null; }
-        if (mDlIconWrap != null) { mDlIconWrap.setScaleX(1f); mDlIconWrap.setScaleY(1f); }
+        if (mDlBar != null) mDlBar.setProgress(target);
     }
 
     private void showDlPill(boolean show) {
-        if (mDlPill == null) return;
-        if (show) {
-            if (mDlPill.getVisibility() != View.VISIBLE) {
-                // Slide + fade in from the LEFT edge (side-anchored, never centered).
-                mDlPill.setAlpha(0f);
-                mDlPill.setTranslationX(-40f);
-                mDlPill.setTranslationY(0f);
-                mDlPill.setScaleX(0.96f);
-                mDlPill.setScaleY(0.96f);
-                mDlPill.setVisibility(View.VISIBLE);
-                mDlPill.animate().alpha(1f).translationX(0f).scaleX(1f).scaleY(1f)
-                        .setDuration(340)
-                        .setInterpolator(new android.view.animation.OvershootInterpolator(1.4f))
-                        .start();
-                mDlLastProgress = 0;
-                startDlShimmer();
-                startDlIconPulse();
-            }
-        } else if (mDlPill.getVisibility() == View.VISIBLE) {
-            mDlPill.animate().alpha(0f).translationX(-40f).scaleX(0.96f).scaleY(0.96f)
-                    .setDuration(240)
-                    .setInterpolator(new android.view.animation.AccelerateInterpolator())
-                    .withEndAction(() -> {
-                        if (mDlPill != null) mDlPill.setVisibility(View.GONE);
-                        stopDlAnimators();
-                    })
-                    .start();
-        }
+        if (getView() == null || mDlPill == null) return;
+        mDlPill.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
     private void registerDlListeners() {
@@ -834,28 +360,21 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
         ProgressKeeper.removeListener(ProgressLayout.DOWNLOAD_MINECRAFT, mDlListener);
         ProgressKeeper.removeListener(ProgressLayout.UNPACK_RUNTIME, mDlListener);
         ProgressKeeper.removeListener(ProgressLayout.INSTALL_MODPACK, mDlListener);
-        stopDlAnimators();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        cancelLaunchVisuals();
         LauncherProfiles.addUpdateListener(mProfilesWrittenListener);
         loadData();
         bindAccount();
-        if (mPlayer != null) mPlayer.onResume();
-        startPoseDriver();
         registerDlListeners();
     }
 
     @Override
     public void onPause() {
         LauncherProfiles.removeUpdateListener(mProfilesWrittenListener);
-        stopPoseDriver();
         unregisterDlListeners();
-        if (mPlayer != null) mPlayer.onPause();
-        if (mRenderer != null) mRenderer.onPause();
         super.onPause();
     }
 
@@ -863,15 +382,33 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
     public void onDestroyView() {
         DragTutorialHost.Registry.unregister(this);
         mDemoPracticeListener = null;
-        stopPoseDriver();
         ExtraCore.removeExtraListenerFromValue(ExtraConstants.ACCOUNT_CHANGED, mAccountChangedListener);
         if (mMenu != null) { mMenu.dismiss(); mMenu = null; }
+        if (mInstancePicker != null) { mInstancePicker.dismiss(); mInstancePicker = null; }
+        unregisterDlListeners();
+        if (mTouchHelper != null) mTouchHelper.attachToRecyclerView(null);
+        if (mLibrary != null) mLibrary.setAdapter(null);
+        mLibrary = null;
+        mAdapter = null;
+        mDlPill = null;
+        mDlTitle = mDlPercent = mDlDetail = null;
+        mDlBar = null;
+        mAccountHead = null;
+        mAccountChip = null;
+        mAccountName = mAccountType = null;
+        mLaunchButton = null;
+        mLaunchLabel = null;
+        mInstanceSelector = mEditButton = mLaunchSpecs = null;
+        mInstanceName = mInstanceMeta = mSpecJavaText = mSpecRamText = null;
+        mEmptyHint = null;
+        mTouchHelper = null;
+        mRuntimePicker = null;
         super.onDestroyView();
     }
 
     private void loadData() {
         LauncherProfiles.loadAsync(() -> {
-            if (!isAdded()) return;
+            if (!isAdded() || getView() == null) return;
             // Installer-created profiles (Forge/NeoForge/OptiFine) get the
             // user's chosen name + icon applied as soon as we see them.
             try {
@@ -881,7 +418,7 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
         });
     }
 
-    /** Rebuild the stage + library from the already-loaded profile model (no disk read). */
+    /** Rebuild selection + library from the already-loaded profile model. */
     private void rebindProfilesFromMemory() {
         List<String> keys = new ArrayList<>();
         List<MinecraftProfile> profiles = new ArrayList<>();
@@ -896,7 +433,7 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
             }
         }
         Tools.runOnUiThread(() -> {
-            if (!isAdded()) return;
+            if (!isAdded() || getView() == null) return;
             mKeys = keys;
             mProfiles = profiles;
             bindStage();
@@ -904,64 +441,38 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
         });
     }
 
-    // ── Stage (primary instance = first in saved order) ─────────────────────
+    // Explicit selection is separate from ordering/favorite groups.
 
     private void bindStage() {
-        mPrimaryMods = -1;
         if (mKeys.isEmpty()) {
             mPrimaryKey = null;
-            mLaunchLabel.setText("CREATE");
-            crossfadeBackground(null);
-            if (mLaunchSpecs != null) mLaunchSpecs.setVisibility(View.GONE);
+            mLaunchLabel.setText("Create instance");
+            mLaunchButton.setContentDescription("Create instance");
+            mInstanceName.setText("Create your first instance");
+            mInstanceMeta.setText("Choose a Minecraft version to get started");
+            mInstanceSelector.setContentDescription("Create your first instance");
+            mLaunchSpecs.setVisibility(View.GONE);
+            mEditButton.setVisibility(View.GONE);
             return;
         }
-        mPrimaryKey = mKeys.get(0);
-        MinecraftProfile p = mProfiles.get(0);
-        mLaunchLabel.setText("LAUNCH");
-        mLaunchButton.setContentDescription("Launch " + (p.name != null ? p.name : "instance"));
-
-        if (mLaunchSpecs != null) {
-            mLaunchSpecs.setVisibility(View.VISIBLE);
-            if (mSpecJavaText != null) mSpecJavaText.setText(resolveJavaVersion(p));
-            if (mSpecRamText != null) mSpecRamText.setText(resolveAllocatedRam());
-        }
-
-        // Async: mods count + stage background artwork.
-        final String key = mPrimaryKey;
-        PojavApplication.sExecutorService.execute(() -> {
-            int count = countMods(p);
-            Drawable bg = ProfileIconCache.fetchBackground(getResources(), key, p.background);
-            Tools.runOnUiThread(() -> {
-                if (!isAdded() || !key.equals(mPrimaryKey)) return;
-                mPrimaryMods = count;
-                crossfadeBackground(bg);
-            });
-        });
+        String selected = LauncherPreferences.DEFAULT_PREF.getString(
+                LauncherPreferences.PREF_KEY_CURRENT_PROFILE, "");
+        int selectedIndex = mKeys.indexOf(selected);
+        if (selectedIndex < 0) selectedIndex = 0;
+        mPrimaryKey = mKeys.get(selectedIndex);
+        MinecraftProfile p = mProfiles.get(selectedIndex);
+        mLaunchLabel.setText("Play");
+        mLaunchButton.setContentDescription("Play " + p.name);
+        mInstanceName.setText(p.name);
+        String version = displayVersion(p.lastVersionId);
+        String loader = loaderName(p.lastVersionId);
+        mInstanceMeta.setText(version + (loader == null ? "" : " · " + loader));
+        mInstanceSelector.setContentDescription("Selected instance: " + p.name + ". Choose instance");
+        mEditButton.setVisibility(View.VISIBLE);
+        mLaunchSpecs.setVisibility(View.VISIBLE);
+        mSpecJavaText.setText(resolveJavaVersion(p));
+        mSpecRamText.setText(resolveAllocatedRam());
     }
-
-    /** Crossfades the full-screen artwork between the two layers (dimmed to 55%). */
-    private void crossfadeBackground(@Nullable Drawable next) {
-        if (next == null) {
-            // Elegant Minecraft-themed fallback.
-            next = androidx.core.content.ContextCompat.getDrawable(requireContext(),
-                    R.drawable.bg_hero_minecraft);
-        }
-        final float target = 0.55f;
-        ImageView incoming = mBgFrontIsA ? mBgB : mBgA;
-        ImageView outgoing = mBgFrontIsA ? mBgA : mBgB;
-        incoming.setImageDrawable(next);
-        incoming.animate().cancel();
-        outgoing.animate().cancel();
-        incoming.setAlpha(0f);
-        incoming.setVisibility(View.VISIBLE);
-        incoming.animate().alpha(target).setDuration(420).start();
-        outgoing.animate().alpha(0f).setDuration(420)
-                .withEndAction(() -> outgoing.setVisibility(View.GONE))
-                .start();
-        mBgFrontIsA = !mBgFrontIsA;
-    }
-
-    // ── Continue pill (last played, excluding the primary) ──────────────────
 
     // ── Library carousel ────────────────────────────────────────────────────
 
@@ -974,25 +485,6 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
         }
         mLibrary.setVisibility(View.VISIBLE);
         if (mAdapter != null) mAdapter.updateData(mKeys, mProfiles);
-        // One-time staggered card entrance (first successful load only).
-        if (!mLibraryIntroduced) {
-            mLibraryIntroduced = true;
-            mLibrary.post(() -> {
-                if (!isAdded()) return;
-                for (int i = 0; i < mLibrary.getChildCount(); i++) {
-                    View child = mLibrary.getChildAt(i);
-                    child.setAlpha(0f);
-                    child.setTranslationX(46f);
-                    child.setScaleX(0.92f);
-                    child.setScaleY(0.92f);
-                    child.animate().alpha(1f).translationX(0f).scaleX(1f).scaleY(1f)
-                            .setStartDelay(180 + i * 45L)
-                            .setDuration(380)
-                            .setInterpolator(new android.view.animation.OvershootInterpolator(0.6f))
-                            .start();
-                }
-            });
-        }
     }
 
     private void setupLibrary() {
@@ -1019,7 +511,16 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
                 LauncherProfiles.applyProfileOrder(orderedKeys);
                 loadData();   // primary (first) may have changed → re-theme stage
             }
-        });
+        }) {
+            @Override public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+                super.onBindViewHolder(holder, position);
+                // The library's default accent marks index zero. Here it must
+                // match the explicit selection even when favorites lead order.
+                View accent = holder.itemView.findViewById(R.id.lib_card_primary);
+                if (accent != null) accent.setVisibility(
+                        position == indexOfKey(mPrimaryKey) ? View.VISIBLE : View.GONE);
+            }
+        };
         mAdapter.setDragStartListener(holder -> {
             if (mTouchHelper != null) mTouchHelper.startDrag(holder);
         });
@@ -1218,11 +719,13 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
         }
     }
 
-    /** Reorder so `key` leads its favorite group → becomes the primary instance. */
+    /** Select the instance and retain the existing card-order/favorite behavior. */
     private void promoteToPrimary(String key, MinecraftProfile profile) {
         // Tutorial demo cards can never be promoted or persisted.
         if (mAdapter != null && mAdapter.isDemoKey(key)) return;
         if (key.equals(mPrimaryKey)) return;
+        LauncherPreferences.DEFAULT_PREF.edit()
+                .putString(LauncherPreferences.PREF_KEY_CURRENT_PROFILE, key).apply();
         List<String> order = new ArrayList<>(mKeys);
         order.remove(key);
         if (profile.favorite) {
@@ -1570,32 +1073,10 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
             type = account.isMicrosoft ? "MICROSOFT"
                     : account.isElyByAccount() ? "ELY.BY" : "LOCAL";
         }
-        boolean changed = !label.equals(mLastAccountLabel);
-        mLastAccountLabel = label;
         mAccountName.setText(label);
         mAccountType.setText(type);
-        if (mHeroName != null) {
-            // The floating name tag over the character: real username, or a
-            // clean "Player" default when logged out (never "Add account",
-            // never null/blank).
-            boolean loggedOut = account == null || account.username == null
-                    || account.username.trim().isEmpty();
-            String tag = loggedOut ? "Player" : label;
-            mHeroName.setText(tag);
-            // Feed the SAME name into the in-scene GL name tag (floats above the
-            // head, cannot be clipped or hidden). This is now the ONE visible
-            // name tag; the TextView stays gone as a fallback anchor.
-            if (mRenderer != null) mRenderer.setNametag(tag);
-        }
-        // Name tag = lh_hero_name TextView (set above). The GL nametag remains
-        // disabled so it can never clip the raised hand or hide behind the bg.
+        mAccountChip.setContentDescription("Account: " + label + ". Switch or add account");
         loadAccountHead(account);
-        if (changed && mAccountChip != null) {
-            // Account switch: quick dip-and-back so the swap reads intentional.
-            mAccountChip.animate().cancel();
-            mAccountChip.setAlpha(0.25f);
-            mAccountChip.animate().alpha(1f).setDuration(220).start();
-        }
     }
 
     /** 3D Minecraft head avatar (existing SkinHead3DRenderer, cached + invalidated on skin change). */
@@ -1624,57 +1105,6 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
     }
 
     // ── Actions ─────────────────────────────────────────────────────────────
-
-    private void playLaunchAnimationThenLaunch(String key) {
-        // Hero Skin / Character Launch Transition
-        if (mPlayer != null && mPlayer.getVisibility() == View.VISIBLE) {
-            mPlayer.animate().cancel();
-            mPlayer.animate()
-                    .scaleX(1.35f)
-                    .scaleY(1.35f)
-                    .translationY(-25f * getResources().getDisplayMetrics().density)
-                    .setDuration(450)
-                    .setInterpolator(new android.view.animation.OvershootInterpolator(1.2f))
-                    .start();
-        }
-        if (mHeroName != null) {
-            mHeroName.animate().cancel();
-            mHeroName.animate()
-                    .scaleX(1.15f)
-                    .scaleY(1.15f)
-                    .alpha(1f)
-                    .setDuration(400)
-                    .start();
-        }
-        if (mAccountChip != null) {
-            mAccountChip.animate().alpha(0.35f).setDuration(350).start();
-        }
-        if (mLibrary != null) {
-            mLibrary.animate().alpha(0.25f).translationY(14f * getResources().getDisplayMetrics().density).setDuration(400).start();
-        }
-
-        getView().postDelayed(() -> {
-            if (!isAdded()) return;
-            launch(key);
-        }, 420);
-    }
-
-    private void cancelLaunchVisuals() {
-        if (mPlayer != null && mPlayer.getVisibility() == View.VISIBLE) {
-            mPlayer.animate().cancel();
-            mPlayer.animate().scaleX(1f).scaleY(1f).translationY(0f).setDuration(300).start();
-        }
-        if (mHeroName != null) {
-            mHeroName.animate().cancel();
-            mHeroName.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(300).start();
-        }
-        if (mAccountChip != null) {
-            mAccountChip.animate().alpha(1f).setDuration(250).start();
-        }
-        if (mLibrary != null) {
-            mLibrary.animate().alpha(1f).translationY(0f).setDuration(300).start();
-        }
-    }
 
     private void launch(String key) {
         LauncherPreferences.DEFAULT_PREF.edit()

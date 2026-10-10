@@ -97,16 +97,14 @@ public class LauncherPreferenceFragment extends Fragment {
     // grouped under its old section name — nothing was removed, it was moved.
     /** Keys shown on the four simple pages (filtered out of Advanced so nothing appears twice). */
     private static final java.util.Set<String> SIMPLE_KEYS = new java.util.HashSet<>(java.util.Arrays.asList(
-            "check_for_update_btn", "launcher_animations", "launcher_transition_style", "launcher_animate_speed",
+            "check_for_update_btn", "launcher_animations",
             "downloadSource", "game_log_display_mode", "force_english", "verifyManifest", "notification_permission_request",
-            "perf_presets_general", "perf_presets_game", "perf_presets_display", "perf_presets_launcher", "perf_presets_graphics", "perf_presets_java", "perf_presets",
-            "allocation", "ram_effective_info", PerformanceMode.PREF_KEY, "install_jre", "javaArgs", "java_sandbox", "disable_autojre_select",
+            "allocation", "ram_effective_info", PerformanceMode.PREF_KEY, "install_jre",
             "extremeFpsMode", "extremeManualFps", "extremeFrameDiagnostics", "developer_gc_variant",
             "extremeDynamicResolution", "extremeMinResolution", "extremeTargetFps",
-            "resolutionRatio", "force_vsync", "mg_renderer_setting_fsr", "alternate_surface", "ignoreNotch", "vsync_in_zink", "mg_renderer_setting_angle", "mg_renderer_setting_multidraw",
+            "resolutionRatio", "force_vsync", "mg_renderer_setting_fsr",
             "buttonscale", "mousescale", "mousespeed", "enableGyro", "gyroSensitivity", "gyroSmoothing",
-            "timeLongPressTrigger", "disableDoubleTap", "mouse_start", "always_grab_mouse",
-            "gamepad_remap_action", "gamepad_deadzone_scale", "gamepadPassthru", "touchControllerVibrateLength"));
+            "gamepad_remap_action"));
     /** Legacy pages that feed the Advanced page, in display order. */
     private static final String[] ADVANCED_SOURCES = {
             "Launcher Settings", "Launcher Customisation", "Audio", "Java Runtime", "Video & Graphics",
@@ -246,7 +244,7 @@ public class LauncherPreferenceFragment extends Fragment {
         }
 
         setupSettingsList();
-        playSettingsStudioEntrance(view);
+        // Settings are immediately readable; launcher motion preferences remain available.
         updateSaveBar();
     }
 
@@ -687,18 +685,11 @@ public class LauncherPreferenceFragment extends Fragment {
         switch (catName) {
             case "General":
                 items.add(new SettingItem("check_for_update_btn", SettingItem.TYPE_ACTION,
-                        "Check for updates", "See if a newer CS Launcher Plus is available", null)
+                        "Check for updates", "Check newer Unamed launcher", null)
                         .setAction(() -> net.kdt.pojavlaunch.remote.FirebaseSyncManager.checkForUpdateManual(requireActivity())));
                 items.add(new SettingItem("launcher_animations", SettingItem.TYPE_DROPDOWN,
                         "Animations", "Turn launcher animations on or off", "full")
                         .setDropdownOptions(new String[]{"On", "Off"}, new String[]{"full", "off"}));
-                items.add(new SettingItem("launcher_transition_style", SettingItem.TYPE_DROPDOWN,
-                        "Page transitions", "How screens move when you navigate", "slide")
-                        .setDropdownOptions(new String[]{"Slide (Default)", "Zoom", "Jelly Bounce", "Bounce", "Fade", "None"},
-                                new String[]{"slide", "zoom", "jelly", "bounce", "fade", "off"}));
-                items.add(new SettingItem("launcher_animate_speed", SettingItem.TYPE_SLIDER,
-                        "Animation speed", "Global UI animation speed multiplier", 100)
-                        .setSliderConfig(50, 200, 10, " %"));
                 items.add(new SettingItem("downloadSource", SettingItem.TYPE_DROPDOWN,
                         "Download server", "Where game files are downloaded from", "default")
                         .setDropdownOptions(new String[]{"Default", "Mirror (China)"}, new String[]{"default", "china"}));
@@ -732,12 +723,6 @@ public class LauncherPreferenceFragment extends Fragment {
                 items.add(new SettingItem("install_jre", SettingItem.TYPE_ACTION,
                         "Java runtime", "Download, install, or pick installed Java runtimes", null)
                         .setAction(this::openMultiRTDialog));
-                items.add(new SettingItem("javaArgs", SettingItem.TYPE_INPUT,
-                        "Custom JVM arguments", "Extra JVM launch flags (e.g. -XX:+UseG1GC)", ""));
-                items.add(new SettingItem("java_sandbox", SettingItem.TYPE_SWITCH,
-                        "Java sandbox", "Isolate Minecraft environment for stability", true));
-                items.add(new SettingItem("disable_autojre_select", SettingItem.TYPE_SWITCH,
-                        "Disable auto JRE selection", "Stop automatic Java version picking", false));
                 break;
             }
             case "Display":
@@ -750,19 +735,6 @@ public class LauncherPreferenceFragment extends Fragment {
                 items.add(new SettingItem("mg_renderer_setting_fsr", SettingItem.TYPE_DROPDOWN,
                         "FSR upscaling", "Renderer-specific upscaling; image quality and performance depend on renderer support.", "0")
                         .setDropdownOptions(new String[]{"Off", "25%", "50%", "75%", "100%"},
-                                new String[]{"0", "1", "2", "3", "4"}));
-                items.add(new SettingItem("alternate_surface", SettingItem.TYPE_SWITCH,
-                        "Alternate Surface (SurfaceView)", "Choose SurfaceView rendering; compatibility and frame pacing depend on device and renderer.", true));
-                items.add(new SettingItem("ignoreNotch", SettingItem.TYPE_SWITCH,
-                        "Use notch area", "Draw the game under the camera cutout", false));
-                items.add(new SettingItem("vsync_in_zink", SettingItem.TYPE_SWITCH,
-                        "VSync in Zink (Vulkan)", "Allow Minecraft to control frame synchronization in Vulkan Zink", true));
-                items.add(new SettingItem("mg_renderer_setting_angle", SettingItem.TYPE_DROPDOWN,
-                        "ANGLE backend", "ANGLE translation backend configuration", "1")
-                        .setDropdownOptions(new String[]{"Vulkan", "OpenGL (System)", "OpenGLES"}, new String[]{"1", "2", "3"}));
-                items.add(new SettingItem("mg_renderer_setting_multidraw", SettingItem.TYPE_DROPDOWN,
-                        "Multidraw emulation", "Select multidraw emulation mode for complex scenes", "0")
-                        .setDropdownOptions(new String[]{"Auto", "Prefer Indirect", "Prefer BaseVertex", "Prefer MultiDraw Indirect", "Force DrawElements"},
                                 new String[]{"0", "1", "2", "3", "4"}));
                 break;
             case "Controls":
@@ -782,26 +754,9 @@ public class LauncherPreferenceFragment extends Fragment {
                         .setSliderConfig(10, 500, 10, " %"));
                 items.add(new SettingItem("gyroSmoothing", SettingItem.TYPE_SWITCH,
                         "Gyro smoothing", "Filter out tiny micro-shakes", true));
-                items.add(new SettingItem("timeLongPressTrigger", SettingItem.TYPE_SLIDER,
-                        "Long press delay", "Hold duration for virtual clicks", 300)
-                        .setSliderConfig(100, 1000, 50, " ms"));
-                items.add(new SettingItem("disableDoubleTap", SettingItem.TYPE_SWITCH,
-                        "Swipe to swap hand", "Quick swipe swaps secondary item", false));
-                items.add(new SettingItem("mouse_start", SettingItem.TYPE_SWITCH,
-                        "Virtual mouse auto-start", "Turn pointer cursor on automatically on game start", false));
-                items.add(new SettingItem("always_grab_mouse", SettingItem.TYPE_SWITCH,
-                        "Always grab mouse", "Keep mouse focus locked inside the window", false));
                 items.add(new SettingItem("gamepad_remap_action", SettingItem.TYPE_ACTION,
                         "Gamepad buttons", "Remap your controller's buttons", null)
                         .setAction(() -> Tools.swapFragment(requireActivity(), GamepadMapperFragment.class, "GAMEPAD_MAPPER", null)));
-                items.add(new SettingItem("gamepad_deadzone_scale", SettingItem.TYPE_SLIDER,
-                        "Gamepad deadzone", "Analog joystick drift ignore range", 100)
-                        .setSliderConfig(0, 100, 5, " %"));
-                items.add(new SettingItem("gamepadPassthru", SettingItem.TYPE_SWITCH,
-                        "Gamepad SDL passthrough", "Route controller input directly through SDL", true));
-                items.add(new SettingItem("touchControllerVibrateLength", SettingItem.TYPE_SLIDER,
-                        "Touch vibration length", "Haptic duration on touch presses", 100)
-                        .setSliderConfig(0, 500, 10, " ms"));
                 break;
             default:
                 return;
@@ -875,7 +830,7 @@ public class LauncherPreferenceFragment extends Fragment {
                     List<SettingItem> launcherItems = new ArrayList<>();
                     launcherItems.add(new SettingItem("check_for_update_btn", SettingItem.TYPE_ACTION,
                             "Check for Update",
-                            "Check online for the latest CS LAUNCHER PLUS release",
+                            "Check newer Unamed launcher",
                             null).setAction(() -> {
                         net.kdt.pojavlaunch.remote.FirebaseSyncManager.checkForUpdateManual(requireActivity());
                     }));
@@ -1151,10 +1106,9 @@ public class LauncherPreferenceFragment extends Fragment {
     private void setupSettingsList() {
         mAdapter = new SettingsAdapter(buildCurrentCategories(), mDraftPrefs);
         mRecyclerView.setAdapter(mAdapter);
-        // Phase 3: every settings page gets its OWN entrance choreography
-        mRecyclerView.setLayoutAnimation(AnimationUtils.loadLayoutAnimation(
-                requireContext(), pickPageAnimation()));
-        mRecyclerView.scheduleLayoutAnimation();
+        // No list entrance choreography or implicit item animations in settings.
+        mRecyclerView.setLayoutAnimation(null);
+        mRecyclerView.setItemAnimator(null);
         flashPendingFocusRow();
     }
 
@@ -2159,9 +2113,11 @@ public class LauncherPreferenceFragment extends Fragment {
                 params.topMargin = (int) (8 * holder.itemView.getResources().getDisplayMetrics().density);
                 params.bottomMargin = (int) (8 * holder.itemView.getResources().getDisplayMetrics().density);
                 holder.itemView.setLayoutParams(params);
-                // Premium entrance: the whole category card fades + rises in,
-                // staggered by its position, and its rows cascade after it.
-                animateCardEntrance(holder, position);
+                holder.itemView.animate().cancel();
+                holder.itemView.setAlpha(1f);
+                holder.itemView.setTranslationY(0f);
+                holder.itemView.setScaleX(1f);
+                holder.itemView.setScaleY(1f);
             }
         }
 
@@ -2725,13 +2681,8 @@ public class LauncherPreferenceFragment extends Fragment {
         ImageView icon = itemView.findViewById(R.id.setting_icon);
         if (icon == null) return;
         icon.setImageResource(resolveSettingIcon(item.key));
-        if (item.key != null && mAnimatedSettingIcons.add(item.key)) {
-            icon.animate().cancel();
-            icon.setAlpha(0f);
-            icon.animate().alpha(1f).setDuration(120).withLayer().start();
-        } else {
-            icon.setAlpha(1f);
-        }
+        icon.animate().cancel();
+        icon.setAlpha(1f);
     }
 
     private int resolveSettingIcon(@Nullable String key) {
