@@ -1,53 +1,37 @@
-CS Launcher Plus
+# Unamed launcher
 
-CS Launcher Plus is a powerful Minecraft launcher focused on performance, customisation, and a smooth user experience.
+Launcher de Minecraft Java para Android. Fork de CS Launcher Plus basado en PojavLauncher.
 
-Features
+## Descarga
 
-Modern & Redesigned UI
+[Descargar la APK actual en Releases](https://github.com/Yohanbit/CS-LAUNCHER-PLUS/releases)
 
-A major redesign has been made across the launcher. Almost every UI component has been improved for a cleaner and more polished experience.
+Archivo: `Unamed.launcher.apk`. Compilación de prueba para ARM32 y ARM64.
 
-Control Customisation
+## Cambios técnicos de esta edición
 
-Fully customise your in-game controls.
+- MobileGlues 2.0.0 y bibliotecas Android de LWJGL integrados.
+- Modos de FPS Unlimited, Manual y Original. Unlimited elimina el límite del launcher; no elimina los límites de Minecraft, del backend ni de la pantalla.
+- Resolución dinámica opcional, con mínimo configurable y ajustes graduales.
+- Inventario y menús recuperan la resolución manual; al volver al mundo se recupera la última resolución dinámica.
+- Ajustes de rendimiento agrupados y opciones de calidad reversibles.
+- Inicio sin servidor promocional ni tutoriales integrados.
 
-- Move control buttons freely around the screen
-- Resize controls according to your preference
-- Add custom images to control buttons
-- Create a more personalised control layout
+La resolución dinámica escala el framebuffer completo: el HUD del mundo todavía no tiene una resolución independiente. No se garantiza una cifra de FPS; el rendimiento depende del dispositivo, los mods, el mundo y la temperatura.
 
-Custom Settings Button
+## Código e instalación
 
-The Control Customisation Settings Button has additional customisation options.
+El código de la edición actual está en [cs-1.4-full-fps-extreme](https://github.com/Yohanbit/CS-LAUNCHER-PLUS/tree/cs-1.4-full-fps-extreme). `main` conserva el código base; esta actualización solo cambia su documentación.
 
-- Add a custom image
-- Change its size
-- Move it anywhere on the screen
+Instala la APK como actualización de esta edición sin borrar datos. Haz una copia de seguridad de tus mundos. Los requisitos de Minecraft y Java dependen de la versión utilizada.
 
-Performance Improvements
+## Créditos y licencia
 
-CS Launcher Plus includes major performance and optimisation improvements for a faster, smoother, and more responsive experience.
+- **Craft Studio / craftstudioteam y ROHIT_45**: CS Launcher Plus, proyecto original de este fork.
+- **PojavLauncher Team y colaboradores**: base del launcher.
+- **MobileGL-Dev**: MobileGlues.
+- **Yohanbit**: fork y edición Unamed launcher.
 
-Bug Fixes
+Licencia del proyecto: [GNU GPL v3](LICENSE). Se conservan los avisos originales y las licencias propias de las bibliotecas. [Créditos y componentes de esta edición](https://github.com/Yohanbit/CS-LAUNCHER-PLUS/blob/cs-1.4-full-fps-extreme/CREDITS.md).
 
-A large number of bugs and stability issues have been fixed in this release.
-
-Download
-
-Download the latest version of CS Launcher Plus from GitHub Releases:
-
-"Download the Latest Release" (https://github.com/craftstudioteam/CS-LAUNCHER-PLUS/releases)
-
-Latest Release
-
-Check the Releases section for the latest version, changelog, and available downloads.
-
-Community
-
-Stay updated with CS Launcher Plus and follow the project for future updates, improvements, and new features.
-
----
-
-CS Launcher Plus
-Faster. Smoother. More Customisable.
+No afiliado a Mojang ni Microsoft.
