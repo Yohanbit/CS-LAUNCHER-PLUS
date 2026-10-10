@@ -141,9 +141,13 @@ public class AsyncAssetManager {
             if (shouldUpdate) {
                 Log.i("UnpackLwjgl", lwjglVer + " was installed manually, or does not exist, unpacking new...");
                 String[] fileList = am.list("components/" + pathToLwjglNatives);
+                if (fileList == null || fileList.length == 0)
+                    throw new IOException("APK missing Android LWJGL " + lwjglVer + " natives for " + sArch);
                 for (String fileName : fileList) {
                     Tools.copyAssetFile(ctx, "components/" + pathToLwjglNatives + "/" + fileName, rootDir + "/" + pathToLwjglNatives, true);
                 }
+                File core = new File(rootDir + "/" + pathToLwjglNatives, "liblwjgl.so");
+                if (!core.isFile() || core.length() == 0) throw new IOException("Extracted LWJGL core missing: " + core);
                 // After extraction, update the version file so future checks are faster
                 try (InputStream is = am.open("components/lwjgl3/" + lwjglVer + "/version")) {
                     String versionContent = Tools.read(is);

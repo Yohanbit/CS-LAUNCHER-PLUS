@@ -39,12 +39,14 @@ public class ServerListSync {
 
     public static void syncToGameDir(Context ctx, String profileKey, File gameDir) {
         try {
+            List<ServerEntry> hubServers = ServerStore.loadUserServers(ctx, profileKey);
+            // A fresh install must not create or rewrite a multiplayer list.
+            if (hubServers.isEmpty()) return;
             if (gameDir == null) gameDir = new File(Tools.DIR_GAME_NEW);
             if (!gameDir.exists() && !gameDir.mkdirs()) {
                 Log.w(TAG, "cannot create game dir " + gameDir);
                 return;
             }
-            List<ServerEntry> hubServers = ServerStore.load(ctx, profileKey);
             File dat = new File(gameDir, "servers.dat");
 
             // ── 1. Read existing servers from servers.dat so nothing is lost ──
@@ -67,8 +69,8 @@ public class ServerListSync {
                         }
                     }
                 } catch (Exception readFail) {
-                    Log.w(TAG, "existing servers.dat unreadable, rebuilding: " + readFail);
-                    known.clear();
+                    Log.w(TAG, "existing servers.dat unreadable; leaving it unchanged", readFail);
+                    return;
                 }
             }
 

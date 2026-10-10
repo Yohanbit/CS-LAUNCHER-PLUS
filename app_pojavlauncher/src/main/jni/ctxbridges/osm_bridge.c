@@ -7,16 +7,16 @@
 #include <stdint.h>
 #include <environ/environ.h>
 #include "osm_bridge.h"
+#include "../frame_pacing.h"
 
-// Shared with egl_bridge.c — cumulative presented frames for every bridge
-// (loading-video "first frame" latch). Defined once in egl_bridge.c.
-extern volatile uint64_t g_csPresentsTotal;
 #define TAG __FILE_NAME__
 #include <log.h>
 
 static __thread osm_render_window_t* currentBundle;
 // a tiny buffer for rendering when there's nowhere t render
 static char no_render_buffer[4];
+static __thread int requested_swap_interval = 1;
+static void osm_apply_swap_interval(osm_render_window_t* bundle);
 
 // Its not in a .h file because it is not supposed to be used outsife of this file.
 void setNativeWindowSwapInterval(struct ANativeWindow* nativeWindow, int swapInterval);
@@ -54,8 +54,9 @@ void osm_set_no_render_buffer(ANativeWindow_Buffer* buffer) {
 
 void osm_swap_surfaces(osm_render_window_t* bundle) {
     if(bundle->nativeSurface != NULL && bundle->newNativeSurface != bundle->nativeSurface) {
-        if(!bundle->disable_rendering) {
+        if(bundle->buffer_locked) {
             LOGI("Unlocking for cleanup...");
+            bundle->buffer_locked = false;
             ANativeWindow_unlockAndPost(bundle->nativeSurface);
         }
         ANativeWindow_release(bundle->nativeSurface);
@@ -67,6 +68,7 @@ void osm_swap_surfaces(osm_render_window_t* bundle) {
         ANativeWindow_acquire(bundle->nativeSurface);
         ANativeWindow_setBuffersGeometry(bundle->nativeSurface, 0, 0, WINDOW_FORMAT_RGBX_8888);
         bundle->disable_rendering = false;
+        osm_apply_swap_interval(bundle);
         return;
     }else {
         LOGI("No new native surface, switching to dummy framebuffer");
@@ -115,23 +117,32 @@ void osm_make_current(osm_render_window_t* bundle) {
     OSMesaPixelStore_p(OSMESA_Y_UP,0);
 }
 
-void osm_swap_buffers() {
+bool osm_swap_buffers() {
+    if(currentBundle == NULL) return false;
     if(currentBundle->state == STATE_RENDERER_NEW_WINDOW) {
         osm_swap_surfaces(currentBundle);
         currentBundle->state = STATE_RENDERER_ALIVE;
     }
 
-    if(currentBundle->nativeSurface != NULL && !currentBundle->disable_rendering)
-        if(ANativeWindow_lock(currentBundle->nativeSurface, &currentBundle->buffer, NULL) != 0)
+    if(currentBundle->nativeSurface != NULL && !currentBundle->disable_rendering) {
+        if(ANativeWindow_lock(currentBundle->nativeSurface, &currentBundle->buffer, NULL) != 0) {
             osm_release_window();
+        } else currentBundle->buffer_locked = true;
+    }
 
     osm_apply_current_ll();
     glFinish_p(); // this will force osmesa to write the last rendered image into the buffer
 
-    if(currentBundle->nativeSurface != NULL && !currentBundle->disable_rendering)
-        if(ANativeWindow_unlockAndPost(currentBundle->nativeSurface) != 0)
+    bool submitted = false;
+    if(currentBundle->nativeSurface != NULL && currentBundle->buffer_locked) {
+        /* A post consumes the lock even when it reports an error. Never retry
+         * unlockAndPost during cleanup without a new successful lock. */
+        currentBundle->buffer_locked = false;
+        if(ANativeWindow_unlockAndPost(currentBundle->nativeSurface) != 0) {
             osm_release_window();
-    g_csPresentsTotal++; // a frame was presented on this bridge
+        } else submitted = true;
+    }
+    return submitted;
 }
 
 void osm_setup_window() {
@@ -142,13 +153,16 @@ void osm_setup_window() {
     }
 }
 
+static void osm_apply_swap_interval(osm_render_window_t* bundle) {
+    /* There is no public NDK swap-interval API for this CPU-posting bridge.
+     * Do not pretend the private ABI can safely bypass compositor pacing. */
+    if(pojav_private_swap_interval_enabled() && bundle->nativeSurface != NULL) {
+        int interval = pojav_effective_swap_interval(requested_swap_interval, pojav_environ->force_vsync);
+        setNativeWindowSwapInterval(bundle->nativeSurface, interval);
+    }
+}
+
 void osm_swap_interval(int swapInterval) {
-    // The "VSync in Zink" toggle gate lives here (it used to be inside
-    // setNativeWindowSwapInterval, which is now shared with the GL bridge).
-    if(!getenv("POJAV_VSYNC_IN_ZINK")) {
-        return;
-    }
-    if(pojav_environ->mainWindowBundle != NULL && pojav_environ->mainWindowBundle->nativeSurface != NULL) {
-        setNativeWindowSwapInterval(pojav_environ->mainWindowBundle->nativeSurface, swapInterval);
-    }
+    requested_swap_interval = swapInterval;
+    if(currentBundle != NULL) osm_apply_swap_interval(currentBundle);
 }

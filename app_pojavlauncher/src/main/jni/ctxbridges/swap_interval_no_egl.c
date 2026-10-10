@@ -224,9 +224,9 @@ struct ANativeWindow_real
 // endregion
 
 void setNativeWindowSwapInterval(struct ANativeWindow* nativeWindow, int swapInterval) {
-    // NOTE: the POJAV_VSYNC_IN_ZINK gate moved to the osm caller. This helper
-    // is shared with the GL bridge, which uses it to enforce interval 0
-    // (unlimited FPS) on OEM drivers that silently clamp eglSwapInterval().
+    // Experimental only: callers must explicitly opt in. This private ABI
+    // cannot guarantee a particular render or display rate on OEM drivers.
+    if(nativeWindow == NULL) return;
     struct ANativeWindow_real* nativeWindowReal = (struct ANativeWindow_real*) nativeWindow;
     if(nativeWindowReal->common.magic != ANDROID_NATIVE_WINDOW_MAGIC) {
         LOGW("ANativeWindow magic does not match. Expected %i, got %i",
@@ -238,6 +238,7 @@ void setNativeWindowSwapInterval(struct ANativeWindow* nativeWindow, int swapInt
                             sizeof(struct ANativeWindow_real), nativeWindowReal->common.version);
         return;
     }
+    if(nativeWindowReal->setSwapInterval == NULL) return;
     int error;
     if((error = nativeWindowReal->setSwapInterval(nativeWindow, swapInterval)) != 0) {
         LOGW("Failed to set swap interval: %s", strerror(-error));

@@ -167,10 +167,11 @@ public final class PerformancePolicy {
         b.maxHeapMb = Math.max(256, Math.min(Math.min(wanted, ceiling), avail));
         if (device.partial) b.unavailable.add("Device profile still building — JVM sizing stays conservative");
         b.gcPlan = pickGcPlan(mode, device, game, b.experimentalJvmFlags);
+        if (mode == PerformanceMode.EXTREME) b.gcPlan = GcPlan.ERGONOMIC;
 
         // ── launcher UI
         b.quietLevel = mode == PerformanceMode.NORMAL ? QuietLevel.OFF
-                : (mode == PerformanceMode.MAXIMUM ? QuietLevel.MINIMAL : QuietLevel.REDUCED);
+                : ((mode == PerformanceMode.MAXIMUM || mode == PerformanceMode.EXTREME) ? QuietLevel.MINIMAL : QuietLevel.REDUCED);
 
         // ── thermal
         b.thermalPolling = mode.requestsBoost();
@@ -207,7 +208,7 @@ public final class PerformancePolicy {
         if (adpfSession) on.add("ADPF hint session");
         on.add(playerVsync
                 ? "vsync held by the player (" + vsyncOwner + ")"
-                : "frame rate uncapped (neither the launcher nor Minecraft asked for vsync)");
+                : "no VSync request detected; FPS policy, game and driver limits are separate");
         if (gcPlan != GcPlan.ERGONOMIC) on.add(gcPlan == GcPlan.G1_LOW_PAUSE ? "low-pause G1" : "throughput G1");
         if (heapBiasPercent > 0) on.add("heap +" + heapBiasPercent + "% (" + maxHeapMb + " MB cap)");
         if (!rendererEnv.isEmpty()) on.add("renderer env: " + rendererEnv.keySet());

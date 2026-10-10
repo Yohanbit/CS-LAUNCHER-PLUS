@@ -1,0 +1,25 @@
+{
+  "base_url": "https://raw.githubusercontent.com/AngelAuraMC/Amethyst-Android/330c6eae3164df64bdc4828e946a9e62cc5169e4/app_pojavlauncher/libs/",
+  "payloads": [
+    {
+      "name": "lwjgl-3.4.1-natives-release.aar",
+      "sha256": "ccb9c7abe942cd40a0490637ca70756a259a40ec1257a515d3343c2f536503c0"
+    },
+    {
+      "name": "lwjgl-3.3.3-natives-release.aar",
+      "sha256": "3ec756806be63e5446964464777146d7c87660d3d4e238d5b74c76d68d6070d7"
+    },
+    {
+      "name": "SDL-release.aar",
+      "sha256": "5527d2e59e76b7a58eef0d54bb8ae0ca153593a9dfc0ed73ac84fb829520298b"
+    },
+    {
+      "name": "openal-soft-release.aar",
+      "sha256": "45e630695b6b4c6506704330bf4da80a605b445ea5d187d7b71a370aab5494ea"
+    },
+    {
+      "name": "spirv-cross-natives.aar",
+      "sha256": "7d3614880b8ae3019a21706045743af692d05711394f9cdaea58437bf07eeaee"
+    }
+  ]
+}

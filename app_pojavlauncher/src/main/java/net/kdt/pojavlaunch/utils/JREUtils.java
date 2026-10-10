@@ -222,7 +222,7 @@ public class JREUtils {
 
         if(PREF_DUMP_SHADERS)
             envMap.put("LIBGL_VGPU_DUMP", "1");
-        if(PREF_VSYNC_IN_ZINK)
+        if(PREF_VSYNC_IN_ZINK && LOCAL_RENDERER != null && LOCAL_RENDERER.contains("zink"))
             envMap.put("POJAV_VSYNC_IN_ZINK", "1");
         if(Tools.deviceHasHangingLinker())
             envMap.put("POJAV_EMUI_ITERATOR_MITIGATE", "1");
@@ -265,8 +265,11 @@ public class JREUtils {
         // 512 MB shader-cache budget and a mailbox present mode that overrode the vsync preference.
         net.kdt.pojavlaunch.performance.PerformancePolicy envPolicy =
                 net.kdt.pojavlaunch.performance.PerformancePolicy.current();
-        if (envPolicy != null && !envPolicy.rendererEnv.isEmpty()) {
-            envMap.putAll(envPolicy.rendererEnv);
+        if (envPolicy != null) {
+            net.kdt.pojavlaunch.performance.McContext actual = envPolicy.game.withRenderer(LOCAL_RENDERER);
+            envMap.putAll(net.kdt.pojavlaunch.performance.RendererPolicy.envFor(
+                    envPolicy.mode, envPolicy.device, actual, envPolicy.experimentalJvmFlags,
+                    new java.util.ArrayList<String>()));
         }
         // The presentation chain is where a lost frame hides, so every value that can pace a frame is
         // logged next to the process about to be started. One 'adb logcat -s CSPerf' answers
@@ -305,6 +308,12 @@ public class JREUtils {
                 envMap.put("MESA_GLSL_VERSION_OVERRIDE","460");
             }
         }
+        if ("unlimited".equals(LauncherPreferences.DEFAULT_PREF.getString("extremeFpsMode", "unlimited"))) {
+            envMap.put("CS_UNLIMITED_FPS", "1");
+            envMap.put("FORCE_VSYNC", "false");
+        }
+        try { envMap.put("POJAV_DISPLAY_REFRESH_HZ", String.valueOf(activity.getWindowManager().getDefaultDisplay().getRefreshRate())); }
+        catch (Throwable ignored) { }
         envMap.put("AWTSTUB_WIDTH", Integer.toString(CallbackBridge.windowWidth > 0 ? CallbackBridge.windowWidth : CallbackBridge.physicalWidth));
         envMap.put("AWTSTUB_HEIGHT", Integer.toString(CallbackBridge.windowHeight > 0 ? CallbackBridge.windowHeight : CallbackBridge.physicalHeight));
 
@@ -452,6 +461,9 @@ public class JREUtils {
         // Resolve/fallback the renderer before exporting renderer-specific
         // environment variables. Previously a failed Zink/Gallium dlopen left
         // its Mesa variables active even after falling back to Krypton.
+        // MG constructor reads config during dlopen. Set the real directory BEFORE loading it.
+        // A custom directory is supported upstream: do not impersonate another launcher.
+        Os.setenv("MG_DIR_PATH", Tools.DIR_DATA + "/MobileGlues", true);
         final String graphicsLib = loadGraphicsLibrary();
         setJavaEnvironment(activity, runtimeHome);
         List<String> userArgs = getJavaArgs(activity, runtimeHome, userArgsString);
@@ -519,6 +531,12 @@ public class JREUtils {
         } else {
             for (String flag : perfPolicy.jvmFlags()) userArgs.add(flag);
             Log.i("ProfileLaunch", "Performance policy " + perfPolicy.mode.key + " JVM flags: " + perfPolicy.jvmFlags());
+        }
+        if (LauncherPreferences.DEFAULT_PREF.getBoolean("extremeFrameDiagnostics", false)) {
+            File diagnostics = new File(Tools.DIR_DATA, "performance"); diagnostics.mkdirs();
+            String gcLog = new File(diagnostics, "gc-" + System.currentTimeMillis() + ".log").getAbsolutePath();
+            if (runtime.javaVersion >= 9) userArgs.add("-Xlog:gc*,safepoint:file=" + gcLog + ":time,uptime,level,tags:filecount=2,filesize=8m");
+            else { userArgs.add("-Xloggc:" + gcLog); userArgs.add("-XX:+PrintGCDetails"); }
         }
         userArgs.add("-Dlog4j2.formatMsgNoLookups=true");
         userArgs.add("-Dsodium.checks.issue2561=false");

@@ -7,9 +7,11 @@
 #include <dlfcn.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <environ/environ.h>
 #include "gl_bridge.h"
 #include "egl_loader.h"
+#include "../frame_pacing.h"
 
 #define TAG __FILE_NAME__
 #include <unistd.h>
@@ -21,6 +23,8 @@
 
 static __thread gl_render_window_t* currentBundle;
 static EGLDisplay g_EglDisplay;
+static __thread int requested_swap_interval = 1; /* EGL's normal default */
+static void gl_apply_swap_interval(void);
 
 bool gl_init() {
     if(!dlsym_EGL()) return false;
@@ -86,7 +90,7 @@ gl_render_window_t* gl_init_context(gl_render_window_t *share) {
             printf("EGLBridge: Binding to OpenGL ES\n");
             bindResult = eglBindAPI_p(EGL_OPENGL_ES_API);
         }
-        if (!bindResult) printf("EGLBridge: bind failed: %p\n", eglGetError_p());
+        if (!bindResult) printf("EGLBridge: bind failed: %04x\n", eglGetError_p());
     }
 
     int libgl_es = strtol(getenv("LIBGL_ES"), NULL, 0);
@@ -167,6 +171,7 @@ void gl_make_current(gl_render_window_t* bundle) {
     }
     if(eglMakeCurrent_p(g_EglDisplay, bundle->surface, bundle->surface, bundle->context)) {
         currentBundle = bundle;
+        gl_apply_swap_interval();
     }else {
         if(hasSetMainWindow) {
             pojav_environ->mainWindowBundle->newNativeSurface = NULL;
@@ -178,30 +183,27 @@ void gl_make_current(gl_render_window_t* bundle) {
 
 }
 
-/* CS: cumulative presented-frame counter shared with egl_bridge.c (FpsCounter.
- * getTotalPresents). The osmesa bridge already bumps it; the EGL bridge (gl4es /
- * Zink — the common path) never did, so every "first frame" latch in the
- * launcher UI (boot log, launch stage, game-state controller) stayed armed
- * until its hard cap. */
-extern volatile uint64_t g_csPresentsTotal;
-
-void gl_swap_buffers() {
+bool gl_swap_buffers() {
+    if(currentBundle == NULL) return false;
     if(currentBundle->state == STATE_RENDERER_NEW_WINDOW) {
         eglMakeCurrent_p(g_EglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT); //detach everything to destroy the old EGLSurface
         gl_swap_surface(currentBundle);
         eglMakeCurrent_p(g_EglDisplay, currentBundle->surface, currentBundle->surface, currentBundle->context);
         currentBundle->state = STATE_RENDERER_ALIVE;
+        gl_apply_swap_interval();
     }
-    if(currentBundle->surface != NULL)
-        if(!eglSwapBuffers_p(g_EglDisplay, currentBundle->surface) && eglGetError_p() == EGL_BAD_SURFACE) {
+    if(currentBundle->surface == NULL) return false;
+    EGLBoolean swapped = eglSwapBuffers_p(g_EglDisplay, currentBundle->surface);
+    if(!swapped && eglGetError_p() == EGL_BAD_SURFACE) {
             eglMakeCurrent_p(g_EglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
             currentBundle->newNativeSurface = NULL;
             gl_swap_surface(currentBundle);
             eglMakeCurrent_p(g_EglDisplay, currentBundle->surface, currentBundle->surface, currentBundle->context);
+            gl_apply_swap_interval();
             LOGI("The window has died, awaiting window change");
     }
-    g_csPresentsTotal++; // a frame was presented on this bridge
-
+    /* EGL success means queued/submitted, not on-screen. Pbuffers don't count. */
+    return swapped == EGL_TRUE && currentBundle->nativeSurface != NULL;
 }
 
 void gl_setup_window() {
@@ -215,24 +217,28 @@ void gl_setup_window() {
 // Its not in a .h file because it is shared with osm_bridge.c (same pattern).
 extern void setNativeWindowSwapInterval(struct ANativeWindow* nativeWindow, int swapInterval);
 
+static void gl_apply_swap_interval(void) {
+    if(currentBundle == NULL || currentBundle->surface == EGL_NO_SURFACE) return;
+    int interval = pojav_effective_swap_interval(requested_swap_interval, pojav_environ->force_vsync);
+    /* EGL legally clamps to the config's minimum/maximum. A successful call
+     * does not guarantee interval zero or render FPS above display refresh. */
+    EGLint minimum = -1, maximum = -1;
+    eglGetConfigAttrib_p(g_EglDisplay, currentBundle->config, EGL_MIN_SWAP_INTERVAL, &minimum);
+    eglGetConfigAttrib_p(g_EglDisplay, currentBundle->config, EGL_MAX_SWAP_INTERVAL, &maximum);
+    if(!eglSwapInterval_p(g_EglDisplay, interval)) {
+        LOGW("eglSwapInterval(%d) failed: %04x", interval, eglGetError_p());
+    } else {
+        LOGI("Requested EGL swap interval %d (config range %d..%d); presentation remains display-limited",
+             interval, minimum, maximum);
+    }
+    if(pojav_private_swap_interval_enabled() && currentBundle->nativeSurface != NULL) {
+        setNativeWindowSwapInterval(currentBundle->nativeSurface, interval);
+    }
+}
+
 void gl_swap_interval(int swapInterval) {
-    if(pojav_environ->force_vsync) {
-        if(swapInterval != 1) LOGI("VSync forced: clamping swap interval %d -> 1", swapInterval);
-        swapInterval = 1;
-    }
-
-    eglSwapInterval_p(g_EglDisplay, swapInterval);
-
-    // Some OEM drivers silently clamp eglSwapInterval() to >= 1 — that was the
-    // exact "FPS stuck at 60/120 even on Unlimited" bug. When the game asks
-    // for UNLIMITED (0), drive the interval straight into the native window
-    // as well, so the request is honored on every driver.
-    if(swapInterval == 0
-       && pojav_environ->mainWindowBundle != NULL
-       && pojav_environ->mainWindowBundle->nativeSurface != NULL) {
-        LOGI("Unlimited FPS requested: forcing native window swap interval 0");
-        setNativeWindowSwapInterval(pojav_environ->mainWindowBundle->nativeSurface, 0);
-    }
+    requested_swap_interval = swapInterval;
+    gl_apply_swap_interval();
 }
 
 JNIEXPORT void JNICALL

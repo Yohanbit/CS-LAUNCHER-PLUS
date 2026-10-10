@@ -3,9 +3,9 @@ name: Build downloadable APK
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [cs-1.4-full-fps-extreme]
     paths:
-      - '.github/workflows/build-apk.yml'
+      - '**'
 
 permissions:
   contents: read
@@ -36,6 +36,8 @@ jobs:
         run: sdkmanager 'platforms;android-34' 'build-tools;34.0.0' 'ndk;27.3.13750724'
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+      - name: Test reversible FPS settings
+        run: sh tools/test-extreme-options.sh
       - name: Load Firebase configuration if supplied
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
@@ -59,10 +61,12 @@ jobs:
             readelf -h "$out/libmobileglues.so"
             readelf -d "$out/libmobileglues.so" | grep NEEDED
           done
+      - name: Package checksum-pinned Android LWJGL and SDL natives
+        run: python3 tools/package_android_natives.py
       - name: Build signed test APK
         run: |
           chmod +x gradlew
-          ./gradlew :app_pojavlauncher:assembleDebug -PallowMissingFirebase=true --no-daemon --stacktrace
+          ./gradlew :app_pojavlauncher:assembleDebug -PallowMissingFirebase=true -PextremeVersion=1.4.0-extreme-test --no-daemon --stacktrace
       - name: Verify renderer is included in every APK
         shell: bash
         run: |
@@ -81,15 +85,33 @@ jobs:
                       path = f'lib/{abi}/libmobileglues.so'
                       if path not in z.namelist() or z.getinfo(path).file_size == 0:
                           raise SystemExit(f'Missing MobileGlues for {abi} in {apk}')
+                  for version in ['3.3.3', '3.4.1']:
+                      for abi in abis:
+                          core = f'assets/components/lwjgl-{version}-natives/{abi}/liblwjgl.so'
+                          if core not in z.namelist() or z.getinfo(core).file_size == 0:
+                              raise SystemExit(f'Missing Android LWJGL {version}/{abi}')
+                  for abi in abis:
+                      for lib in ['libSDL3.so', 'libSDL2.so', 'libopenal.so', 'libspirv-cross-c-shared.so']:
+                          if f'lib/{abi}/{lib}' not in z.namelist():
+                              raise SystemExit(f'Missing {lib}/{abi}')
                   print(f'Verified MobileGlues in {apk}: {sorted(abis)}')
           PY
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: CS-Launcher-Plus-test-APK
+          name: CS-Launcher-Plus-1.4-EXTREME-test-APK
           path: app_pojavlauncher/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
+      - name: Verify signature and installation requirements
+        shell: bash
+        run: |
+          set -euo pipefail
+          for apk in app_pojavlauncher/build/outputs/apk/debug/*.apk; do
+            "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose "$apk"
+            "$ANDROID_HOME/build-tools/34.0.0/aapt" dump badging "$apk" | grep -E 'package:|sdkVersion:|targetSdkVersion:|native-code:'
+            sha256sum "$apk"
+          done
   publish:
     needs: build
     runs-on: ubuntu-24.04
@@ -98,7 +120,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: CS-Launcher-Plus-test-APK
+          name: CS-Launcher-Plus-1.4-EXTREME-test-APK
           path: apk
       - name: Publish public test download
         env:
@@ -107,8 +129,8 @@ jobs:
           BUILD_SHA: ${{ github.sha }}
           BUILD_RUN: ${{ github.run_id }}
         run: |
-          gh release create "test-build-$BUILD_RUN" apk/*.apk \
+          gh release create "extreme-1.4-$BUILD_RUN" apk/*.apk \
             --target "$BUILD_SHA" \
-            --title "CS Launcher Plus — test build $BUILD_RUN" \
+            --title "CS Launcher Plus 1.4 EXTREME — test $BUILD_RUN" \
             --prerelease \
-            --notes 'APK de prueba compilada desde este repositorio. Incluye MobileGlues 2.0.0 (MobileGL-Dev, LGPL-2.1), obtenido del paquete oficial con SHA-256 verificado. Fuentes y licencia: https://github.com/MobileGL-Dev/MobileGlues y https://github.com/MobileGL-Dev/MobileGlues-release/releases/tag/V2.0.0 . Sin GOOGLE_SERVICES_JSON, las notificaciones y la sincronización Firebase quedan inactivas. No es una versión oficial; no ha sido probada en un dispositivo. Usa el identificador de aplicación debug y la firma de prueba del proyecto.'
+            --notes 'APK experimental 1.4 para ARM64/ARM32, Android 5.0+ (Minecraft y Java pueden requerir una versión superior). Firma debug; instalar encima de la build debug anterior si la firma coincide. Haz copia de perfiles/mundos primero. Incluye MobileGlues 2.0.0 y natives Android LWJGL/SDL/OpenAL/SPIRV-Cross con hashes verificados. Sin configuración Firebase, sus servicios quedan inactivos. No se ha ejecutado en Mali-G76: no se prometen FPS ni compatibilidad de mods. Consulta docs/EXTREME-1.4.md y avisos de licencia en el commit enlazado. Prueba primero la misma instancia sin mods, luego Fabric y Sodium; envía latestlog si falla. Unlimited solicita intervalo 0 y el sentinel vanilla: el driver, compositor o mods pueden seguir limitando. DRS es opcional y reduce calidad solo al activarlo.'

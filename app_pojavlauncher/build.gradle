@@ -14,7 +14,8 @@ if (!csWithoutFirebase) {
 static def getDate() { return new Date().format('yyyyMMdd') }
 
 def getVersionName = {
-    // Show clean "CS Launcher Plus v3.1" style version names.
+    if (project.hasProperty("extremeVersion")) return project.property("extremeVersion")
+    // Original builds retain their tag-derived version name.
     String semVer = "3.1.0"
     
     // Try to get a git tag for the full version

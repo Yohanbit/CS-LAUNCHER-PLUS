@@ -17,7 +17,7 @@ bool (*br_init)() = NULL;
 br_init_context_t br_init_context = NULL;
 br_make_current_t br_make_current = NULL;
 br_get_current_t br_get_current = NULL;
-void (*br_swap_buffers)() = NULL;
+bool (*br_swap_buffers)() = NULL;
 void (*br_setup_window)() = NULL;
 void (*br_swap_interval)(int swapInterval) = NULL;
 

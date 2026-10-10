@@ -11,16 +11,20 @@ import static net.kdt.pojavlaunch.prefs.LauncherPreferences.PREF_MOUSE_GRAB_FORC
 import static net.kdt.pojavlaunch.prefs.LauncherPreferences.PREF_SCALE_FACTOR;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Button;
+import android.widget.LinearLayout;
 
 import com.kdt.CustomSeekbar;
 
 import net.kdt.pojavlaunch.R;
+import net.kdt.pojavlaunch.MinecraftGLSurface;
 import net.kdt.pojavlaunch.Tools;
 import net.kdt.pojavlaunch.utils.interfaces.SimpleSeekBarListener;
 
@@ -98,6 +102,7 @@ public abstract class QuickSettingSideDialog extends com.kdt.SideDialogView {
         mMouseSpeedBar = mDialogContent.findViewById(R.id.editMouseSpeed_seekbar);
         mGestureDelayBar = mDialogContent.findViewById(R.id.editGestureDelay_seekbar);
         mResolutionBar = mDialogContent.findViewById(R.id.editResolution_seekbar);
+        mResolutionBar.setIncrement(1); // The 85% preset and thumb must agree exactly.
 
         mGyroSensitivityText = mDialogContent.findViewById(R.id.editGyro_textView_percent);
         mGyroSensitivityDisplayText = mDialogContent.findViewById(R.id.editGyro_textView);
@@ -105,6 +110,36 @@ public abstract class QuickSettingSideDialog extends com.kdt.SideDialogView {
         mGestureDelayText = mDialogContent.findViewById(R.id.editGestureDelay_textView_percent);
         mGestureDelayDisplayText = mDialogContent.findViewById(R.id.editGestureDelay_textView);
         mResolutionText = mDialogContent.findViewById(R.id.editResolution_textView_percent);
+        addResolutionPresets();
+    }
+
+    /** Explicit quality choices: none is applied until the player taps it. */
+    private void addResolutionPresets() {
+        if (!(mResolutionBar.getParent() instanceof LinearLayout)) return;
+        LinearLayout row = new LinearLayout(ctx());
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        for (int percent : new int[]{100, 85, 75}) {
+            Button preset = new Button(ctx());
+            preset.setText(percent + "%");
+            preset.setContentDescription("Resolution " + percent + " percent");
+            preset.setTextSize(11f);
+            preset.setOnClickListener(view -> {
+                // CustomSeekbar may quantize dragging; these presets intentionally remain exact.
+                mResolutionBar.setProgress(percent);
+                applyManualResolution(percent);
+                showSaveFeedback(view.getContext());
+            });
+            row.addView(preset, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        }
+        ((LinearLayout) mResolutionBar.getParent()).addView(row);
+    }
+
+    private void applyManualResolution(int percent) {
+        percent = Math.max(25, Math.min(100, percent));
+        PREF_SCALE_FACTOR = percent / 100f;
+        SharedSettings.putInt(ctx(), "resolutionRatio", percent);
+        setSeekTextPercent(mResolutionText, percent);
+        onResolutionChanged();
     }
 
     private void setupListeners() {
@@ -119,7 +154,14 @@ public abstract class QuickSettingSideDialog extends com.kdt.SideDialogView {
         mOriginalGyroSensitivity = PREF_GYRO_SENSITIVITY;
         mOriginalMouseSpeed = PREF_MOUSESPEED;
         mOriginalGestureDelay = PREF_LONGPRESS_TRIGGER;
-        mOriginalResolution = PREF_SCALE_FACTOR;
+        // DRS's transient scale is never a persisted manual selection (or a cancel baseline).
+        float manualScale = PREF_SCALE_FACTOR;
+        if (ctx() instanceof Activity) {
+            MinecraftGLSurface surface = ((Activity) ctx()).findViewById(R.id.main_game_render_view);
+            if (surface != null) manualScale = surface.getUserResolutionScale();
+        }
+        mOriginalResolution = LauncherPreferences.DEFAULT_PREF.getInt("resolutionRatio",
+                Math.round(manualScale * 100f)) / 100f;
 
         mGyroSwitch.setChecked(mOriginalGyroEnabled);
         mGyroXSwitch.setChecked(mOriginalGyroXEnabled);
@@ -189,15 +231,13 @@ public abstract class QuickSettingSideDialog extends com.kdt.SideDialogView {
         mGestureDelayBar.setProgress(mOriginalGestureDelay);
         setSeekTextMillisecond(mGestureDelayText, mGestureDelayBar.getProgress());
 
+        // Initialize before listening: opening the sheet must not save a transient DRS value.
+        mResolutionBar.setProgress(Math.round(mOriginalResolution * 100));
+        setSeekTextPercent(mResolutionText, mResolutionBar.getProgress());
         mResolutionBar.setOnSeekBarChangeListener((SimpleSeekBarListener) (seekBar, progress, fromUser) -> {
-            PREF_SCALE_FACTOR = progress/100f;
-            SharedSettings.putInt(ctx(), "resolutionRatio", progress);
-            setSeekTextPercent(mResolutionText, progress);
-            onResolutionChanged();
+            applyManualResolution(progress);
             if (fromUser) showSaveFeedback(seekBar.getContext());
         });
-        mResolutionBar.setProgress((int) (mOriginalResolution * 100));
-        setSeekTextPercent(mResolutionText, mResolutionBar.getProgress());
 
 
         updateMouseGrabVisibility();
@@ -299,6 +339,17 @@ public abstract class QuickSettingSideDialog extends com.kdt.SideDialogView {
             PREF_MOUSESPEED = mOriginalMouseSpeed;
             PREF_LONGPRESS_TRIGGER = mOriginalGestureDelay;
             PREF_SCALE_FACTOR = mOriginalResolution;
+
+            // Changes are saved live through SharedSettings; cancel must undo persistence too.
+            SharedSettings.putInt(ctx(), "resolutionRatio", Math.round(mOriginalResolution * 100f));
+            SharedSettings.putBoolean(ctx(), "enableGyro", mOriginalGyroEnabled);
+            SharedSettings.putBoolean(ctx(), "gyroInvertX", mOriginalGyroXEnabled);
+            SharedSettings.putBoolean(ctx(), "gyroInvertY", mOriginalGyroYEnabled);
+            SharedSettings.putBoolean(ctx(), "disableGestures", mOriginalGestureDisabled);
+            SharedSettings.putBoolean(ctx(), "always_grab_mouse", mOriginalMouseGrab);
+            SharedSettings.putInt(ctx(), "gyroSensitivity", Math.round(mOriginalGyroSensitivity * 100f));
+            SharedSettings.putInt(ctx(), "mousespeed", Math.round(mOriginalMouseSpeed * 100f));
+            SharedSettings.putInt(ctx(), "timeLongPressTrigger", mOriginalGestureDelay);
 
             onGyroStateChanged();
             onResolutionChanged();

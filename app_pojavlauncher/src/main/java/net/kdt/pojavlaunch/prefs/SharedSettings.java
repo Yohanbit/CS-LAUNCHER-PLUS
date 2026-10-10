@@ -53,6 +53,8 @@ public final class SharedSettings {
             "mousespeed",
             "timeLongPressTrigger",
             "resolutionRatio",
+            "perfMode", "extremeFpsMode", "extremeManualFps", "extremeDynamicResolution",
+            "extremeMinResolution", "extremeTargetFps", "extremeFrameDiagnostics", "developer_gc_variant",
             // written by the game process during launch
             "allocation",
     };

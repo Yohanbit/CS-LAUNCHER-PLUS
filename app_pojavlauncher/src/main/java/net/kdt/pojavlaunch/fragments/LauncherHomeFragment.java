@@ -44,7 +44,6 @@ import net.kdt.pojavlaunch.multirt.Runtime;
 import net.kdt.pojavlaunch.prefs.LauncherPreferences;
 import net.kdt.pojavlaunch.profiles.ProfileIconCache;
 import net.kdt.pojavlaunch.tutorial.DragTutorialHost;
-import net.kdt.pojavlaunch.tutorial.HomeTutorial;
 import net.kdt.pojavlaunch.ui.PremiumPlayButtonView;
 import net.kdt.pojavlaunch.ui.SkinGLRenderer;
 import net.kdt.pojavlaunch.value.MinecraftAccount;
@@ -204,26 +203,10 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
 
         mAccountChip.setOnClickListener(v -> switchAccount());
 
-        // ── Brand cluster (top-left, Phase 8): YouTube red / Discord blurple.
-        //    Slides in from the left while the account chip lands on the right;
-        //    the pills pop one after another (anime stagger). ──
+        // Launcher identity only; no promotional community buttons.
         View brand = view.findViewById(R.id.lh_brand_cluster);
-        View yt = view.findViewById(R.id.lh_btn_youtube);
-        View dc = view.findViewById(R.id.lh_btn_discord);
-        if (yt != null) yt.setOnClickListener(v -> {
-            net.kdt.pojavlaunch.Anime.pop(v);
-            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-            net.kdt.pojavlaunch.CsLinks.open(v.getContext(), net.kdt.pojavlaunch.CsLinks.YOUTUBE);
-        });
-        if (dc != null) dc.setOnClickListener(v -> {
-            net.kdt.pojavlaunch.Anime.pop(v);
-            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-            net.kdt.pojavlaunch.CsLinks.open(v.getContext(), net.kdt.pojavlaunch.CsLinks.DISCORD);
-        });
         if (brand != null) {
             net.kdt.pojavlaunch.Anime.in(brand, net.kdt.pojavlaunch.Anime.Fx.FADE_RIGHT, 80, 620, net.kdt.pojavlaunch.Anime.OUT_EXPO);
-            net.kdt.pojavlaunch.Anime.in(yt, net.kdt.pojavlaunch.Anime.Fx.POP, 420, 520, net.kdt.pojavlaunch.Anime.OUT_BACK);
-            net.kdt.pojavlaunch.Anime.in(dc, net.kdt.pojavlaunch.Anime.Fx.POP, 500, 520, net.kdt.pojavlaunch.Anime.OUT_BACK);
             net.kdt.pojavlaunch.Anime.in(mAccountChip, net.kdt.pojavlaunch.Anime.Fx.FADE_LEFT, 80, 620, net.kdt.pojavlaunch.Anime.OUT_EXPO);
         }
 
@@ -272,15 +255,6 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
         // Expose the drag-tutorial host before the tutorial may start.
         DragTutorialHost.Registry.register(this);
 
-        // First-launch chain: runtime installer → PLUS thank-you popup → Home
-        // tutorial. The popup gates the tour (shown exactly once); once it has
-        // been seen the tutorial auto-starts here as before.
-        // Deferred one frame so every target view is measured first.
-        view.post(() -> {
-            if (!isAdded() || getActivity() == null) return;
-            if (PlusWelcomeDialog.maybeShow(getActivity())) return;
-            HomeTutorial.maybeStart(getActivity());
-        });
     }
 
     /**
@@ -873,17 +847,6 @@ public class LauncherHomeFragment extends Fragment implements DragTutorialHost {
         if (mPlayer != null) mPlayer.onResume();
         startPoseDriver();
         registerDlListeners();
-        // Covers returning to Home later + activity recreation: the manager
-        // itself dedupes (completed flag + already-showing guard). The Plus
-        // popup also re-checks itself — once seen it never returns here.
-        final View root = getView();
-        if (root != null) {
-            root.post(() -> {
-                if (!isAdded() || getActivity() == null) return;
-                if (PlusWelcomeDialog.maybeShow(getActivity())) return;
-                HomeTutorial.maybeStart(getActivity());
-            });
-        }
     }
 
     @Override

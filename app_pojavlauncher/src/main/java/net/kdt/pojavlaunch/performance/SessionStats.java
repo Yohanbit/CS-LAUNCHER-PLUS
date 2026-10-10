@@ -1,6 +1,7 @@
 package net.kdt.pojavlaunch.performance;
 
 import android.content.Context;
+import android.util.AtomicFile;
 
 import net.kdt.pojavlaunch.Tools;
 
@@ -8,6 +9,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -17,9 +20,8 @@ import java.util.Map;
 
 /**
  * Small append-only record of how long this device actually spent per frame, keyed by
- * renderer + profile + game. It exists for two reasons: the renderer recommendation needs measured
- * evidence, and the benchmark report needs numbers that came from the launcher itself rather than from
- * a guess.
+ * renderer + profile + game. This is descriptive history, not a controlled renderer benchmark:
+ * resolution, world, mods and FPS cap are not recorded.
  *
  * <p>Written once per session at teardown, read once when the settings card is built. Never on the
  * launch path, never per frame.
@@ -27,7 +29,8 @@ import java.util.Map;
  * <p>What "fps" means here is honest: the sample is derived from the present counter
  * ({@link net.kdt.pojavlaunch.utils.FpsCounter}, the swap-boundary present counter) divided by wall time over
  * the sampled window, and "worst second" is the lowest 1-second window, not a statistical 1% low. True
- * percentiles and jank come from {@code dumpsys gfxinfo}, which the {@code perf_probe.sh} harness collects.
+ * render-loop percentiles need native frame timings. {@code dumpsys gfxinfo} can describe launcher UI
+ * frames rather than Minecraft's native frames and is not sufficient on its own.
  */
 public final class SessionStats {
 
@@ -66,11 +69,13 @@ public final class SessionStats {
         String toJson() {
             return "{\"t\":" + timestamp + ",\"r\":" + quote(rendererId) + ",\"m\":" + quote(modeKey)
                     + ",\"v\":" + quote(versionId) + ",\"fps\":" + medianFps + ",\"worst\":" + worstSecondFps
-                    + ",\"ms\":" + medianFrameMs + ",\"dur\":" + durationMs + ",\"th\":" + thermalPeak + "}";
+                    + ",\"ms\":" + (Float.isNaN(medianFrameMs) || Float.isInfinite(medianFrameMs)
+                    ? "null" : Float.toString(medianFrameMs))
+                    + ",\"dur\":" + durationMs + ",\"th\":" + thermalPeak + "}";
         }
 
         private static String quote(String s) {
-            return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+            return JSONObject.quote(s);
         }
     }
 
@@ -78,50 +83,68 @@ public final class SessionStats {
         return new File(new File(Tools.DIR_DATA, DIR), FILE);
     }
 
-    public static void append(Context ctx, Entry e) {
+    public static synchronized void append(Context ctx, Entry e) {
         if (ctx == null || e == null || e.durationMs < MIN_SESSION_MS) return;
         try {
             File out = file(ctx);
             File parent = out.getParentFile();
             if (parent != null) parent.mkdirs();
-            List<String> lines = new ArrayList<>();
-            if (out.isFile()) {
-                String raw = Tools.read(out);
-                for (String line : raw.split("\n")) {
-                    if (!line.trim().isEmpty()) lines.add(line.trim());
+            AtomicFile atomic = new AtomicFile(out);
+            JSONArray previous = new JSONArray();
+            if (out.isFile() || new File(out.getPath() + ".bak").isFile()) {
+                byte[] raw = atomic.readFully();
+                try {
+                    previous = new JSONArray(new String(raw, StandardCharsets.UTF_8));
+                } catch (org.json.JSONException corrupt) {
+                    // Preserve pre-fix malformed history before starting a valid rolling array.
+                    // If preservation fails, abort rather than silently losing the old data.
+                    File saved = new File(out.getPath() + ".corrupt-" + System.currentTimeMillis());
+                    try (FileOutputStream backup = new FileOutputStream(saved)) {
+                        backup.write(raw);
+                        backup.getFD().sync();
+                    }
                 }
             }
-            lines.add(e.toJson());
-            // newest kept; a rolling window is all the recommendation needs
-            int from = Math.max(0, lines.size() - CAP);
-            StringBuilder b = new StringBuilder("[\n");
-            for (int i = from; i < lines.size(); i++) {
-                if (i > from) b.append(",\n");
-                b.append(lines.get(i));
+            List<JSONObject> entries = new ArrayList<>();
+            for (int i = 0; i < previous.length(); i++) {
+                JSONObject object = previous.optJSONObject(i);
+                if (object != null) entries.add(object);
             }
-            b.append("\n]");
-            Tools.write(out.getAbsolutePath(), b.toString());
+            entries.add(new JSONObject(e.toJson()));
+            JSONArray next = new JSONArray();
+            for (int i = Math.max(0, entries.size() - CAP); i < entries.size(); i++) {
+                next.put(entries.get(i));
+            }
+            FileOutputStream stream = null;
+            try {
+                stream = atomic.startWrite();
+                stream.write(next.toString().getBytes(StandardCharsets.UTF_8));
+                atomic.finishWrite(stream);
+            } catch (Throwable failure) {
+                if (stream != null) atomic.failWrite(stream);
+                throw failure;
+            }
         } catch (Throwable ignored) {
             // stats are diagnostics; they must never break a shutdown path
         }
     }
 
-    /** Median of the recorded medians per renderer — enough to compare two options, not to rank brands. */
-    public static Map<String, Float> bestMedianFpsByRenderer(Context ctx) {
+    /** Descriptive median of mixed-session medians; not evidence that one renderer is faster. */
+    public static synchronized Map<String, Float> bestMedianFpsByRenderer(Context ctx) {
         Map<String, List<Integer>> buckets = new LinkedHashMap<>();
         if (ctx == null) return new HashMap<>();
         try {
             File f = file(ctx);
-            if (!f.isFile()) return new HashMap<>();
-            JSONArray arr = new JSONArray(Tools.read(f));
+            JSONArray arr = readEntries(f);
             for (int i = 0; i < arr.length(); i++) {
                 JSONObject o = arr.optJSONObject(i);
                 if (o == null) continue;
                 String r = o.optString("r", "");
-                if (r.isEmpty()) continue;
+                int fps = o.optInt("fps", 0);
+                if (r.isEmpty() || fps <= 0 || o.optLong("dur", 0) < MIN_SESSION_MS) continue;
                 List<Integer> list = buckets.get(r);
                 if (list == null) buckets.put(r, list = new ArrayList<>());
-                list.add(o.optInt("fps", 0));
+                list.add(fps);
             }
         } catch (Throwable ignored) {
             return new HashMap<>();
@@ -132,18 +155,24 @@ public final class SessionStats {
             if (vals.isEmpty()) continue;
             Integer[] copy = vals.toArray(new Integer[0]);
             java.util.Arrays.sort(copy);
-            out.put(e.getKey(), (float) (int) copy[copy.length / 2]);
+            int middle = copy.length / 2;
+            out.put(e.getKey(), copy.length % 2 == 0
+                    ? (copy[middle - 1] / 2f + copy[middle] / 2f) : (float) copy[middle]);
         }
         return out;
     }
 
-    /** Recent sessions for the given renderer/mode pair, newest first — used by the settings card. */
-    public static String describeRecent(Context ctx, String rendererId, String modeKey) {
+    private static JSONArray readEntries(File file) throws Exception {
+        if (!file.isFile() && !new File(file.getPath() + ".bak").isFile()) return new JSONArray();
+        return new JSONArray(new String(new AtomicFile(file).readFully(), StandardCharsets.UTF_8));
+    }
+
+    /** Recent sessions for the given renderer/mode pair, newest first — not controlled comparisons. */
+    public static synchronized String describeRecent(Context ctx, String rendererId, String modeKey) {
         if (ctx == null) return "";
         try {
             File f = file(ctx);
-            if (!f.isFile()) return "";
-            JSONArray arr = new JSONArray(Tools.read(f));
+            JSONArray arr = readEntries(f);
             List<String> hits = new ArrayList<>();
             for (int i = arr.length() - 1; i >= 0 && hits.size() < 3; i--) {
                 JSONObject o = arr.optJSONObject(i);
@@ -154,7 +183,7 @@ public final class SessionStats {
                         o.optInt("fps"), o.optInt("worst"), (float) o.optDouble("ms", 0.0)));
             }
             if (hits.isEmpty()) return "";
-            StringBuilder b = new StringBuilder("Measured on this phone");
+            StringBuilder b = new StringBuilder("Session history (scene/settings may differ)");
             for (String h : hits) b.append("\n").append(h);
             return b.toString();
         } catch (Throwable ignored) {
