@@ -38,17 +38,19 @@ public class PojavApplication extends Application {
 	 * - Max threads: CPU cores * 2 + 1 to handle bursts.
 	 * - Keep-alive: 5 seconds to reclaim idle threads quickly on low-end devices.
 	 * - Daemon threads: don't block process shutdown.
+	 * - Queue capacity: 128 (bounded) to prevent unlimited memory growth on task starvation.
 	 */
 	public static final ExecutorService sExecutorService = new ThreadPoolExecutor(
 			Math.max(2, (Runtime.getRuntime().availableProcessors() * 3) / 2),
 			Math.max(4, Runtime.getRuntime().availableProcessors() * 2 + 1),
 			5, TimeUnit.SECONDS,
-			new LinkedBlockingQueue<>(),
+			new LinkedBlockingQueue<>(128),
 			r -> {
 				Thread t = new Thread(r, "CSL-Worker");
 				t.setDaemon(true);
 				return t;
-			});
+			},
+			new ThreadPoolExecutor.DiscardOldestPolicy());
 	
 	@Override
 	public void onCreate() {
@@ -59,53 +61,8 @@ public class PojavApplication extends Application {
 		// gl_breadcrumb.txt; "ok" means a healthy session. Anything else means the
 		// previous session died inside the GL pipeline without a Java exception
 		// (SIGSEGV in the vendor driver) — record it where the crash report lives.
-		try {
-			File glBc = new File(getFilesDir(), "gl_breadcrumb.txt");
-			if (glBc.isFile()) {
-				java.io.BufferedReader br = new java.io.BufferedReader(
-						new java.io.InputStreamReader(new java.io.FileInputStream(glBc)));
-				String phase = br.readLine();
-				br.close();
-				phase = phase == null ? "" : phase.trim();
-				if (!phase.isEmpty() && !"ok".equals(phase)) {
-					File dir = new File(getFilesDir(), "crash");
-					File note = new File(dir.isDirectory() ? dir : getFilesDir(), "latestcrash.txt");
-					java.io.PrintWriter w = new java.io.PrintWriter(note);
-					w.println("CS LAUNCHER PLUS crash report");
-					w.println(" - Time: " + DateFormat.getDateTimeInstance().format(new Date()));
-					w.println(" - Suspected NATIVE crash: previous session died without any Java exception.");
-					w.println(" - GL phase at death: " + phase);
-					w.println(" - surface_created/programs_ready = driver failed during 3D renderer init;");
-					w.println("   java_fail_* = caught Java-side (renderer disabled itself, app survived).");
-					w.close();
-					Log.e(CRASH_REPORT_TAG, "Previous session died in GL phase: " + phase);
-					// Surface the silent crash visibly: an error card appears as
-					// soon as the launcher UI is up, with one-tap copy of the report.
-					final String fPhase = phase;
-					final File fNote = note;
-					net.kdt.pojavlaunch.notifications.CsNotifier.queueBootNotice(
-							net.kdt.pojavlaunch.notifications.CsNotifier.TYPE_ERROR,
-							"Previous session crashed",
-							"Stopped in 3D phase: " + fPhase,
-							"Copy report",
-							() -> {
-								try {
-									android.content.ClipboardManager cm = (android.content.ClipboardManager)
-											getSystemService(CLIPBOARD_SERVICE);
-									StringBuilder sb = new StringBuilder();
-									java.io.BufferedReader cr = new java.io.BufferedReader(
-											new java.io.InputStreamReader(new java.io.FileInputStream(fNote)));
-									String cl;
-									while ((cl = cr.readLine()) != null) sb.append(cl).append('\n');
-									cr.close();
-									cm.setPrimaryClip(android.content.ClipData.newPlainText("crash", sb.toString()));
-								} catch (Throwable ignored) {}
-							});
-				}
-				//noinspection ResultOfMethodCallIgnored
-				glBc.delete();
-			}
-		} catch (Throwable ignored) {}
+		checkForNativeCrash();
+		
 		Thread.setDefaultUncaughtExceptionHandler((thread, th) -> {
 			// The reporter itself must never die: a broken reporter means silent
 			// crashes with no file and no dialog (exactly what users saw before).
@@ -189,6 +146,61 @@ public class PojavApplication extends Application {
 			ferrorIntent.setFlags(FLAG_ACTIVITY_NEW_TASK);
 			startActivity(ferrorIntent);
 		}
+	}
+
+	/**
+	 * Check for native crashes from previous sessions.
+	 * FIX: Use try-with-resources to guarantee file handle closure.
+	 */
+	private void checkForNativeCrash() {
+		try {
+			File glBc = new File(getFilesDir(), "gl_breadcrumb.txt");
+			if (glBc.isFile()) {
+				// Try-with-resources guarantees reader.close() even on exception
+				try (java.io.BufferedReader br = new java.io.BufferedReader(
+						new java.io.InputStreamReader(new java.io.FileInputStream(glBc)))) {
+					String phase = br.readLine();
+					phase = phase == null ? "" : phase.trim();
+					if (!phase.isEmpty() && !"ok".equals(phase)) {
+						File dir = new File(getFilesDir(), "crash");
+						File note = new File(dir.isDirectory() ? dir : getFilesDir(), "latestcrash.txt");
+						try (java.io.PrintWriter w = new java.io.PrintWriter(note)) {
+							w.println("CS LAUNCHER PLUS crash report");
+							w.println(" - Time: " + DateFormat.getDateTimeInstance().format(new Date()));
+							w.println(" - Suspected NATIVE crash: previous session died without any Java exception.");
+							w.println(" - GL phase at death: " + phase);
+							w.println(" - surface_created/programs_ready = driver failed during 3D renderer init;");
+							w.println("   java_fail_* = caught Java-side (renderer disabled itself, app survived).");
+						}
+						Log.e(CRASH_REPORT_TAG, "Previous session died in GL phase: " + phase);
+						// Surface the silent crash visibly: an error card appears as
+						// soon as the launcher UI is up, with one-tap copy of the report.
+						final String fPhase = phase;
+						final File fNote = note;
+						net.kdt.pojavlaunch.notifications.CsNotifier.queueBootNotice(
+								net.kdt.pojavlaunch.notifications.CsNotifier.TYPE_ERROR,
+								"Previous session crashed",
+								"Stopped in 3D phase: " + fPhase,
+								"Copy report",
+								() -> {
+									try {
+										android.content.ClipboardManager cm = (android.content.ClipboardManager)
+												getSystemService(CLIPBOARD_SERVICE);
+										StringBuilder sb = new StringBuilder();
+										try (java.io.BufferedReader cr = new java.io.BufferedReader(
+												new java.io.InputStreamReader(new java.io.FileInputStream(fNote)))) {
+											String cl;
+											while ((cl = cr.readLine()) != null) sb.append(cl).append('\n');
+										}
+										cm.setPrimaryClip(android.content.ClipData.newPlainText("crash", sb.toString()));
+									} catch (Throwable ignored) {}
+								});
+					}
+				}
+				//noinspection ResultOfMethodCallIgnored
+				glBc.delete();
+			}
+		} catch (Throwable ignored) {}
 	}
 
 	@Override
