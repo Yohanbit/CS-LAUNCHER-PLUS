@@ -165,6 +165,11 @@ int pojavInitOpenGL() {
 
     // NOTE: Override for now.
     const char *renderer = getenv("AMETHYST_RENDERER");
+    if (renderer == NULL) {
+        pojav_frame_set_coverage(0);
+        fprintf(stderr, "EGLBridge: no renderer configured; refusing bridge initialization\n");
+        return 0;
+    }
     if (strncmp("opengles", renderer, 8) == 0) {
         pojav_environ->config_renderer = RENDERER_GL4ES;
         if (!strcmp(renderer, "opengles3_desktopgl_zink_kopper")) {
@@ -178,7 +183,16 @@ int pojavInitOpenGL() {
         load_vulkan();
         setenv("GALLIUM_DRIVER","zink",1);
         set_osm_bridge_tbl();
-    } else printf("EGLBridge: Renderer was not configured as a bridge. Consider adding \"opengles\" to the start of renderer name if it crashes");
+    } else {
+        pojav_frame_set_coverage(0);
+        fprintf(stderr, "EGLBridge: unsupported renderer %s; refusing bridge initialization\n", renderer);
+        return 0;
+    }
+    if (br_init == NULL || br_setup_window == NULL) {
+        pojav_frame_set_coverage(0);
+        fprintf(stderr, "EGLBridge: incomplete bridge table\n");
+        return 0;
+    }
     if(br_init()) {
         br_setup_window();
     }

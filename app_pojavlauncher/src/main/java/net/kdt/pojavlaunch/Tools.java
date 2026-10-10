@@ -1928,15 +1928,8 @@ public final class Tools {
         boolean appHasLtw = new File(nativeDir, "libltw.so").exists();
         boolean appHasKrypton = new File(nativeDir, "libng_gl4es.so").exists();
         boolean appHasGl4es = new File(nativeDir, "libgl4es_115.so").exists();
-        GLInfoUtils.GLInfo gpuInfo = GLInfoUtils.getGlInfo();
-        boolean isAdreno = gpuInfo.isAdreno();
-        boolean isMali = gpuInfo.renderer != null
-                && gpuInfo.renderer.toLowerCase(Locale.ROOT).contains("mali");
-        // CS Task 5: OSMesa gallium renderers (Freedreno / VirGL / Panfrost).
-        // The binaries ship in arm64-v8a only, so the file check doubles as an
-        // ABI gate — on 32-bit/x86 builds these entries never show up.
-        boolean appHasFreedreno = new File(Tools.NATIVE_LIB_DIR, "libOSMesa_8.so").exists();
-        boolean appHasPanfrost = new File(Tools.NATIVE_LIB_DIR, "libOSMesa_2300d.so").exists();
+        // Gallium entries lack a complete native bridge/library-loader route here.
+        // A filename and Mali/Adreno name match alone cannot establish compatibility.
         List<String> rendererIds = new ArrayList<>(defaultRenderers.length);
         List<String> rendererNames = new ArrayList<>(defaultRendererNames.length);
         for(int i = 0; i < defaultRenderers.length; i++) {
@@ -1952,8 +1945,7 @@ public final class Tools {
             if (rendererId.contains("ltw") && (!deviceHasOpenGLES3 || !appHasLtw)) continue;
             if (rendererId.equals("opengles3_KW") && !appHasKrypton) continue;
             if (rendererId.equals("opengles2") && !appHasGl4es) continue;
-            if (rendererId.equals("gallium_freedreno") && (!appHasFreedreno || !isAdreno)) continue;
-            if (rendererId.equals("gallium_panfrost") && (!appHasPanfrost || !isMali)) continue;
+            if (rendererId.equals("gallium_freedreno") || rendererId.equals("gallium_panfrost")) continue;
             rendererIds.add(rendererId);
             rendererNames.add(defaultRendererNames[i]);
         }

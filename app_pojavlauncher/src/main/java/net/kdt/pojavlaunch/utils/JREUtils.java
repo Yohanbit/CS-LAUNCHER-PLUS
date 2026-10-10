@@ -725,6 +725,10 @@ public class JREUtils {
     }
 
     public static String loadGraphicsLibrary(@Nullable Context context) {
+        // AWT/mod installers use this launch path with no game renderer. Preserve that contract:
+        // no compatible-renderer probe, native load, or LOCAL_RENDERER mutation for a null selection.
+        String requested = LOCAL_RENDERER;
+        if (requested == null) return null;
         List<String> compatible;
         if (context != null) {
             Tools.RenderersList list = Tools.getCompatibleRenderers(context);
@@ -732,7 +736,6 @@ public class JREUtils {
         } else {
             compatible = net.kdt.pojavlaunch.performance.DeviceCapability.current().availableRenderers;
         }
-        String requested = LOCAL_RENDERER;
         List<String> candidates = RuntimeRendererRules.candidates(requested, compatible);
         for (String renderer : candidates) {
             String library = RuntimeRendererRules.library(renderer);

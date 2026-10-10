@@ -31,6 +31,13 @@ public final class RuntimeSafetyPolicyTest {
         equal(installed, RuntimeRendererRules.candidates("gallium_panfrost", installed), "no incompatible Panfrost");
         check(RuntimeRendererRules.candidates("opengles3_KW", Collections.emptyList()).isEmpty(), "no assumed installed wrapper");
         check(RuntimeRendererRules.candidates(null, null).isEmpty(), "unknown compatible list fails closed");
+        check(RuntimeRendererRules.candidates(null, installed).isEmpty(), "AWT installer never selects a game renderer");
+        List<String> forbiddenProbe = new java.util.AbstractList<String>() {
+            @Override public String get(int index) { throw new AssertionError("installer probed renderers"); }
+            @Override public int size() { throw new AssertionError("installer probed renderer count"); }
+        };
+        check(RuntimeRendererRules.candidates(null, forbiddenProbe).isEmpty(), "null renderer performs no compatible-list probing");
+        check(RuntimeRendererRules.routingEnvironment(null).isEmpty(), "installer has no graphics routing");
         equal(Collections.singletonList("opengles3_desktopgl_zink_kopper"),
                 RuntimeRendererRules.candidates("vulkan_zink", Arrays.asList("vulkan_zink", "opengles3_desktopgl_zink_kopper")),
                 "Zink aliases canonicalized and deduplicated");
@@ -49,12 +56,15 @@ public final class RuntimeSafetyPolicyTest {
         equal("libEGL_mesa.so", zink.get("POJAVEXEC_EGL"), "Kopper EGL");
         check(!zink.containsKey("MESA_VK_WSI_PRESENT_MODE"), "no forced mailbox");
         check(!zink.containsKey("TU_DEBUG"), "no conformance bypass");
-        Map<String, String> mali = RuntimeRendererRules.routingEnvironment("gallium_panfrost");
-        equal("panfrost", mali.get("GALLIUM_DRIVER"), "Panfrost driver");
-        check(!mali.containsKey("MESA_GL_VERSION_OVERRIDE"), "Panfrost does not inherit Zink GL spoof");
-        check(!mali.containsKey("POJAVEXEC_EGL"), "Panfrost does not inherit Kopper EGL");
-        equal("libOSMesa_2300d.so", RuntimeRendererRules.library("gallium_panfrost"), "Panfrost library");
-        equal("libOSMesa_8.so", RuntimeRendererRules.library("gallium_freedreno"), "Freedreno library");
+        List<String> unwiredGallium = Arrays.asList("gallium_freedreno", "gallium_panfrost");
+        for (String unsupported : unwiredGallium) {
+            check(RuntimeRendererRules.library(unsupported) == null, "unwired Gallium has no loadable library: " + unsupported);
+            check(RuntimeRendererRules.routingEnvironment(unsupported).isEmpty(), "unwired Gallium has no native routing: " + unsupported);
+            check(!RuntimeRendererRules.isMesa(unsupported), "unsupported Gallium gets no Mesa tuning: " + unsupported);
+            check(RuntimeRendererRules.candidates(unsupported, unwiredGallium).isEmpty(), "Gallium-only install fails closed: " + unsupported);
+            equal(Collections.singletonList("opengles2"), RuntimeRendererRules.candidates(unsupported,
+                    Arrays.asList("gallium_panfrost", "opengles2", "gallium_freedreno")), "unwired selected/fallback routes excluded");
+        }
         check(RuntimeRendererRules.library("untrusted") == null, "unknown has no library");
         check(RuntimeRendererRules.routingEnvironment("untrusted").isEmpty(), "unknown has no routing");
     }

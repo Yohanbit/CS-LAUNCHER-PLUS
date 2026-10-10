@@ -24,21 +24,20 @@ public final class RuntimeRendererRules {
             case "opengles3_desktopgl_zink": case "opengles3_desktopgl_zink_kopper": return "libglxshim.so";
             case "opengles3_ltw": return "libltw.so";
             case "opengles3_KW": return "libng_gl4es.so";
-            case "gallium_freedreno": return "libOSMesa_8.so";
-            case "gallium_panfrost": return "libOSMesa_2300d.so";
+            // Gallium IDs are intentionally unsupported until BOTH bridge-table selection and
+            // OSMesa loader binding resolve their actual selected libraries. dlopen alone is unsafe.
             default: return null;
         }
     }
 
     public static boolean isMesa(String renderer) {
-        return "opengles3_desktopgl_zink_kopper".equals(canonical(renderer))
-                || "gallium_freedreno".equals(renderer) || "gallium_panfrost".equals(renderer);
+        return "opengles3_desktopgl_zink_kopper".equals(canonical(renderer));
     }
 
     /** Selected compatible renderer first, then install order. This is not an FPS ranking. */
     public static List<String> candidates(String selected, List<String> compatible) {
         List<String> out = new ArrayList<>();
-        if (compatible == null) return out;
+        if (selected == null || compatible == null) return out;
         String wanted = canonical(selected);
         for (String id : compatible) {
             String candidate = canonical(id);
@@ -69,10 +68,6 @@ public final class RuntimeRendererRules {
                 env.put("POJAVEXEC_EGL", "libEGL_mesa.so");
                 env.put("LIBGL_ES", "3");
             }
-        } else if ("gallium_freedreno".equals(renderer) || "gallium_panfrost".equals(renderer)) {
-            String driver = "gallium_freedreno".equals(renderer) ? "freedreno" : "panfrost";
-            env.put("MESA_LOADER_DRIVER_OVERRIDE", driver);
-            env.put("GALLIUM_DRIVER", driver);
         } else if ("opengles3_ltw".equals(renderer)) {
             env.put("LIBGL_ES", "3");
             env.put("POJAVEXEC_EGL", "libltw.so");

@@ -5,6 +5,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Process;
 import android.util.Log;
+import net.kdt.pojavlaunch.Tools;
 import net.kdt.pojavlaunch.prefs.LauncherPreferences;
 import net.kdt.pojavlaunch.utils.FpsCounter;
 import java.util.Arrays;
@@ -14,7 +15,8 @@ import java.util.Objects;
 /** Opt-in foreground submission-rate windows; not GPU/presentation timings,
  * render-loop percentiles, 1% lows, or controlled comparisons between modes.
  * Zero windows are retained. Native Vulkan coverage is unknown, not zero.
- * Pause destroys the looper and resets the window but retains collected data. */
+ * Pause destroys the looper and resets the window but retains collected data.
+ * Foreground ticks reconcile async renderer/policy changes into separate segments. */
 public final class FrameSampleCollector {
     private static final int WINDOW_SECONDS = 3600;
     public static final String HARNESS_TAG = "CSPerfFps";
@@ -63,7 +65,7 @@ public final class FrameSampleCollector {
         if (session == null) session = new Session(rendererId, mode, versionId);
         if (active != null) return;
         session.window.reset();
-        SamplingRun run = new SamplingRun(session);
+        SamplingRun run = new SamplingRun(ctx.getApplicationContext(), session);
         active = run;
         run.thread.start();
         run.handler = new Handler(run.thread.getLooper());
@@ -96,17 +98,54 @@ public final class FrameSampleCollector {
     }
 
     private static final class SamplingRun implements Runnable {
-        final Session owner;
+        final Context context;
+        Session owner;
         final HandlerThread thread = new HandlerThread("CS-FrameStats", Process.THREAD_PRIORITY_BACKGROUND);
         Handler handler;
-        SamplingRun(Session owner) { this.owner = owner; }
+        SamplingRun(Context context, Session owner) { this.context = context; this.owner = owner; }
+        private boolean reconcileLabels(PerformancePolicy policy, String renderer) {
+            // The async native loader publishes LOCAL_RENDERER, then reconciles
+            // the volatile policy. Do not sample in that intermediate state.
+            if (policy != null && policy.game != null && !policy.game.rendererId.isEmpty()
+                    && !Objects.equals(policy.game.rendererId, renderer)) {
+                owner.window.reset();
+                return false;
+            }
+            String mode = policy != null ? policy.mode.key : PerformanceMode.NORMAL.key;
+            String version = policy != null && policy.game != null && !policy.game.versionId.isEmpty()
+                    ? policy.game.versionId : owner.versionId;
+            if (!Objects.equals(owner.rendererId, renderer) || !Objects.equals(owner.modeKey, mode)
+                    || !Objects.equals(owner.versionId, version)) {
+                // Keep old windows under their original labels; discard the
+                // transition window and start a fresh foreground-only baseline.
+                persist(context, owner);
+                owner = new Session(renderer, mode, version);
+                session = owner;
+            }
+            return true;
+        }
         @Override public void run() {
             // One lifecycle lock prevents pause/finish from racing a queued tick
             // or a stale tick attaching itself to a newly created handler.
             synchronized (FrameSampleCollector.class) {
                 if (active != this || session != owner) return;
                 if (!enabled()) { pause(); return; }
+                // Read the volatile policy first so its publication also makes
+                // the preceding loader assignment to LOCAL_RENDERER visible.
+                PerformancePolicy policy = PerformancePolicy.current();
+                String renderer = Tools.LOCAL_RENDERER;
+                if (!reconcileLabels(policy, renderer)) {
+                    handler.postDelayed(this, 1000L);
+                    return;
+                }
                 int fps = owner.window.getFps();
+                // A launch/fallback can finish during the native read. Never
+                // retain a window crossing that metadata boundary.
+                if (policy != PerformancePolicy.current() || !Objects.equals(renderer, Tools.LOCAL_RENDERER)) {
+                    owner.window.reset();
+                    handler.postDelayed(this, 1000L);
+                    return;
+                }
                 if (fps >= 0) {
                     owner.add(fps, owner.window.getLastElapsedNanos());
                     if (traceEnabled()) Log.d(HARNESS_TAG, "t=" + owner.observedNanos / 1_000_000_000L
