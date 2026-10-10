@@ -18,6 +18,7 @@ prefix = r'''
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <stdint.h>
 enum { RENDERER_GL4ES = 1, RENDERER_VK_ZINK = 2 };
 struct state { int force_vsync; int config_renderer; } state;
 static struct state *pojav_environ = &state;
@@ -26,6 +27,7 @@ static void (*br_setup_window)(void);
 static int (*br_init_context)(void), (*br_make_current)(void), (*br_get_current)(void);
 static int (*br_swap_buffers)(void), (*br_swap_interval)(void);
 static int coverage, inits, setups, vulkan_loads, incomplete;
+static uint32_t native_counter_mode;
 static void pojav_frame_set_coverage(int value) { coverage=value; }
 static int init(void) { inits++; return 1; }
 static void setup(void) { setups++; }
@@ -34,7 +36,7 @@ static void set_gl_bridge_tbl(void) {
     br_init_context=br_make_current=br_get_current=br_swap_buffers=br_swap_interval=init;
 }
 static void set_osm_bridge_tbl(void) { set_gl_bridge_tbl(); }
-static void load_vulkan(void) { vulkan_loads++; }
+static void *maybe_load_vulkan(void) { vulkan_loads++; return (void *)1; }
 '''
 suffix = r'''
 static void reset(const char *renderer) {

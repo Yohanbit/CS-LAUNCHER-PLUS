@@ -96,7 +96,7 @@ public class MainActivity extends BaseActivity implements ControlButtonMenuListe
     private MinecraftGLSurface minecraftGLView;
     public static Touchpad touchpad;
     private LoggerView loggerView;
-    /** Phase 8: left-side mini boot log (auto-hides on the first presented frame). */
+    /** Phase 8: left-side mini boot log (may hide after a counted GL submission). */
     private net.kdt.pojavlaunch.launch.BootLogOverlay mBootLog;
     private DrawerLayout drawerLayout;
     private ListView navDrawer;
@@ -116,8 +116,34 @@ public class MainActivity extends BaseActivity implements ControlButtonMenuListe
 
     private QuickSettingSideDialog mQuickSettingSideDialog;
     private net.kdt.pojavlaunch.performance.AndroidGameStateController mGameStateController;
-    private boolean mFirstGameFramePresented;
-    private final Runnable mFirstFrameWatcher=new Runnable(){@Override public void run(){if(isFinishing()||isDestroyed()||mFirstGameFramePresented)return;long frames=net.kdt.pojavlaunch.utils.FpsCounter.getTotalPresents();if(frames>0){mFirstGameFramePresented=true;if(mGameStateController!=null)mGameStateController.playing();if(mBootLog!=null)mBootLog.onGameVisible();return;}Tools.MAIN_HANDLER.postDelayed(this,250L);}};
+    // Submission != display presentation. This observer is not a launch/DRS gate.
+    private final net.kdt.pojavlaunch.launch.FirstSubmissionWatch mFirstSubmissionWatch =
+            new net.kdt.pojavlaunch.launch.FirstSubmissionWatch(
+                    new net.kdt.pojavlaunch.launch.FirstSubmissionWatch.Queue() {
+                        @Override public boolean postDelayed(Runnable callback, long delayMillis) {
+                            return Tools.MAIN_HANDLER.postDelayed(callback, delayMillis);
+                        }
+                        @Override public void remove(Runnable callback) {
+                            Tools.MAIN_HANDLER.removeCallbacks(callback);
+                        }
+                    },
+                    new net.kdt.pojavlaunch.launch.FirstSubmissionWatch.Source() {
+                        @Override public int coverage() {
+                            return net.kdt.pojavlaunch.utils.FpsCounter.getCounterCoverage();
+                        }
+                        @Override public long totalSubmissions() {
+                            return net.kdt.pojavlaunch.utils.FpsCounter.getTotalPresents();
+                        }
+                    },
+                    new net.kdt.pojavlaunch.launch.FirstSubmissionWatch.Host() {
+                        @Override public boolean isUnavailable() {
+                            return isFinishing() || isDestroyed();
+                        }
+                        @Override public void onFirstSubmission() {
+                            if (mGameStateController != null) mGameStateController.playing();
+                            if (mBootLog != null) mBootLog.onGameVisible();
+                        }
+                    });
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -125,7 +151,6 @@ public class MainActivity extends BaseActivity implements ControlButtonMenuListe
         net.kdt.pojavlaunch.performance.GameSessionState.markActive(this);
         mGameStateController=new net.kdt.pojavlaunch.performance.AndroidGameStateController(this);mGameStateController.loading();
         net.kdt.pojavlaunch.performance.PerformanceEngine.onSessionCreate(this);
-        Tools.MAIN_HANDLER.post(mFirstFrameWatcher);
         if (LauncherPreferences.PREF_GAMEPAD_SDL_PASSTHRU) {
             // TODO: Use lower level HID capture that needs a dialogue box from the user for the
             // app to fully take focus of the input devices. Might cause issues with older android
@@ -425,7 +450,8 @@ public class MainActivity extends BaseActivity implements ControlButtonMenuListe
         net.kdt.pojavlaunch.utils.FrameMetrics.start(this);
         net.kdt.pojavlaunch.customcontrols.mouse.CustomCursorRenderer.setHostResumed(true);
         if (minecraftGLView != null) minecraftGLView.onHostResume();
-        if(mGameStateController!=null){if(mFirstGameFramePresented)mGameStateController.playing();else mGameStateController.loading();}
+        if(mGameStateController!=null){if(mFirstSubmissionWatch.hasObservedSubmission())mGameStateController.playing();else mGameStateController.loading();}
+        mFirstSubmissionWatch.resume();
         if(PREF_ENABLE_GYRO) mGyroControl.enable();
         CallbackBridge.nativeSetWindowAttrib(LwjglGlfwKeycode.GLFW_FOCUSED, 1);
         CallbackBridge.nativeSetWindowAttrib(LwjglGlfwKeycode.GLFW_HOVERED, 1);
@@ -433,6 +459,7 @@ public class MainActivity extends BaseActivity implements ControlButtonMenuListe
 
     @Override
     protected void onPause() {
+        mFirstSubmissionWatch.pause();
         net.kdt.pojavlaunch.utils.FrameMetrics.stop();
         net.kdt.pojavlaunch.performance.PerformanceEngine.onBackground(this);
         stopFpsTicker();
@@ -460,6 +487,7 @@ public class MainActivity extends BaseActivity implements ControlButtonMenuListe
 
     @Override
     protected void onStop() {
+        mFirstSubmissionWatch.pause();
         net.kdt.pojavlaunch.utils.FrameMetrics.stop();
         net.kdt.pojavlaunch.performance.PerformanceEngine.onBackground(this);
         stopFpsTicker();
@@ -471,9 +499,9 @@ public class MainActivity extends BaseActivity implements ControlButtonMenuListe
 
     @Override
     protected void onDestroy() {
+        mFirstSubmissionWatch.release();
         super.onDestroy();
         net.kdt.pojavlaunch.performance.GameSessionState.clear();
-        Tools.MAIN_HANDLER.removeCallbacks(mFirstFrameWatcher);
         net.kdt.pojavlaunch.utils.FrameMetrics.stop();
         net.kdt.pojavlaunch.performance.PerformanceEngine.onSessionEnd(this);
         stopFpsTicker(); // CS Perf

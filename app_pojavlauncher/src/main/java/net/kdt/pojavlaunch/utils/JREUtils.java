@@ -3,7 +3,7 @@ package net.kdt.pojavlaunch.utils;
 import static net.kdt.pojavlaunch.Architecture.ARCH_X86;
 import static net.kdt.pojavlaunch.Architecture.archAsStringAndroid;
 import static net.kdt.pojavlaunch.Architecture.getDeviceArchitecture;
-import static net.kdt.pojavlaunch.Architecture.is64BitsDevice;
+import static net.kdt.pojavlaunch.Architecture.is64BitProcess;
 import static net.kdt.pojavlaunch.Tools.LOCAL_RENDERER;
 import static net.kdt.pojavlaunch.Tools.NATIVE_LIB_DIR;
 import static net.kdt.pojavlaunch.Tools.currentDisplayMetrics;
@@ -164,6 +164,7 @@ public class JREUtils {
         if (runtime == null || runtime.arch == null || runtime.javaVersion == 0) {
             throw new IllegalArgumentException("Selected Java runtime has invalid release metadata");
         }
+        Architecture.requireCompatibleRuntimeArchitecture(runtime.arch);
         // A previous launch may have used Java 8's lib/<arch>. Modern runtimes use lib/.
         Tools.DIRNAME_HOME_JRE = "lib";
         String JRE_ARCHITECTURE = runtime.arch;
@@ -178,7 +179,7 @@ public class JREUtils {
             }
         }
 
-        String libName = is64BitsDevice() ? "lib64" : "lib";
+        String libName = is64BitProcess() ? "lib64" : "lib";
         StringBuilder ldLibraryPath = new StringBuilder();
         if(FFmpegPlugin.isAvailable) {
             ldLibraryPath.append(FFmpegPlugin.libraryPath).append(":");
@@ -735,6 +736,12 @@ public class JREUtils {
             compatible = net.kdt.pojavlaunch.performance.DeviceCapability.current().availableRenderers;
         }
         List<String> candidates = RuntimeRendererRules.candidates(requested, compatible);
+        if (RuntimeRendererRules.isMesa(requested)) {
+            Logger.appendToLog("Explicit Zink attempt: Android Vulkan metadata does not validate "
+                    + "this Mesa build's required device extensions/features. Native initialization "
+                    + "must succeed; no GPU-name/GLES compatibility inference. Fallback candidates: "
+                    + candidates);
+        }
         for (String renderer : candidates) {
             String library = RuntimeRendererRules.library(renderer);
             // Only the package's active ABI native directory. No arbitrary LD_LIBRARY_PATH fallback:
