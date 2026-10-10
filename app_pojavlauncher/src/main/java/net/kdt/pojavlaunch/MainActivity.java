@@ -945,7 +945,7 @@ public class MainActivity extends BaseActivity implements ControlButtonMenuListe
 
         try {
             net.kdt.pojavlaunch.performance.ExtremeLaunchOptions.apply(
-                    new File(Tools.getGameDirPath(minecraftProfile)),
+                    Tools.getGameDirPath(minecraftProfile),
                     LauncherPreferences.DEFAULT_PREF.getString("extremeFpsMode", "unlimited"),
                     LauncherPreferences.DEFAULT_PREF.getInt("extremeManualFps", 120));
         } catch (java.io.IOException error) {
