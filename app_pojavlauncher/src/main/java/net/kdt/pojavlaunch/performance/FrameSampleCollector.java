@@ -67,9 +67,16 @@ public final class FrameSampleCollector {
         session.window.reset();
         SamplingRun run = new SamplingRun(ctx.getApplicationContext(), session);
         active = run;
-        run.thread.start();
-        run.handler = new Handler(run.thread.getLooper());
-        run.handler.post(run);
+        try {
+            run.thread.start();
+            run.handler = new Handler(run.thread.getLooper());
+            if (!run.handler.post(run)) throw new IllegalStateException("Diagnostics looper rejected start");
+        } catch (Exception unavailable) {
+            // A partial start must not retain a thread or block the next resume.
+            // Preserve any earlier observations, just as an ordinary pause does.
+            pause();
+            Log.w("CSPerf", "Submission sampling unavailable", unavailable);
+        }
     }
 
     /** Cancel/revoke old callbacks and quit the thread; no heartbeat remains in the background. */

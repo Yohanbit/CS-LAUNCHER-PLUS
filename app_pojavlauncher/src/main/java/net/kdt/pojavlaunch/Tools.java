@@ -365,31 +365,45 @@ public final class Tools {
         int localeString;
         int freeAddressSpace = Architecture.is32BitsDevice() ? getMaxContinuousAddressSpaceSize() : -1;
         Log.i("MemStat", "Free RAM: " + freeDeviceMemory + " Addressable: " + freeAddressSpace);
+        int warningMemory = freeDeviceMemory;
         if(freeDeviceMemory > freeAddressSpace && freeAddressSpace != -1) {
-            freeDeviceMemory = freeAddressSpace;
+            warningMemory = freeAddressSpace;
             localeString = R.string.address_memory_warning_msg;
         } else {
             localeString = R.string.memory_warning_msg;
         }
 
-        int advisoryHeap = net.kdt.pojavlaunch.performance.RuntimeMemoryBudget.recommendedHeapMb(
+        net.kdt.pojavlaunch.performance.RuntimeMemoryBudget.HeapAdvice memoryAdvice =
+                net.kdt.pojavlaunch.performance.RuntimeMemoryBudget.assess(
                 getTotalDeviceMemory(activity), freeDeviceMemory, freeAddressSpace);
-        if(LauncherPreferences.PREF_RAM_ALLOCATION > freeDeviceMemory
-                || (advisoryHeap > 0 && LauncherPreferences.PREF_RAM_ALLOCATION > advisoryHeap)) {
-            int finalDeviceMemory = freeDeviceMemory;
+        if ((warningMemory >= 0 && LauncherPreferences.PREF_RAM_ALLOCATION > warningMemory)
+                || memoryAdvice.shouldWarn(LauncherPreferences.PREF_RAM_ALLOCATION)) {
+            int finalDeviceMemory = warningMemory;
             int requestedMemory = LauncherPreferences.PREF_RAM_ALLOCATION;
-            int suggestedMemory = Math.max(256, advisoryHeap);
+            int suggestedMemory = memoryAdvice.suggestedMb();
             java.util.concurrent.atomic.AtomicBoolean useSuggested = new java.util.concurrent.atomic.AtomicBoolean(false);
-            LifecycleAwareAlertDialog.DialogCreator dialogCreator = (dialog, builder) ->
+            java.util.concurrent.atomic.AtomicBoolean cancelLaunch = new java.util.concurrent.atomic.AtomicBoolean(false);
+            LifecycleAwareAlertDialog.DialogCreator dialogCreator = (dialog, builder) -> {
+                String advisoryMessage = !memoryAdvice.known
+                        ? "\nAndroid/native/GPU headroom could not be determined; no heap size is recommended."
+                        : suggestedMemory == 0
+                        ? "\nInsufficient Android/native/GPU headroom for even the minimum 256 MB heap. Close other apps or try later."
+                        : "\nAdvisory value reserving Android/native/GPU memory: -Xmx" + suggestedMemory + "M";
                 builder.setTitle("Minecraft RAM warning")
                         .setMessage(activity.getString(localeString, finalDeviceMemory, requestedMemory)
                                 + "\n\nSelected JVM heap: -Xmx" + requestedMemory + "M"
-                                + "\nAdvisory value reserving Android/native/GPU memory: -Xmx" + suggestedMemory + "M"
+                                + advisoryMessage
                                 + "\nThis budget is not a guarantee against memory pressure.")
-                        .setPositiveButton("Launch with " + requestedMemory + " MB", (d, w)->{})
-                        .setNegativeButton("Use " + suggestedMemory + " MB", (d, w)->useSuggested.set(true));
+                        .setPositiveButton("Launch with " + requestedMemory + " MB", (d, w)->{});
+                if (suggestedMemory > 0) {
+                    builder.setNegativeButton("Use " + suggestedMemory + " MB", (d, w)->useSuggested.set(true));
+                } else {
+                    builder.setNegativeButton(android.R.string.cancel, (d, w)->cancelLaunch.set(true));
+                }
+            };
 
-            if(LifecycleAwareAlertDialog.haltOnDialog(activity.getLifecycle(), activity, dialogCreator)) {
+            if(LifecycleAwareAlertDialog.haltOnDialog(activity.getLifecycle(), activity, dialogCreator)
+                    || cancelLaunch.get()) {
                 return;
             }
             if (useSuggested.get()) {
@@ -1754,7 +1768,7 @@ public final class Tools {
     public static @NonNull String pickRuntime(MinecraftProfile minecraftProfile, int targetJavaVersion) {
         String runtime = getSelectedRuntime(minecraftProfile);
         String profileRuntime = getRuntimeName(minecraftProfile.javaDir);
-        Runtime pickedRuntime = MultiRTUtils.read(runtime);
+        Runtime pickedRuntime = MultiRTUtils.forceReread(runtime);
         if(runtime == null || pickedRuntime.javaVersion == 0 || pickedRuntime.javaVersion < targetJavaVersion) {
             String preferredRuntime = MultiRTUtils.getNearestJreName(targetJavaVersion);
             if(preferredRuntime == null) throw new RuntimeException("Failed to autopick runtime!");

@@ -32,7 +32,7 @@ public final class FrameMetrics {
             active = run;
             run.thread.start();
             run.handler = new Handler(run.thread.getLooper());
-            run.handler.post(run);
+            if (!run.handler.post(run)) throw new IllegalStateException("Diagnostics looper rejected start");
         } catch (Exception error) {
             Log.w("CSPerf", "Diagnostics unavailable", error);
             stop();
@@ -128,8 +128,12 @@ public final class FrameMetrics {
     public static synchronized void stop() {
         Run run = active;
         active = null; // invalidates even a callback already dequeued by an old looper
-        try { nativeSetTimingEnabled(false); } catch (UnsatisfiedLinkError notLoadedYet) { }
         if (run == null) return;
+        // Default-off and duplicate lifecycle stops do not touch JNI at all.
+        // A run which has not linked/enabled timing owns no native epoch to revoke.
+        if (run.timingEnabled) {
+            try { nativeSetTimingEnabled(false); } catch (UnsatisfiedLinkError notLoadedYet) { }
+        }
         if (run.handler != null) run.handler.removeCallbacksAndMessages(null);
         run.thread.quitSafely();
         try { run.output.close(); } catch (IOException ignored) { }

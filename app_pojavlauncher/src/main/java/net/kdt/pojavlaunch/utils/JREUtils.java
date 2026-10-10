@@ -31,6 +31,7 @@ import net.kdt.pojavlaunch.extra.ExtraCore;
 import net.kdt.pojavlaunch.lifecycle.LifecycleAwareAlertDialog;
 import net.kdt.pojavlaunch.multirt.MultiRTUtils;
 import net.kdt.pojavlaunch.multirt.Runtime;
+import net.kdt.pojavlaunch.multirt.RuntimeLibraryLoader;
 import net.kdt.pojavlaunch.plugins.FFmpegPlugin;
 import net.kdt.pojavlaunch.prefs.*;
 import net.kdt.pojavlaunch.performance.RuntimeJvmArguments;
@@ -94,11 +95,10 @@ public class JREUtils {
     }
 
     public static void initJavaRuntime(String jreHome) {
-        dlopen(findInLdLibPath("libjli.so"));
-        if(!dlopen("libjvm.so")){
-            Log.w("DynamicLoader","Failed to load with no path, trying with full path");
-            dlopen(jvmLibraryPath+"/libjvm.so");
-        }
+        RuntimeLibraryLoader.require("Java launcher libjli.so for " + jreHome,
+                JREUtils::dlopen, findInLdLibPath("libjli.so"));
+        RuntimeLibraryLoader.require("Java VM libjvm.so for " + jreHome,
+                JREUtils::dlopen, "libjvm.so", jvmLibraryPath + "/libjvm.so");
         dlopen(findInLdLibPath("libverify.so"));
         dlopen(findInLdLibPath("libjava.so"));
         // dlopen(findInLdLibPath("libjsig.so"));
@@ -161,6 +161,11 @@ public class JREUtils {
     }
 
     public static void relocateLibPath(Runtime runtime, String jreHome) {
+        if (runtime == null || runtime.arch == null || runtime.javaVersion == 0) {
+            throw new IllegalArgumentException("Selected Java runtime has invalid release metadata");
+        }
+        // A previous launch may have used Java 8's lib/<arch>. Modern runtimes use lib/.
+        Tools.DIRNAME_HOME_JRE = "lib";
         String JRE_ARCHITECTURE = runtime.arch;
         if (Architecture.archAsInt(JRE_ARCHITECTURE) == ARCH_X86){
             JRE_ARCHITECTURE = "i386/i486/i586";
@@ -372,6 +377,9 @@ public class JREUtils {
                 && activeAccount.accessToken != null
                 && !"0".equals(activeAccount.accessToken)
                 && !activeAccount.accessToken.isEmpty();
+        // Preparation can fail before VMLauncher (renderer, env, flags or mandatory VM libraries).
+        // The launch-owned local skin bridge must be released on those paths too.
+        try {
         if (activeAccount != null && !activeAccount.isMicrosoft && !isElyBy) {
             String username = activeAccount.username;
             String uuid = activeAccount.profileId;
@@ -418,6 +426,7 @@ public class JREUtils {
             // skin names still need Mojang profile/texture proxying.
             net.kdt.pojavlaunch.yggdrasil.LocalYggdrasilServer.start();
             int serverPort = net.kdt.pojavlaunch.yggdrasil.LocalYggdrasilServer.getPort();
+            shouldStopLocalSkinServerAfterLaunch = serverPort > 0;
             Logger.appendToLog("Yggdrasil skin bridge port: " + serverPort);
             if (hasCustomTextures) {
                 net.kdt.pojavlaunch.yggdrasil.LocalYggdrasilServer.registerProfile(
@@ -428,10 +437,10 @@ public class JREUtils {
             }
             File authlibJar = new File(Tools.DIR_DATA, "authlib-injector/authlib-injector.jar");
             Logger.appendToLog("authlib-injector.jar exists: " + authlibJar.exists());
-            shouldStopLocalSkinServerAfterLaunch = serverPort > 0;
             Logger.appendToLog("=== OFFLINE SKIN SYSTEM: PRE-LAUNCH COMPLETE ===");
         }
 
+        if (runtime == null) throw new IllegalArgumentException("No Java runtime selected");
         String runtimeHome = MultiRTUtils.getRuntimeHome(runtime.name).getAbsolutePath();
 
         JREUtils.relocateLibPath(runtime, runtimeHome);
@@ -474,12 +483,14 @@ public class JREUtils {
         // Do not commit the whole Xmx heap at startup. On Android, Xms=Xmx plus
         // AlwaysPreTouch competes with the GPU/OS and can trigger LMK or long
         // first-frame stalls. Grow from a modest, aligned initial heap instead.
-        int recommendedHeap = RuntimeMemoryBudget.recommendedHeapMb(Tools.getTotalDeviceMemory(activity),
+        RuntimeMemoryBudget.HeapAdvice memoryAdvice = RuntimeMemoryBudget.assess(Tools.getTotalDeviceMemory(activity),
                 Tools.getFreeDeviceMemory(activity), Tools.getMaximumRamAllocation(activity));
-        if (effectiveRam > recommendedHeap) {
+        if (memoryAdvice.shouldWarn(effectiveRam)) {
             Logger.appendToLog("RAM advisory: selected " + effectiveRam + " MB, conservative Android/native/GPU "
-                    + "budget " + recommendedHeap + " MB (0 means unknown/insufficient headroom). "
+                    + "budget " + memoryAdvice.recommendedMb + " MB (0 means insufficient headroom). "
                     + "User Xmx preserved; this is not a guarantee against Android LMK.");
+        } else if (!memoryAdvice.known) {
+            Logger.appendToLog("RAM advisory unavailable: unknown memory reading; user Xmx preserved.");
         }
         int initialRam = RuntimeMemoryBudget.initialHeapMb(effectiveRam);
         userArgs.add("-Xms" + initialRam + "M");
@@ -508,14 +519,15 @@ public class JREUtils {
         // that we ship with Java (since it may be older than what's needed)
         userArgs.add("-Dorg.lwjgl.freetype.libname="+ Tools.lwjglNativesDir +"/libfreetype.so");
         // Our spirv-cross is compiled shared, so it gets named shared.
-        userArgs.add("-Dorg.lwjgl.spvc.libname=spirv-cross-c-shared");
+        RuntimeJvmArguments.addDefault(userArgs, "-Dorg.lwjgl.spvc.libname=spirv-cross-c-shared");
 
         // We don't have jemalloc for our LWJGL so set the allocator to system to avoid error logs
-        userArgs.add("-Dorg.lwjgl.system.allocator=system");
+        RuntimeJvmArguments.addDefault(userArgs, "-Dorg.lwjgl.system.allocator=system");
 
         // Leave processor ergonomics to the selected JVM and Android scheduler.
         // Adds/changes methods for compatibility
-        userArgs.add("-javaagent:"+new File(Tools.DIR_DATA,"methods_injector_agent/methods_injector_agent.jar").getAbsolutePath());
+        RuntimeJvmArguments.addDefault(userArgs, "-javaagent:"
+                + new File(Tools.DIR_DATA,"methods_injector_agent/methods_injector_agent.jar").getAbsolutePath());
 
         // === STEP 4: Add authlib-injector BEFORE JVMArgs (which contains main class + game args) ===
         File authlibFile = new File(Tools.DIR_DATA, "authlib-injector/authlib-injector.jar");
@@ -569,7 +581,6 @@ public class JREUtils {
         chdir(gameDirectory == null ? Tools.DIR_GAME_NEW : gameDirectory.getAbsolutePath());
         userArgs.add(0,"java"); //argv[0] is the program name according to C standard.
 
-        try {
             // Log final argument list for debugging
             Logger.appendToLog("=== FINAL JVM ARGS ===");
             for (int i = 0; i < userArgs.size(); i++) {
@@ -639,24 +650,11 @@ public class JREUtils {
         if(LauncherPreferences.PREF_ARC_CAPES) {
             overridableArguments.add("-javaagent:"+new File(Tools.DIR_DATA,"arc_dns_injector/arc_dns_injector.jar").getAbsolutePath()+"=23.95.137.176");
         }
-        List<String> additionalArguments = new ArrayList<>();
         for(String arg : overridableArguments) {
-            String strippedArg = arg.substring(0,arg.indexOf('='));
-            boolean add = true;
-            for(String uarg : userArguments) {
-                if(uarg.startsWith(strippedArg)) {
-                    add = false;
-                    break;
-                }
-            }
-            if(add)
-                additionalArguments.add(arg);
-            else
+            if (!RuntimeJvmArguments.addDefault(userArguments, arg))
                 Log.i("ArgProcessor","Arg skipped: "+arg);
         }
 
-        //Add all the arguments
-        userArguments.addAll(additionalArguments);
         return userArguments;
     }
 
@@ -804,10 +802,14 @@ public class JREUtils {
      * @param argStart The argument to purge from the list.
      */
     private static void purgeArg(List<String> argList, String argStart) {
+        if (argStart.startsWith("-D") || argStart.equals("-Xms") || argStart.equals("-Xmx")) {
+            RuntimeJvmArguments.removeKey(argList, argStart);
+            return;
+        }
         Iterator<String> args = argList.iterator();
         while(args.hasNext()) {
             String arg = args.next();
-            if(arg.startsWith(argStart)) args.remove();
+            if(arg.equals(argStart)) args.remove();
         }
     }
     private static final int EGL_OPENGL_ES_BIT = 0x0001;

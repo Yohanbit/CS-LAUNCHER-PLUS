@@ -9,6 +9,8 @@ public final class RuntimeJvmArguments {
 
     public static String optionKey(String arg) {
         if (arg == null) return "";
+        if (arg.startsWith("-Xmx")) return "-Xmx";
+        if (arg.startsWith("-Xms")) return "-Xms";
         if (arg.startsWith("-XX:+") || arg.startsWith("-XX:-")) return "-XX:" + arg.substring(5);
         int equals = arg.indexOf('=');
         return equals < 0 ? arg : arg.substring(0, equals);
@@ -19,6 +21,20 @@ public final class RuntimeJvmArguments {
         String key = optionKey(flag);
         for (String arg : args) if (optionKey(arg).equals(key)) return true;
         return false;
+    }
+
+    /** Merge only exact keys; properties with a common prefix do not own one another. */
+    public static boolean addDefault(List<String> args, String flag) {
+        if (hasKey(args, flag)) return false;
+        args.add(flag);
+        return true;
+    }
+
+    public static void removeKey(List<String> args, String flag) {
+        String key = optionKey(flag);
+        for (int i = args.size() - 1; i >= 0; i--) {
+            if (optionKey(args.get(i)).equals(key)) args.remove(i);
+        }
     }
 
     private static boolean userOwnsCollector(List<String> args) {
@@ -33,6 +49,11 @@ public final class RuntimeJvmArguments {
     }
 
     /** G1 is available in the bundled HotSpot 8+ runtimes; no diagnostic/experimental unlock needed. */
+    public static List<String> g1Experiment(boolean enabled, int javaVersion, boolean throughput,
+                                           int cores, List<String> userArgs) {
+        return enabled ? g1Experiment(javaVersion, throughput, cores, userArgs) : new ArrayList<>();
+    }
+
     public static List<String> g1Experiment(int javaVersion, boolean throughput, int cores,
                                            List<String> userArgs) {
         List<String> out = new ArrayList<>();
