@@ -21,6 +21,12 @@ public final class FrameMetrics {
     private static BufferedWriter output;
     private static PowerManager power;
     private static native boolean nativeReadSnapshot(long[] values);
+    private static boolean readNativeSnapshot() {
+        // Activity resume can precede loading the launcher JNI library. Retry on the
+        // next sampling tick rather than permanently disabling the selected diagnostic.
+        try { return nativeReadSnapshot(snapshot); }
+        catch (UnsatisfiedLinkError notLoadedYet) { return false; }
+    }
     private FrameMetrics() { }
     public static synchronized void start(Context context) {
         if (thread != null || !LauncherPreferences.DEFAULT_PREF.getBoolean("extremeFrameDiagnostics", false)) return;
@@ -41,7 +47,7 @@ public final class FrameMetrics {
         synchronized (FrameMetrics.class) {
             if (handler == null || output == null) return;
             try {
-                if (nativeReadSnapshot(snapshot)) {
+                if (readNativeSnapshot()) {
                     long time = SystemClock.elapsedRealtime();
                     long count = snapshot[1], delta = Math.max(0, count - previousCount);
                     long gaps = Math.max(0, snapshot[7] - previousGapSamples);

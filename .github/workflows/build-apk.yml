@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: apk-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -133,4 +133,13 @@ jobs:
             --target "$BUILD_SHA" \
             --title "CS Launcher Plus 1.4 EXTREME — test $BUILD_RUN" \
             --prerelease \
-            --notes 'APK experimental 1.4 para ARM64/ARM32, Android 5.0+ (Minecraft y Java pueden requerir una versión superior). Firma debug; instalar encima de la build debug anterior si la firma coincide. Haz copia de perfiles/mundos primero. Incluye MobileGlues 2.0.0 y natives Android LWJGL/SDL/OpenAL/SPIRV-Cross con hashes verificados. Sin configuración Firebase, sus servicios quedan inactivos. No se ha ejecutado en Mali-G76: no se prometen FPS ni compatibilidad de mods. Consulta docs/EXTREME-1.4.md y avisos de licencia en el commit enlazado. Prueba primero la misma instancia sin mods, luego Fabric y Sodium; envía latestlog si falla. Unlimited solicita intervalo 0 y el sentinel vanilla: el driver, compositor o mods pueden seguir limitando. DRS es opcional y reduce calidad solo al activarlo.'
+            --notes 'Cambios en 1.4 EXTREME:
+          - Añadidas las librerías Android LWJGL, SDL, OpenAL y SPIRV-Cross que faltaban en el arranque.
+          - Configuración de MobileGlues exportada antes de cargar el renderer.
+          - Añadidos modos FPS Unlimited, Manual y Original con restauración de ajustes.
+          - Añadida resolución dinámica opcional con escala mínima configurable.
+          - Corregidos el doble conteo de FPS, las prioridades de hilos y el guardado del historial.
+          - Añadidos diagnósticos de swaps, memoria, temperatura y GC.
+          - Ajustes de drivers limitados al backend correspondiente; retiradas opciones G1 incompatibles.
+          - Eliminados el servidor promocional automático, las referencias regionales del inicio y los tutoriales/promociones automáticos.
+          - Configuración simplificada: rendimiento en Game y calidad/resolución en Display, sin controles duplicados.'
