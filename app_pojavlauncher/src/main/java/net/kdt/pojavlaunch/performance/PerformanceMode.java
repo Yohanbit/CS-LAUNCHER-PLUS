@@ -9,8 +9,9 @@ import android.content.SharedPreferences;
  *
  * <p>A mode is a <i>request</i>, not a promise: what actually happens on this phone is decided by
  * {@link PerformancePolicy#resolve}, which folds in {@link DeviceCapability} and the APIs the
- * running Android version exposes. A device without ADPF, or without a thermal HAL, gets the same
- * mode with fewer levers — and the settings card says so instead of pretending.
+ * running Android version exposes. Without a usable thermal HAL, the same mode has fewer levers.
+ * ADPF remains disabled on every device until genuine CPU work timing and membership exist;
+ * API availability alone is not instrumentation. The settings card reports unavailable levers.
  *
  * <p>Normal is the safe baseline. The persisted launcher's default can be Extreme, but scheduling
  * and GC experiments are off in every mode unless explicitly enabled. Normal requests nothing
@@ -69,7 +70,7 @@ public enum PerformanceMode {
         this.behaviour = behaviour;
     }
 
-    /** Unknown, missing or garbage values resolve to {@link #NORMAL} — never to "aggressive". */
+    /** Null/unknown explicit values resolve to Normal; fromPrefs retains the persisted Extreme default. */
     public static PerformanceMode fromKey(String key) {
         if (key != null) {
             for (PerformanceMode m : values()) {

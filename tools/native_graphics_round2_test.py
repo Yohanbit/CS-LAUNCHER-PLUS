@@ -82,6 +82,7 @@ COMMON = r'''
 #include <stdlib.h>
 #include <string.h>
 #include <dlfcn.h>
+#include <pthread.h>
 #define EXTERNAL_API
 '''
 
@@ -173,7 +174,7 @@ BRIDGE_PREFIX = COMMON + r'''
 enum { RENDERER_GL4ES=1, RENDERER_VK_ZINK=2, RENDERER_VULKAN=4,
        GLFW_CLIENT_API=0x22001, GLFW_NO_API=0, GLFW_OPENGL_API=0x30001,
        AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM=2 };
-typedef struct basic_window { int unused; } basic_render_window_t;
+typedef struct basic_window { struct basic_window *next; unsigned int bound_threads; } basic_render_window_t;
 static basic_render_window_t window;
 struct state { int force_vsync, config_renderer, savedWidth, savedHeight;
     void *glfwThreadVmEnv, *runtimeJavaVMPtr, *pojavWindow; } state;
@@ -186,6 +187,10 @@ static basic_render_window_t *(*br_get_current)(void);
 static bool (*br_swap_buffers)(void);
 static int coverage, inits, setups, vulkan_loads, vulkan_fail, incomplete, init_fail, dispatches;
 static uint32_t native_counter_mode;
+static pthread_mutex_t bridge_lifecycle_mutex = PTHREAD_MUTEX_INITIALIZER;
+static basic_render_window_t *live_contexts;
+static int bridge_backend;
+static bool main_context_available;
 static int acquires, releases, attach_fail;
 static void pojav_frame_set_coverage(int value) { coverage=value; }
 static bool init(void) { inits++; return !init_fail; }
@@ -204,6 +209,10 @@ static void set_osm_bridge_tbl(void) { set_gl_bridge_tbl(); }
 static void *maybe_load_vulkan(void) { vulkan_loads++; return vulkan_fail?NULL:(void *)1; }
 static void *get_attached_env(void *vm) { (void)vm; return attach_fail?NULL:(void *)1; }
 static void ANativeWindow_acquire(void *w) { assert(w); acquires++; }
+static void ANativeWindow_release(void *w) { assert(w); releases++; }
+static void *pojav_acquire_window(void *generation) { (void)generation; if(state.pojavWindow)ANativeWindow_acquire(state.pojavWindow); return state.pojavWindow; }
+static void *retain_vulkan_window(void) { return state.pojavWindow; }
+static void track_current_change(basic_render_window_t *before,basic_render_window_t *after) { (void)before; (void)after; }
 static int ANativeWindow_getWidth(void *w) { assert(w); return 800; }
 static int ANativeWindow_getHeight(void *w) { assert(w); return 600; }
 static int ANativeWindow_setBuffersGeometry(void *w, int x, int y, int f) { assert(w); (void)x; (void)y; (void)f; return 0; }
@@ -212,6 +221,7 @@ static void updateMonitorSize(int x, int y) { assert(x==800&&y==600); }
 
 BRIDGE_SUFFIX = r'''
 static void reset(const char *renderer) {
+    live_contexts=NULL; bridge_backend=0; main_context_available=false;
     memset(&state,0,sizeof(state)); state.pojavWindow=(void *)1;
     inits=setups=vulkan_loads=vulkan_fail=incomplete=init_fail=dispatches=acquires=releases=attach_fail=0;
     coverage=1;
@@ -239,7 +249,7 @@ int main(void) {
     reset("opengles_mobileglues"); assert(pojavInitOpenGL());
     assert(inits==1&&setups==1&&!vulkan_loads);
     assert(pojavGetCurrentContext()==&window); assert(pojavCreateContext(NULL)==&window);
-    pojavMakeCurrent(&window); pojavSwapInterval(0); assert(dispatches==4);
+    pojavMakeCurrent(&window); pojavSwapInterval(0); assert(dispatches==6);
     reset("opengles3_desktopgl_zink_kopper"); assert(pojavInitOpenGL()); assert(vulkan_loads==1);
     reset("vulkan_zink"); assert(pojavInitOpenGL()); assert(vulkan_loads==1);
     reset("vulkan_zink"); vulkan_fail=1;
@@ -249,7 +259,7 @@ int main(void) {
     /* Real GLFW consumer ordering: never send hints/create after failed Init.
      * A broken unused GL backend must not block platform init or NO_API. */
     reset("opengles_mobileglues"); init_fail=1;
-    assert(pojavInit()); assert(acquires==1&&!releases&&!inits&&!setups&&!dispatches);
+    assert(pojavInit()); assert(acquires==1&&releases==1&&!inits&&!setups&&!dispatches);
     assert_failed();
     pojavSetWindowHint(GLFW_CLIENT_API,GLFW_NO_API);
     assert(pojavCreateContext(NULL)==state.pojavWindow);
@@ -258,7 +268,7 @@ int main(void) {
      * the backend and rejects the context on failure, without stale dispatch. */
     pojavSetWindowHint(GLFW_CLIENT_API,GLFW_OPENGL_API);
     assert(pojavCreateContext(NULL)==NULL); assert(inits==1&&!setups);
-    assert_failed(); assert(acquires==1&&!releases);
+    assert_failed(); assert(acquires==1&&releases==1);
     reset(NULL); assert(pojavInit());
     pojavSetWindowHint(GLFW_CLIENT_API,GLFW_NO_API);
     assert(pojavCreateContext(NULL)==state.pojavWindow&&!inits&&!dispatches);
@@ -269,7 +279,7 @@ int main(void) {
     /* The default GLFW API is GL even when no explicit window hint is sent.
      * Init is platform-only; first context lazily initializes, later shared
      * contexts reuse the loaded table. */
-    reset("opengles_mobileglues"); assert(pojavInit()); assert(acquires==1&&!releases&&!inits);
+    reset("opengles_mobileglues"); assert(pojavInit()); assert(acquires==1&&releases==1&&!inits);
     assert(pojavCreateContext(NULL)==&window); assert(inits==1&&setups==1&&dispatches==1);
     assert(pojavCreateContext(&window)==&window); assert(inits==1&&setups==1&&dispatches==2);
     reset("opengles3_desktopgl_zink_kopper"); assert(pojavInit()); assert(!vulkan_loads&&!inits);
@@ -359,7 +369,7 @@ int main(void) {
     reset(); loader_fail=1; assert(!gl_init()); assert(!coverage);
     reset(); display_fail=1; assert(!gl_init()); assert(!coverage&&g_EglDisplay==EGL_NO_DISPLAY);
     reset(); initialize_fail=1; assert(!gl_init()); assert(!coverage&&g_EglDisplay==EGL_NO_DISPLAY);
-    reset(); assert(gl_init()); assert(coverage==1&&g_EglDisplay==(void *)1);
+    reset(); assert(gl_init()); assert(coverage==0&&g_EglDisplay==(void *)1);
     puts("PASS EGL initialization loader/display/init failures do not advertise instrumented coverage");
     puts("PASS EGL context: one config query, 8 setup/allocation failure cases, null/malformed version defaults, desktop and shared paths");
 }

@@ -6,12 +6,11 @@
 #ifndef POJAVLAUNCHER_OSM_BRIDGE_H
 #define POJAVLAUNCHER_OSM_BRIDGE_H
 #include "osmesa_loader.h"
+#include "common.h"
 
 
 typedef struct {
-    char       state;
-    struct ANativeWindow *nativeSurface;
-    struct ANativeWindow *newNativeSurface;
+    POJAV_WINDOW_FIELDS;
     ANativeWindow_Buffer buffer;
     int32_t last_stride;
     bool disable_rendering;
@@ -26,5 +25,6 @@ void osm_make_current(osm_render_window_t* bundle);
 bool osm_swap_buffers();
 void osm_setup_window();
 void osm_swap_interval(int swapInterval);
+bool osm_destroy_context(osm_render_window_t* bundle);
 
 #endif //POJAVLAUNCHER_OSM_BRIDGE_H

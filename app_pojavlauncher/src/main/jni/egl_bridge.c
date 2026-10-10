@@ -73,54 +73,168 @@ static uint32_t native_counter_mode;
 _Static_assert(__atomic_always_lock_free(sizeof(uint32_t), 0),
                "counter coverage snapshot must be lock-free on this ABI");
 
-EXTERNAL_API void pojavTerminate() {
-    __atomic_store_n(&native_counter_mode, 0, __ATOMIC_RELAXED);
-    printf("EGLBridge: Terminating\n");
+/* UI owns only the global window publication, not any rendering bundle.
+ * Snapshot acquire and publication are one mutex transaction; an atomic raw
+ * pointer would allow acquire-after-free. The consumer owns each snapshot. */
+static pthread_mutex_t window_mutex = PTHREAD_MUTEX_INITIALIZER;
+static uint64_t window_generation = 1;
 
-    switch (pojav_environ->config_renderer) {
-        case RENDERER_GL4ES: {
-            /* The legacy PotatoBridge is not populated by ctxbridges. In
-             * particular, failed initialization must not call unloaded EGL. */
-            if (potatoBridge.eglDisplay == EGL_NO_DISPLAY || eglTerminate_p == NULL) break;
-            eglMakeCurrent_p(potatoBridge.eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-            eglDestroySurface_p(potatoBridge.eglDisplay, potatoBridge.eglSurface);
-            eglDestroyContext_p(potatoBridge.eglDisplay, potatoBridge.eglContext);
-            eglTerminate_p(potatoBridge.eglDisplay);
-            eglReleaseThread_p();
+static void publish_bridge_window(struct ANativeWindow *window) {
+    pthread_mutex_lock(&window_mutex);
+    struct ANativeWindow *old = pojav_environ->pojavWindow;
+    if (old == NULL && window == NULL) { pthread_mutex_unlock(&window_mutex); return; }
+    pojav_environ->pojavWindow = window; /* consumes fromSurface's reference */
+    ++window_generation;
+    pthread_mutex_unlock(&window_mutex);
+    if (old != NULL) ANativeWindow_release(old);
+}
 
-            potatoBridge.eglContext = EGL_NO_CONTEXT;
-            potatoBridge.eglDisplay = EGL_NO_DISPLAY;
-            potatoBridge.eglSurface = EGL_NO_SURFACE;
-        } break;
+struct ANativeWindow *pojav_acquire_window(uint64_t *generation) {
+    pthread_mutex_lock(&window_mutex);
+    struct ANativeWindow *window = pojav_environ->pojavWindow;
+    if (window != NULL) ANativeWindow_acquire(window);
+    if (generation != NULL) *generation = window_generation;
+    pthread_mutex_unlock(&window_mutex);
+    return window;
+}
 
-            //case RENDERER_VIRGL:
-        case RENDERER_VK_ZINK: {
-            // Nothing to do here
-        } break;
+bool pojav_take_window_update(uint64_t *generation, struct ANativeWindow **window) {
+    pthread_mutex_lock(&window_mutex);
+    bool changed = *generation != window_generation;
+    if (changed) {
+        *window = pojav_environ->pojavWindow;
+        if (*window != NULL) ANativeWindow_acquire(*window);
+        *generation = window_generation;
     }
+    pthread_mutex_unlock(&window_mutex);
+    return changed;
+}
+
+/* Serialize native API dispatch with teardown. This mutex is never acquired
+ * by Java surface callbacks, so they cannot write a render bundle mid-swap.
+ * A context bound by another thread defers destruction rather than freeing
+ * memory behind that thread's TLS/driver binding. */
+static pthread_mutex_t bridge_lifecycle_mutex = PTHREAD_MUTEX_INITIALIZER;
+static basic_render_window_t *live_contexts;
+static int bridge_backend;
+static bool main_context_available;
+
+struct vulkan_window_lease {
+    struct ANativeWindow *window;
+    struct vulkan_window_lease *next;
+};
+static struct vulkan_window_lease *vulkan_window_leases;
+
+/* GLFW NO_API returns a raw window pointer. Retain an independent session
+ * reference until GLFW termination; replacing/releasing the Java publication
+ * cannot invalidate a previously returned native-Vulkan window. */
+static void *retain_vulkan_window(void) {
+    struct ANativeWindow *window = pojav_acquire_window(NULL);
+    if (window == NULL) return NULL;
+    for (struct vulkan_window_lease *lease = vulkan_window_leases; lease != NULL; lease = lease->next) {
+        if (lease->window == window) { ANativeWindow_release(window); return window; }
+    }
+    struct vulkan_window_lease *lease = calloc(1, sizeof(*lease));
+    if (lease == NULL) { ANativeWindow_release(window); return NULL; }
+    lease->window = window;
+    lease->next = vulkan_window_leases;
+    vulkan_window_leases = lease;
+    return window;
+}
+
+static void track_current_change(basic_render_window_t *before, basic_render_window_t *after) {
+    if (before == after) return;
+    if (before != NULL && before->bound_threads != 0) --before->bound_threads;
+    if (after != NULL) ++after->bound_threads;
+}
+
+EXTERNAL_API void pojavTerminate() {
+    pthread_mutex_lock(&bridge_lifecycle_mutex);
+    __atomic_store_n(&native_counter_mode, 0, __ATOMIC_RELAXED);
+    pojav_frame_set_coverage(0);
+    printf("EGLBridge: Terminating\n");
+    main_context_available = false;
+    basic_render_window_t *before = br_get_current != NULL ? br_get_current() : NULL;
+    if (br_make_current != NULL) br_make_current(NULL);
+    basic_render_window_t *after = br_get_current != NULL ? br_get_current() : NULL;
+    track_current_change(before, after);
+    bool busy = after != NULL;
+    for (basic_render_window_t *context = live_contexts; context != NULL; context = context->next) {
+        if (context->bound_threads != 0) busy = true;
+    }
+    if (busy) {
+        fprintf(stderr, "EGLBridge: teardown deferred: a driver context remains bound\n");
+        pthread_mutex_unlock(&bridge_lifecycle_mutex);
+        return;
+    }
+    basic_render_window_t **entry = &live_contexts;
+    while (*entry != NULL) {
+        basic_render_window_t *context = *entry;
+        basic_render_window_t *next = context->next;
+        bool was_main = context == pojav_environ->mainWindowBundle;
+        bool destroyed = bridge_backend == RENDERER_GL4ES ?
+            gl_destroy_context((gl_render_window_t*)context) :
+            osm_destroy_context((osm_render_window_t*)context);
+        if (destroyed) {
+            *entry = next;
+            if (was_main) pojav_environ->mainWindowBundle = NULL;
+        } else entry = &context->next;
+    }
+    if (live_contexts == NULL && (bridge_backend != RENDERER_GL4ES || gl_terminate())) {
+        clear_bridge_tbl();
+        bridge_backend = 0;
+        pojav_environ->config_renderer = 0;
+    } else {
+        fprintf(stderr, "EGLBridge: backend cleanup failed; preserving live resources for retry\n");
+    }
+    /* Native Vulkan callers must destroy their VkSurface/windows before GLFW
+     * termination, as with ordinary GLFW lifetime. Keep the loader ROOT alive. */
+    while (vulkan_window_leases != NULL) {
+        struct vulkan_window_lease *lease = vulkan_window_leases;
+        vulkan_window_leases = lease->next;
+        ANativeWindow_release(lease->window);
+        free(lease);
+    }
+    pthread_mutex_unlock(&bridge_lifecycle_mutex);
 }
 
 JNIEXPORT void JNICALL Java_net_kdt_pojavlaunch_utils_JREUtils_setupBridgeWindow(JNIEnv* env, ABI_COMPAT jclass clazz, jobject surface) {
-    pojav_environ->pojavWindow = ANativeWindow_fromSurface(env, surface);
-    if(br_setup_window != NULL) br_setup_window();
+    if (surface == NULL) { publish_bridge_window(NULL); return; }
+    struct ANativeWindow *window = ANativeWindow_fromSurface(env, surface);
+    /* Conversion failure/exception must not revoke a still-live old window. */
+    if (window != NULL && !(*env)->ExceptionCheck(env)) publish_bridge_window(window);
+    else if (window != NULL) ANativeWindow_release(window);
 }
 
 
 JNIEXPORT void JNICALL
 Java_net_kdt_pojavlaunch_utils_JREUtils_releaseBridgeWindow(ABI_COMPAT JNIEnv *env, ABI_COMPAT jclass clazz) {
-    ANativeWindow_release(pojav_environ->pojavWindow);
+    publish_bridge_window(NULL); /* idempotent; render consumes the NULL event */
 }
 
 EXTERNAL_API void* pojavGetCurrentContext() {
-    return br_get_current != NULL ? br_get_current() : NULL;
+    pthread_mutex_lock(&bridge_lifecycle_mutex);
+    void *context = br_get_current != NULL ? br_get_current() : NULL;
+    pthread_mutex_unlock(&bridge_lifecycle_mutex);
+    return context;
 }
 
 //#define ADRENO_POSSIBLE
 #ifdef ADRENO_POSSIBLE
+static void *turnip_hook_dependency, *turnip_driver_dependency, *turnip_dl_dependency;
+
+static void reject_turnip_dependencies(void) {
+    if (turnip_dl_dependency != NULL) dlclose(turnip_dl_dependency);
+    if (turnip_driver_dependency != NULL) dlclose(turnip_driver_dependency);
+    if (turnip_hook_dependency != NULL) dlclose(turnip_hook_dependency);
+    turnip_dl_dependency = turnip_driver_dependency = turnip_hook_dependency = NULL;
+}
+
 void* load_turnip_vulkan() {
     if(getenv("POJAV_LOAD_TURNIP") == NULL) return NULL;
     const char* native_dir = getenv("POJAV_NATIVEDIR");
     const char* cache_dir = getenv("TMPDIR");
+    if (native_dir == NULL || cache_dir == NULL || *native_dir == '\0' || *cache_dir == '\0') return NULL;
     if(!linker_ns_load(native_dir)) return NULL;
     void* linkerhook = linker_ns_dlopen("liblinkerhook.so", RTLD_LOCAL | RTLD_NOW);
     if(linkerhook == NULL) return NULL;
@@ -146,6 +260,17 @@ void* load_turnip_vulkan() {
     }
     linkerhook_pass_handles(turnip_driver_handle, android_dlopen_ext, android_get_exported_namespace);
     void* libvulkan = linker_ns_dlopen_unique(cache_dir, "libvulkan.so", RTLD_LOCAL | RTLD_NOW);
+    if (libvulkan == NULL) {
+        dlclose(dl_android);
+        dlclose(turnip_driver_handle);
+        dlclose(linkerhook);
+    } else {
+        turnip_hook_dependency = linkerhook;
+        turnip_driver_dependency = turnip_driver_handle;
+        turnip_dl_dependency = dl_android;
+    }
+    /* Successful dependency references belong to the process-root loader:
+     * the hook's raw pointers and driver handle must outlive all consumers. */
     return libvulkan;
 }
 #endif
@@ -198,7 +323,9 @@ static void *open_vulkan_loader(void) {
                 vulkan_loader_in_namespace = true;
                 return result;
             }
+            linker_ns_forget_unique(result);
             dlclose(result);
+            reject_turnip_dependencies();
         }
     }
 #endif
@@ -235,7 +362,15 @@ void* maybe_load_vulkan(void) {
         fprintf(stderr, "EGLBridge: could not publish Vulkan loader handle\n");
         /* A published cached handle may already be in use; never unload it.
          * New, unpublished handles have no consumers and can be closed. */
-        if (vulkan_loader_handle == NULL) dlclose(result);
+        if (vulkan_loader_handle == NULL) {
+#ifdef ADRENO_POSSIBLE
+            if (vulkan_loader_in_namespace) linker_ns_forget_unique(result);
+#endif
+            dlclose(result);
+#ifdef ADRENO_POSSIBLE
+            if (vulkan_loader_in_namespace) reject_turnip_dependencies();
+#endif
+        }
         set_vulkan_ptr(NULL);
         result = NULL;
     }
@@ -288,6 +423,14 @@ void *acquire_vulkan_loader(void) {
 }
 
 int pojavInitOpenGL() {
+    if (live_contexts != NULL) {
+        /* Never replace a backend table beneath contexts from another backend.
+         * GLFW must terminate/unbind the old session before changing renderer. */
+        fprintf(stderr, "EGLBridge: renderer reinitialization requires context teardown\n");
+        __atomic_store_n(&native_counter_mode, 0, __ATOMIC_RELAXED);
+        pojav_frame_set_coverage(0);
+        return 0;
+    }
     __atomic_store_n(&native_counter_mode, 0, __ATOMIC_RELAXED);
     clear_bridge_tbl();
     pojav_environ->config_renderer = 0;
@@ -344,35 +487,44 @@ int pojavInitOpenGL() {
         return 0;
     }
     br_setup_window();
-    __atomic_store_n(&native_counter_mode, 1, __ATOMIC_RELAXED);
+    bridge_backend = pojav_environ->config_renderer;
+    /* Context/display symbols alone do not certify a counted context. */
     return 1;
 }
 
 extern void updateMonitorSize(int width, int height);
 
 EXTERNAL_API int pojavInit() {
-    __atomic_store_n(&native_counter_mode, 0, __ATOMIC_RELAXED);
+    pthread_mutex_lock(&bridge_lifecycle_mutex);
     pojav_environ->glfwThreadVmEnv = get_attached_env(pojav_environ->runtimeJavaVMPtr);
     if(pojav_environ->glfwThreadVmEnv == NULL) {
         printf("Failed to attach Java-side JNIEnv to GLFW thread\n");
+        pthread_mutex_unlock(&bridge_lifecycle_mutex);
         return 0;
     }
-    if (pojav_environ->pojavWindow == NULL) return 0;
+    struct ANativeWindow *window = pojav_acquire_window(NULL);
+    if (window == NULL) { pthread_mutex_unlock(&bridge_lifecycle_mutex); return 0; }
     /* GLFW initialization precedes GLFW_CLIENT_API window hints. Set up the
      * platform only: an unused/failed GL backend must not block NO_API windows. */
-    clear_bridge_tbl();
-    pojav_environ->config_renderer = 0;
-    pojav_frame_set_coverage(0);
-    ANativeWindow_acquire(pojav_environ->pojavWindow);
-    pojav_environ->savedWidth = ANativeWindow_getWidth(pojav_environ->pojavWindow);
-    pojav_environ->savedHeight = ANativeWindow_getHeight(pojav_environ->pojavWindow);
-    ANativeWindow_setBuffersGeometry(pojav_environ->pojavWindow,pojav_environ->savedWidth,pojav_environ->savedHeight,AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM);
+    if (live_contexts == NULL && bridge_backend == 0) {
+        __atomic_store_n(&native_counter_mode, 0, __ATOMIC_RELAXED);
+        clear_bridge_tbl();
+        main_context_available = false;
+        pojav_environ->config_renderer = 0;
+        pojav_frame_set_coverage(0);
+    }
+    pojav_environ->savedWidth = ANativeWindow_getWidth(window);
+    pojav_environ->savedHeight = ANativeWindow_getHeight(window);
+    ANativeWindow_setBuffersGeometry(window,pojav_environ->savedWidth,pojav_environ->savedHeight,AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM);
+    ANativeWindow_release(window);
     updateMonitorSize(pojav_environ->savedWidth, pojav_environ->savedHeight);
+    pthread_mutex_unlock(&bridge_lifecycle_mutex);
     return 1;
 }
 
 EXTERNAL_API void pojavSetWindowHint(int hint, int value) {
     if (hint != GLFW_CLIENT_API) return;
+    pthread_mutex_lock(&bridge_lifecycle_mutex);
     switch (value) {
         case GLFW_NO_API:
             pojav_environ->config_renderer = RENDERER_VULKAN;
@@ -399,27 +551,39 @@ EXTERNAL_API void pojavSetWindowHint(int hint, int value) {
             printf("GLFW: Unimplemented API 0x%x\n", value);
             abort();
     }
+    pthread_mutex_unlock(&bridge_lifecycle_mutex);
 }
 
 EXTERNAL_API void pojavSwapBuffers() {
-    if (br_swap_buffers == NULL || br_get_current == NULL) return;
+    pthread_mutex_lock(&bridge_lifecycle_mutex);
+    if (br_swap_buffers == NULL || br_get_current == NULL ||
+        pojav_environ->config_renderer == RENDERER_VULKAN) {
+        pthread_mutex_unlock(&bridge_lifecycle_mutex); return;
+    }
     basic_render_window_t *current = br_get_current();
-    if (current == NULL) return;
+    if (current == NULL) { pthread_mutex_unlock(&bridge_lifecycle_mutex); return; }
     /* Shared/upload contexts and dummy surfaces are not displayed frames. */
     if (current != pojav_environ->mainWindowBundle) {
-        br_swap_buffers();
+        bool (*swap)(void) = br_swap_buffers;
+        pthread_mutex_unlock(&bridge_lifecycle_mutex);
+        swap();
         return;
     }
+    bool (*swap)(void) = br_swap_buffers;
+    /* Its tracked current binding pins this bundle/backend while the driver
+     * runs. Do not serialize long swaps/glFinish with shared-thread uploads. */
+    pthread_mutex_unlock(&bridge_lifecycle_mutex);
     uint32_t token = pojav_frame_timing_token();
     uint64_t start_ns = (token & 1u) ? pojav_monotonic_ns() : 0;
-    bool submitted = br_swap_buffers();
+    bool submitted = swap();
     uint64_t end_ns = (token & 1u) ? pojav_monotonic_ns() : 0;
     pojav_frame_record_swap(submitted, token, start_ns, end_ns);
 }
 
 /* Native Vulkan bypasses these bridges. Never report an uncounted path as 0 FPS. */
 static int frame_counter_coverage(void) {
-    return (int)pojav_frame_coverage();
+    return __atomic_load_n(&native_counter_mode, __ATOMIC_RELAXED) == 1 ?
+        (int)pojav_frame_coverage() : 0;
 }
 
 /* Startup/watchdog readiness, not a Vulkan presentation counter. No renderer
@@ -476,25 +640,48 @@ Java_net_kdt_pojavlaunch_utils_FrameMetrics_nativeReadSnapshot(JNIEnv* env, jcla
 
 
 EXTERNAL_API void pojavMakeCurrent(void* window) {
-    if (br_make_current != NULL) br_make_current((basic_render_window_t*)window);
+    pthread_mutex_lock(&bridge_lifecycle_mutex);
+    /* NO_API pointers are native windows, not GL bundles. */
+    if (br_make_current != NULL && (window == NULL || pojav_environ->config_renderer != RENDERER_VULKAN)) {
+        basic_render_window_t *before = br_get_current != NULL ? br_get_current() : NULL;
+        br_make_current((basic_render_window_t*)window);
+        basic_render_window_t *after = br_get_current != NULL ? br_get_current() : NULL;
+        track_current_change(before, after);
+    }
+    pthread_mutex_unlock(&bridge_lifecycle_mutex);
 }
 
 EXTERNAL_API void* pojavCreateContext(void* contextSrc) {
+    pthread_mutex_lock(&bridge_lifecycle_mutex);
     if (pojav_environ->config_renderer == RENDERER_VULKAN) {
-        return (void *) pojav_environ->pojavWindow;
+        void *window = retain_vulkan_window();
+        pthread_mutex_unlock(&bridge_lifecycle_mutex);
+        return window;
     }
     /* Only a GL context request needs the GL bridge. Failed initialization
      * clears the table and returns NULL; successful setup is reused by shared
      * contexts rather than repeated for every context creation. */
-    if ((pojav_environ->config_renderer == 0 || br_init_context == NULL) && !pojavInitOpenGL()) return NULL;
+    if ((pojav_environ->config_renderer == 0 || br_init_context == NULL) && !pojavInitOpenGL()) {
+        pthread_mutex_unlock(&bridge_lifecycle_mutex); return NULL;
+    }
     basic_render_window_t *context = br_init_context != NULL ?
         br_init_context((basic_render_window_t*)contextSrc) : NULL;
     /* NO_API clears coverage without unloading the GL bridge. Restore the
      * existing bridge's counted boundary only after GL context success. */
     if (context != NULL) {
+        bool registered = false;
+        for (basic_render_window_t *entry = live_contexts; entry != NULL; entry = entry->next) {
+            if (entry == context) { registered = true; break; }
+        }
+        if (!registered) { context->next = live_contexts; live_contexts = context; }
+        main_context_available = true;
         pojav_frame_set_coverage(pojav_environ->config_renderer == RENDERER_VK_ZINK ? 2 : 1);
     }
-    __atomic_store_n(&native_counter_mode, context != NULL ? 1 : 0, __ATOMIC_RELAXED);
+    /* A failed secondary/shared creation must not revoke a live principal.
+     * First/main failure stays unknown even if backend init succeeded. */
+    if (context == NULL && !main_context_available) pojav_frame_set_coverage(0);
+    __atomic_store_n(&native_counter_mode, context != NULL || main_context_available ? 1 : 0, __ATOMIC_RELAXED);
+    pthread_mutex_unlock(&bridge_lifecycle_mutex);
     return context;
 }
 
@@ -505,6 +692,8 @@ Java_org_lwjgl_vulkan_VK_getVulkanDriverHandle(ABI_COMPAT JNIEnv *env, ABI_COMPA
 }
 
 EXTERNAL_API void pojavSwapInterval(int interval) {
-    if (br_swap_interval != NULL) br_swap_interval(interval);
+    pthread_mutex_lock(&bridge_lifecycle_mutex);
+    if (br_swap_interval != NULL && pojav_environ->config_renderer != RENDERER_VULKAN) br_swap_interval(interval);
+    pthread_mutex_unlock(&bridge_lifecycle_mutex);
 }
 

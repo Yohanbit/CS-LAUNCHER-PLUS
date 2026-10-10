@@ -518,7 +518,10 @@ public class JREUtils {
 
         // Force LWJGL to use the Freetype library intended for it, instead of using the one
         // that we ship with Java (since it may be older than what's needed)
-        userArgs.add("-Dorg.lwjgl.freetype.libname="+ Tools.lwjglNativesDir +"/libfreetype.so");
+        // Non-game installers do not establish an LWJGL native directory; never emit null/ paths.
+        String freetype = net.kdt.pojavlaunch.performance.RuntimeNativeProperties.freetypePath(
+                LOCAL_RENDERER == null ? null : Tools.lwjglNativesDir);
+        if (freetype != null) userArgs.add("-Dorg.lwjgl.freetype.libname=" + freetype);
         // Our spirv-cross is compiled shared, so it gets named shared.
         RuntimeJvmArguments.addDefault(userArgs, "-Dorg.lwjgl.spvc.libname=spirv-cross-c-shared");
 
@@ -662,56 +665,13 @@ public class JREUtils {
     /**
      * Parse and separate java arguments in a user friendly fashion
      * It supports multi line and absence of spaces between arguments
-     * The function also supports auto-removal of improper arguments, although it may miss some.
+     * Ordered quoting/escape parsing; reserved launch keys are filtered separately, after parsing.
      *
      * @param args The un-parsed argument list.
      * @return Parsed args as an ArrayList
      */
     public static ArrayList<String> parseJavaArguments(String args){
-        ArrayList<String> parsedArguments = new ArrayList<>(0);
-        args = args.trim().replace(" ", "");
-        //For each prefixes, we separate args.
-        String[] separators = new String[]{"-XX:-","-XX:+", "-XX:","--", "-D", "-X", "-javaagent:", "-verbose"};
-        for(String prefix : separators){
-            while (true){
-                int start = args.indexOf(prefix);
-                if(start == -1) break;
-                //Get the end of the current argument by checking the nearest separator
-                int end = -1;
-                for(String separator: separators){
-                    int tempEnd = args.indexOf(separator, start + prefix.length());
-                    if(tempEnd == -1) continue;
-                    if(end == -1){
-                        end = tempEnd;
-                        continue;
-                    }
-                    end = Math.min(end, tempEnd);
-                }
-                //Fallback
-                if(end == -1) end = args.length();
-
-                //Extract it
-                String parsedSubString = args.substring(start, end);
-                args = args.replace(parsedSubString, "");
-
-                //Check if two args aren't bundled together by mistake
-                if(parsedSubString.indexOf('=') == parsedSubString.lastIndexOf('=')) {
-                    int arraySize = parsedArguments.size();
-                    if(arraySize > 0){
-                        String lastString = parsedArguments.get(arraySize - 1);
-                        // Looking for list elements
-                        if(lastString.charAt(lastString.length() - 1) == ',' ||
-                                parsedSubString.contains(",")){
-                            parsedArguments.set(arraySize - 1, lastString + parsedSubString);
-                            continue;
-                        }
-                    }
-                    parsedArguments.add(parsedSubString);
-                }
-                else Log.w("JAVA ARGS PARSER", "Removed improper arguments: " + parsedSubString);
-            }
-        }
-        return parsedArguments;
+        return net.kdt.pojavlaunch.performance.RuntimeArgumentTokenizer.parse(args);
     }
 
     /**
@@ -762,6 +722,9 @@ public class JREUtils {
             }
             LOCAL_RENDERER = renderer;
             net.kdt.pojavlaunch.performance.PerformancePolicy.reconcileRenderer(renderer);
+            Logger.appendToLog("Renderer library loaded: " + renderer
+                    + "; EGL/backend/context initialization is still pending. A later initialization "
+                    + "failure does not trigger this Java dlopen fallback; select another installed route and retry.");
             if (!renderer.equals(requested)) {
                 Logger.appendToLog("Renderer fallback: " + requested + " -> " + renderer
                         + "; compatible installed route, library loaded; game/mod support unverified.");

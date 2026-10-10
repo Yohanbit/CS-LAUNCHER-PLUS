@@ -2,6 +2,7 @@
 """Verify packaged ARM libraries and APK update prerequisites; no device claims."""
 import argparse
 import hashlib
+import json
 import os
 import re
 import subprocess
@@ -25,15 +26,24 @@ def identity(apk, signer, aapt):
     return (package.group(1), int(package.group(2)), tuple(sorted(certs)), int(sdk.group(1))), sig, badging
 
 
-def inspect(apk, signer, aapt, previous=None, require_update=False, expected_min_sdk=21):
+def inspect(apk, signer, aapt, previous=None, require_update=False, expected_min_sdk=21,
+            expected_version_name=None, expected_version_code=None):
     if require_update and not previous:
         raise ValueError("Update continuity requires the identified previous APK")
     ident, sig, badging = identity(apk, signer, aapt)
+    package_line = next((line for line in badging.splitlines() if line.startswith("package:")), "")
+    version_match = re.search(r"\bversionName='([^']*)'", package_line)
+    version_name = version_match.group(1) if version_match else None
+    if expected_version_name is not None and version_name != expected_version_name:
+        raise ValueError("Unexpected versionName: " + repr(version_name))
+    if expected_version_code is not None and ident[1] != expected_version_code:
+        raise ValueError("Unexpected versionCode: " + str(ident[1]))
     if ident[3] != expected_min_sdk:
         raise ValueError("Unexpected minSDK: " + str(ident[3]))
     print("APK:", os.path.basename(apk))
     with open(apk, "rb") as f:
-        print("SHA256:", hashlib.file_digest(f, "sha256").hexdigest())
+        digest = hashlib.file_digest(f, "sha256").hexdigest()
+    print("SHA256:", digest)
     print(sig.strip())
     print("\n".join(line for line in badging.splitlines()
                     if line.startswith(("package:", "sdkVersion:", "targetSdkVersion:", "native-code:"))))
@@ -45,6 +55,11 @@ def inspect(apk, signer, aapt, previous=None, require_update=False, expected_min
     if ident[3] >= 26:
         platform.add("libaaudio.so")
     with zipfile.ZipFile(apk) as z, tempfile.TemporaryDirectory() as temp:
+        if len(z.namelist()) != len(set(z.namelist())):
+            raise ValueError("Duplicate ZIP entries; publication blocked")
+        corrupt = z.testzip()
+        if corrupt:
+            raise ValueError("Corrupt ZIP entry: " + corrupt)
         names = set(z.namelist())
         abis = {p.split("/")[1] for p in names if p.startswith("lib/") and p.endswith(".so")}
         if abis != {"arm64-v8a", "armeabi-v7a"}:
@@ -74,11 +89,14 @@ def inspect(apk, signer, aapt, previous=None, require_update=False, expected_min
                 raise ValueError("Missing MobileGlues dependencies: " + repr(missing))
             print("MobileGlues", abi, expected, "NEEDED=" + ",".join(needed))
     print("Packaging/signature verified; actual installation, renderer load and gameplay NOT executed.")
+    matched = False
+    previous_digest = None
     if previous:
         prior, prior_sig, _ = identity(previous, signer, aapt)
         print("Previous identified APK:", os.path.basename(previous))
         with open(previous, "rb") as f:
-            print("Previous SHA256:", hashlib.file_digest(f, "sha256").hexdigest())
+            previous_digest = hashlib.file_digest(f, "sha256").hexdigest()
+        print("Previous SHA256:", previous_digest)
         print("Previous identity:", prior)
         same_package = ident[0] == prior[0]
         same_cert = ident[2] == prior[2]
@@ -93,6 +111,11 @@ def inspect(apk, signer, aapt, previous=None, require_update=False, expected_min
             raise ValueError("APK update prerequisites did not match; publication blocked")
     else:
         print("No prior APK available: update continuity is NOT verified.")
+    return {"apk": os.path.basename(apk), "sha256": digest, "package": ident[0],
+            "versionCode": ident[1], "versionName": version_name,
+            "certificates": list(ident[2]), "minSDK": ident[3], "abis": sorted(abis),
+            "updateMatched": matched, "previousSha256": previous_digest,
+            "physicalValidation": False}
 
 
 if __name__ == "__main__":
@@ -103,5 +126,13 @@ if __name__ == "__main__":
     p.add_argument("--aapt", default="aapt")
     p.add_argument("--require-update", action="store_true")
     p.add_argument("--expected-min-sdk", type=int, default=21)
+    p.add_argument("--expected-version-name")
+    p.add_argument("--expected-version-code", type=int)
+    p.add_argument("--report-json", help="Write verified identity only after every gate succeeds")
     args = p.parse_args()
-    inspect(args.apk, args.apksigner, args.aapt, args.previous, args.require_update, args.expected_min_sdk)
+    report = inspect(args.apk, args.apksigner, args.aapt, args.previous, args.require_update,
+                     args.expected_min_sdk, args.expected_version_name, args.expected_version_code)
+    if args.report_json:
+        with open(args.report_json, "w") as out:
+            json.dump(report, out, indent=2)
+            out.write("\n")

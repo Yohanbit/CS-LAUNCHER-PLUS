@@ -28,6 +28,8 @@ static int (*br_init_context)(void), (*br_make_current)(void), (*br_get_current)
 static int (*br_swap_buffers)(void), (*br_swap_interval)(void);
 static int coverage, inits, setups, vulkan_loads, incomplete;
 static uint32_t native_counter_mode;
+static void *live_contexts;
+static int bridge_backend;
 static void pojav_frame_set_coverage(int value) { coverage=value; }
 static int init(void) { inits++; return 1; }
 static void setup(void) { setups++; }
@@ -40,6 +42,7 @@ static void *maybe_load_vulkan(void) { vulkan_loads++; return (void *)1; }
 '''
 suffix = r'''
 static void reset(const char *renderer) {
+    live_contexts=NULL; bridge_backend=0;
     br_init=NULL; br_setup_window=NULL; coverage=1; inits=setups=vulkan_loads=incomplete=0;
     if(renderer) assert(setenv("AMETHYST_RENDERER",renderer,1)==0);
     else assert(unsetenv("AMETHYST_RENDERER")==0);

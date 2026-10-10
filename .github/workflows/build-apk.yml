@@ -1,32 +1,39 @@
-name: Build Unamed launcher Vulkan 1.1 safety prerelease
+name: Build and publish consolidated 1.5.0
 
 on:
   workflow_dispatch:
   push:
-    branches: [fix/vulkan11-resume-validation]
-    paths:
-      - '**'
-      - '!README.md'
-      - '!CREDITS.md'
-      - '!docs/**'
+    branches: [release/consolidated-1.5.0]
 
 permissions:
   contents: read
 
+# One fixed tag: never interrupt a publication or race another run.
 concurrency:
-  group: apk-${{ github.ref }}
-  cancel-in-progress: true
+  group: consolidated-1.5.0
+  cancel-in-progress: false
 
 jobs:
   build:
-    if: ${{ github.event_name != 'push' || (!contains(github.event.head_commit.message, '[release-cleanup]') && !contains(github.event.head_commit.message, '[skip apk]')) }}
+    if: ${{ github.ref == 'refs/heads/release/consolidated-1.5.0' && (github.event_name != 'push' || (!contains(github.event.head_commit.message, '[skip apk]') && !contains(github.event.head_commit.message, '[release-cleanup]'))) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
+      - name: Check release inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -s docs/CONSOLIDATED-RELEASE-NOTES.md
+          test -s docs/CONSOLIDATION-REPORT.md
+          mkdir -p verification
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -42,6 +49,28 @@ jobs:
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.3.13750724" >> "$GITHUB_ENV"
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+      - name: Resolve real runtime archive dependencies before host tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          ./gradlew :app_pojavlauncher:resolveConsolidationArchiveTestDependencies -PallowMissingFirebase=true --no-daemon 2>&1 | tee verification/runtime-archive-dependencies.txt
+          python3 - <<'PY'
+          import os, pathlib
+          path = pathlib.Path('verification/runtime-archive-classpath.txt')
+          classpath = path.read_text().strip()
+          if not classpath or '\n' in classpath or '\r' in classpath:
+              raise SystemExit('Invalid runtime archive test classpath')
+          jars = [pathlib.Path(p) for p in classpath.split(os.pathsep)]
+          required = {'commons-compress-1.24.0.jar', 'xz-1.8.jar', 'commons-io-2.14.0.jar'}
+          if not required.issubset({p.name for p in jars}):
+              raise SystemExit('Missing exact runtime archive dependency versions')
+          if any(not p.is_absolute() or not p.is_file() or p.stat().st_size == 0 for p in jars):
+              raise SystemExit('Runtime archive classpath must contain existing absolute nonempty jars')
+          with open(os.environ['GITHUB_ENV'], 'a') as f:
+              f.write('RUNTIME_TAR_TEST_CP=' + classpath + '\n')
+          print('PASS resolved exact runtime archive dependencies for host tests')
+          PY
       - name: Run all host logic and native tests
         env:
           MEASUREMENT_REQUIRE_NDK: '1'
@@ -49,12 +78,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p verification
           for test in tools/test-*.sh; do
             echo "=== $test ===" | tee -a verification/tests.txt
             bash "$test" 2>&1 | tee -a verification/tests.txt
           done
-      - name: Verify the identified 1.4.2 baseline without changing releases
+          # Require the success markers emitted AFTER actual NDK compilation,
+          # not the optional freestanding fallback or an assumed ABI matrix.
+          for target in armv7a-linux-androideabi21 aarch64-linux-android21; do
+            grep -Fq "PASS $target C11 lock-free static assertions; no libatomic helper dependency" verification/tests.txt
+            grep -Fq "PASS $target production native bridge/loader/context translation units (NDK compile, no device execution)" verification/tests.txt
+            grep -Fq "PASS $target full production egl_bridge.c, loader/readiness atomics (compile only, no device)" verification/tests.txt
+          done
+      - name: Verify the checksum-pinned 1.4.3 baseline without changing releases
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -62,26 +97,29 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p previous
-          gh api --paginate --slurp "repos/$GH_REPO/releases?per_page=100" > verification/releases-before.json
+          gh api "repos/$GH_REPO/releases/tags/vulkan11-1.4.3-38035591430" > verification/baseline-release.json
           python3 - <<'PY'
-          import hashlib, json, os, urllib.request
-          pages = json.load(open('verification/releases-before.json'))
-          releases = [r for page in pages for r in page if not r['draft'] and r['tag_name'] == 'runtime-1.4.2-38032930792']
-          for release in releases:
-              assets = [a for a in release['assets'] if a['name'].lower().endswith('.apk')]
-              if not assets: continue
-              asset = assets[0]
-              urllib.request.urlretrieve(asset['browser_download_url'], 'previous/previous.apk')
-              with open('previous/previous.apk', 'rb') as f:
-                  digest = hashlib.file_digest(f, 'sha256').hexdigest()
-              if digest != '14c3e0256ea2508800c2f79b7e251caef1950e774eebe9eead2f97307649c6a6':
-                  raise SystemExit('Identified 1.4.2 APK checksum mismatch; publication blocked')
-              with open('verification/previous-apk.json', 'w') as f:
-                  json.dump({'release':release['html_url'], 'tag':release['tag_name'], 'apk':asset['browser_download_url'], 'name':asset['name'], 'id':asset['id'], 'sha256':digest}, f, indent=2)
-              print('Prior identified artifact (not physical validation):', release['html_url'], asset['name'])
-              break
-          else:
-              raise SystemExit('Identified 1.4.2 APK is required; publication blocked')
+          import hashlib, json, urllib.request, zipfile
+          release = json.load(open('verification/baseline-release.json'))
+          if release['draft'] or release['tag_name'] != 'vulkan11-1.4.3-38035591430':
+              raise SystemExit('Incorrect baseline release; publication blocked')
+          assets = [a for a in release['assets'] if a['name'] == 'Unamed.launcher.apk']
+          if len(assets) != 1:
+              raise SystemExit('Exactly one identified baseline APK is required')
+          asset = assets[0]
+          urllib.request.urlretrieve(asset['browser_download_url'], 'previous/previous.apk')
+          with open('previous/previous.apk', 'rb') as f:
+              digest = hashlib.file_digest(f, 'sha256').hexdigest()
+          if digest != '917609fb4b8695324610937ccae97640f8d620b279fa1c9b69f86d1f66368666':
+              raise SystemExit('Identified 1.4.3 APK checksum mismatch; publication blocked')
+          with zipfile.ZipFile('previous/previous.apk') as z:
+              if z.testzip() is not None:
+                  raise SystemExit('Corrupt baseline APK')
+          with open('verification/previous-apk.json', 'w') as f:
+              json.dump({'release':release['html_url'], 'tag':release['tag_name'],
+                         'apk':asset['browser_download_url'], 'name':asset['name'],
+                         'id':asset['id'], 'sha256':digest}, f, indent=2)
+          print('Identified baseline (not physical validation):', release['html_url'], digest)
           PY
       - name: Load Firebase configuration if supplied
         env:
@@ -108,55 +146,98 @@ jobs:
           done
       - name: Package checksum-pinned Android LWJGL and SDL natives
         run: python3 tools/package_android_natives.py
-      - name: Build signed test APK
-        run: |
-          chmod +x gradlew
-          ./gradlew :app_pojavlauncher:assembleDebug :app_pojavlauncher:testDebugUnitTest -PallowMissingFirebase=true -PextremeVersion=1.4.3-vulkan11-test -PverifiedVersionCode="$((10010000 + GITHUB_RUN_NUMBER))" --no-daemon --stacktrace
-      - name: Verify renderer is included in every APK
+      - name: Assemble 1.5.0 with the existing debug identity and signing key
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import glob, zipfile
-          apks = glob.glob('app_pojavlauncher/build/outputs/apk/debug/*.apk')
-          if not apks:
-              raise SystemExit('No APK was built')
-          for apk in apks:
-              with zipfile.ZipFile(apk) as z:
-                  abis = {p.split('/')[1] for p in z.namelist() if p.startswith('lib/') and p.endswith('.so')}
-                  if not abis:
-                      raise SystemExit('APK contains no native libraries')
-                  for abi in abis:
-                      path = f'lib/{abi}/libmobileglues.so'
-                      if path not in z.namelist() or z.getinfo(path).file_size == 0:
-                          raise SystemExit(f'Missing MobileGlues for {abi} in {apk}')
-                  for version in ['3.3.3', '3.4.1']:
-                      for abi in abis:
-                          core = f'assets/components/lwjgl-{version}-natives/{abi}/liblwjgl.so'
-                          if core not in z.namelist() or z.getinfo(core).file_size == 0:
-                              raise SystemExit(f'Missing Android LWJGL {version}/{abi}')
-                  for abi in abis:
-                      for lib in ['libSDL3.so', 'libSDL2.so', 'libopenal.so', 'libspirv-cross-c-shared.so']:
-                          if f'lib/{abi}/{lib}' not in z.namelist():
-                              raise SystemExit(f'Missing {lib}/{abi}')
-                  print(f'Verified MobileGlues in {apk}: {sorted(abis)}')
-          PY
-      - name: Name the downloadable APK
-        run: mv app_pojavlauncher/build/outputs/apk/debug/app_pojavlauncher-debug.apk 'app_pojavlauncher/build/outputs/apk/debug/Unamed launcher.apk'
-      - name: Verify signature and installation requirements
+          chmod +x gradlew
+          ./gradlew :app_pojavlauncher:assembleDebug :app_pojavlauncher:testDebugUnitTest -PallowMissingFirebase=true -PextremeVersion=1.5.0 -PverifiedVersionCode=10015000 --no-daemon --stacktrace 2>&1 | tee verification/gradle.txt
+      - name: Name the single downloadable APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          apks=(app_pojavlauncher/build/outputs/apk/debug/*.apk)
+          test "${#apks[@]}" -eq 1
+          mv "${apks[0]}" app_pojavlauncher/build/outputs/apk/debug/Unamed.launcher.apk
+      - name: Verify ZIP, signature, version, ARM32/64 and update continuity
         shell: bash
         run: |
           set -euo pipefail
           test -s previous/previous.apk
-          for apk in app_pojavlauncher/build/outputs/apk/debug/*.apk; do
-            python3 tools/inspect_apk.py "$apk" --previous previous/previous.apk --require-update --expected-min-sdk 21 --apksigner "$ANDROID_HOME/build-tools/34.0.0/apksigner" --aapt "$ANDROID_HOME/build-tools/34.0.0/aapt" | tee verification/apk-inspection.txt
-          done
-          git rev-parse HEAD | tee verification/commit.txt
+          python3 tools/inspect_apk.py app_pojavlauncher/build/outputs/apk/debug/Unamed.launcher.apk \
+            --previous previous/previous.apk --require-update --expected-min-sdk 21 \
+            --expected-version-name 1.5.0 --expected-version-code 10015000 \
+            --report-json verification/apk-identity.json \
+            --apksigner "$ANDROID_HOME/build-tools/34.0.0/apksigner" \
+            --aapt "$ANDROID_HOME/build-tools/34.0.0/aapt" 2>&1 | tee verification/apk-inspection.txt
+          git rev-parse HEAD > verification/commit.txt
+      - name: Generate publication report, source matrix and asset hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import csv, hashlib, json, os, pathlib, shutil, subprocess
+          out = pathlib.Path('verification')
+          identity = json.loads((out / 'apk-identity.json').read_text())
+          tracked = subprocess.check_output(['git', 'ls-tree', '-r', '-z', '--full-tree', 'HEAD']).decode().split('\0')
+          with (out / 'source-matrix.csv').open('w', newline='') as f:
+              writer = csv.writer(f)
+              writer.writerow(['repoPath', 'commit', 'mode', 'type', 'gitObject', 'committedSha256'])
+              for entry in sorted(p for p in tracked if p):
+                  metadata, name = entry.split('\t', 1)
+                  mode, kind, object_sha = metadata.split()
+                  digest = ''
+                  if kind == 'blob':
+                      data = subprocess.check_output(['git', 'cat-file', 'blob', object_sha])
+                      digest = hashlib.sha256(data).hexdigest()
+                  writer.writerow([name, os.environ['GITHUB_SHA'], mode, kind, object_sha, digest])
+          for doc in pathlib.Path('docs').glob('CONSOLIDAT*'):
+              if doc.is_file():
+                  shutil.copyfile(doc, out / doc.name)
+          shutil.copyfile('docs/CONSOLIDATION-REPORT.md', out / 'CONSOLIDATION-REPORT.md')
+          gradle_log = (out / 'gradle.txt').read_text()
+          no_source = ':app_pojavlauncher:testDebugUnitTest NO-SOURCE' in gradle_log
+          unit_status = 'NO-SOURCE (no Gradle unit tests executed)' if no_source else 'task completed successfully; see gradle.txt for execution/cache status'
+          (out / 'publication-report.json').write_text(json.dumps({
+              'commit':os.environ['GITHUB_SHA'], 'run':os.environ['GITHUB_RUN_ID'],
+              'tag':'consolidated-1.5.0', 'prerelease':False, 'buildVariant':'assembleDebug',
+              'identity':identity, 'allHostTestScriptsPassed':True,
+              'ndk':'27.3.13750724', 'ndkAbiTargets':['armeabi-v7a', 'arm64-v8a'],
+              'mandatoryNdkScripts':['tools/test-measurement.sh', 'tools/test-native-graphics-round2.sh', 'tools/test-vulkan-loader-round3.sh'],
+              'gradleUnitTestTaskStatus':unit_status, 'deviceInstallationAndGameplayTested':False,
+              'firebaseConfigurationSupplied':pathlib.Path('app_pojavlauncher/google-services.json').exists()
+          }, indent=2) + '\n')
+          apk = pathlib.Path('app_pojavlauncher/build/outputs/apk/debug/Unamed.launcher.apk')
+          (out / 'build-report.md').write_text(
+              '# Consolidated 1.5.0 build evidence\n\n'
+              f"- Commit: `{os.environ['GITHUB_SHA']}`\n"
+              f"- Run: https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}\n"
+              '- Variant: `assembleDebug`; existing debug package/key retained.\n'
+              '- Host: every `tools/test-*.sh` completed successfully; details in `tests.txt`.\n'
+              '- Runtime archive host dependencies: Gradle resolved commons-compress 1.24.0, xz 1.8 and commons-io 2.14.0 before host tests; classpath exported as `RUNTIME_TAR_TEST_CP`. See `runtime-archive-dependencies.txt` and `runtime-archive-classpath.txt`.\n'
+              '- NDK: mandatory r27c compilation for ARM32 and ARM64 in `test-measurement.sh`, `test-native-graphics-round2.sh` and `test-vulkan-loader-round3.sh`; all six post-compilation success markers required in `tests.txt`. No device execution.\n'
+              f'- `:app_pojavlauncher:testDebugUnitTest`: {unit_status}.\n'
+              '- Inspector: ZIP CRC/duplicate checks, apksigner verification, exact ABI/minSDK/version and baseline update identity passed.\n'
+              f"- APK SHA-256: `{identity['sha256']}`\n"
+              f"- Baseline 1.4.3 SHA-256: `{identity['previousSha256']}`\n"
+              '- Integrity: `assets.json` and `SHA256SUMS` cover APK and evidence, excluding themselves to avoid circular hashes. Publication rechecks the manifest.\n'
+              '- Assets: APK, inspection/identity, baseline metadata, tests/Gradle log, commit, source hash matrix, consolidation report, release notes, build report and hash manifest.\n'
+              '- Installation, migration, renderer loading, Vulkan/driver compatibility and gameplay on physical devices are not tested by this workflow.\n')
+          files = [apk] + sorted(p for p in out.iterdir() if p.is_file())
+          rows = []
+          for path in files:
+              with path.open('rb') as f:
+                  digest = hashlib.file_digest(f, 'sha256').hexdigest()
+              rows.append({'name':path.name, 'size':path.stat().st_size, 'sha256':digest})
+          (out / 'assets.json').write_text(json.dumps(rows, indent=2) + '\n')
+          (out / 'SHA256SUMS').write_text(''.join(f"{r['sha256']}  {r['name']}\n" for r in rows))
+          PY
       - name: Upload validated APK
         uses: actions/upload-artifact@v4
         with:
-          name: Unamed-launcher-vulkan11-APK
-          path: app_pojavlauncher/build/outputs/apk/debug/*.apk
+          name: Unamed-launcher-consolidated-APK
+          path: app_pojavlauncher/build/outputs/apk/debug/Unamed.launcher.apk
           if-no-files-found: error
           retention-days: 14
       - name: Upload verification results
@@ -169,32 +250,103 @@ jobs:
           retention-days: 30
   publish:
     needs: build
+    if: ${{ github.ref == 'refs/heads/release/consolidated-1.5.0' }}
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: Unamed-launcher-vulkan11-APK
+          name: Unamed-launcher-consolidated-APK
           path: apk
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.sha }}
           path: source
           persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
           name: Unamed-launcher-verification
           path: verification
-      - name: Publish public test download
+      - name: Recheck immutable publication inputs
+        env:
+          BUILD_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C source rev-parse HEAD)" = "$BUILD_SHA"
+          test -s source/docs/CONSOLIDATED-RELEASE-NOTES.md
+          cmp source/docs/CONSOLIDATED-RELEASE-NOTES.md verification/CONSOLIDATED-RELEASE-NOTES.md
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib
+          root = pathlib.Path('verification')
+          if (root / 'commit.txt').read_text().strip() != os.environ['BUILD_SHA']:
+              raise SystemExit('Artifact commit mismatch')
+          report = json.loads((root / 'apk-identity.json').read_text())
+          if (report['versionName'] != '1.5.0' or report['versionCode'] != 10015000
+              or report['minSDK'] != 21 or report['abis'] != ['arm64-v8a', 'armeabi-v7a']
+              or report['package'] != 'com.cslaucher.plus.debug' or report['updateMatched'] is not True
+              or report['previousSha256'] != '917609fb4b8695324610937ccae97640f8d620b279fa1c9b69f86d1f66368666'):
+              raise SystemExit('Incorrect publication identity/version/continuity')
+          with open('apk/Unamed.launcher.apk', 'rb') as f:
+              if hashlib.file_digest(f, 'sha256').hexdigest() != report['sha256']:
+                  raise SystemExit('APK differs from inspected artifact')
+          for asset in json.loads((root / 'assets.json').read_text()):
+              name = asset['name']
+              if pathlib.Path(name).name != name:
+                  raise SystemExit('Invalid asset name')
+              path = pathlib.Path('apk') / name if name == 'Unamed.launcher.apk' else root / name
+              with path.open('rb') as f:
+                  digest = hashlib.file_digest(f, 'sha256').hexdigest()
+              if digest != asset['sha256'] or path.stat().st_size != asset['size']:
+                  raise SystemExit('Asset integrity mismatch: ' + name)
+          PY
+      - name: Gate fixed tag ownership and create a normal release without replacing anything
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           BUILD_SHA: ${{ github.sha }}
-          BUILD_RUN: ${{ github.run_id }}
+        shell: bash
         run: |
-          gh release create "vulkan11-1.4.3-$BUILD_RUN" apk/*.apk verification/apk-inspection.txt verification/tests.txt verification/commit.txt verification/previous-apk.json \
-            --target "$BUILD_SHA" \
-            --title "Unamed launcher 1.4.3 — prerelease de prueba $BUILD_RUN" \
-            --prerelease \
-            --notes-file source/docs/RESUME-RELEASE-NOTES.md
-          gh release view "vulkan11-1.4.3-$BUILD_RUN" --json name,url,assets --jq '{name,url,assets:[.assets[]|{name,size,url}]}'
+          set -euo pipefail
+          tag=consolidated-1.5.0
+          # Distinguish absence from permission/network/API errors. Fail closed.
+          if gh api "repos/$GH_REPO/git/ref/tags/$tag" > tag-ref.json 2> tag-error.txt; then
+            kind=$(jq -r '.object.type' tag-ref.json)
+            sha=$(jq -r '.object.sha' tag-ref.json)
+            for depth in 1 2 3 4 5; do
+              if [ "$kind" != tag ]; then break; fi
+              gh api "repos/$GH_REPO/git/tags/$sha" > tag-object.json
+              kind=$(jq -r '.object.type' tag-object.json)
+              sha=$(jq -r '.object.sha' tag-object.json)
+            done
+            if [ "$kind" != commit ] || [ "$sha" != "$BUILD_SHA" ]; then
+              echo 'Fixed tag already belongs to another commit; publication blocked' >&2
+              exit 1
+            fi
+            tag_exists=1
+          elif grep -q '(HTTP 404)' tag-error.txt; then
+            tag_exists=0
+          else
+            cat tag-error.txt >&2
+            exit 1
+          fi
+          # Never overwrite an existing release, even on a rerun of the same SHA.
+          if gh api "repos/$GH_REPO/releases/tags/$tag" > existing-release.json 2> release-error.txt; then
+            echo 'Fixed release already exists; no assets or releases will be replaced' >&2
+            exit 1
+          elif ! grep -q '(HTTP 404)' release-error.txt; then
+            cat release-error.txt >&2
+            exit 1
+          fi
+          if [ "$tag_exists" -eq 0 ]; then
+            gh api --method POST "repos/$GH_REPO/git/refs" -f ref="refs/tags/$tag" -f sha="$BUILD_SHA"
+          fi
+          # --verify-tag prevents an implicit tag on a different/default branch.
+          # No --prerelease, deletion, retagging, --clobber or cleanup operations.
+          gh release create "$tag" apk/Unamed.launcher.apk verification/* \
+            --verify-tag --target "$BUILD_SHA" --latest \
+            --title 'Unamed launcher 1.5.0 — consolidada' \
+            --notes-file source/docs/CONSOLIDATED-RELEASE-NOTES.md
+          gh release view "$tag" --json name,url,isPrerelease,assets \
+            --jq '{name,url,isPrerelease,assets:[.assets[]|{name,size,url}]}'

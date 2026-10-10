@@ -541,36 +541,27 @@ public final class Tools {
         javaArgList.add("-Dimgui.library.name=imgui-java");
         // We use an abomination to support all DH versions with a single library.
         javaArgList.add("-DZstdNativePath="+Tools.NATIVE_LIB_DIR+"/libzstd-jni-1.5.7-6-dhcompat.so");
-        // Snapshot-backed compatibility detection: scan /mods once per launch.
+        String args = LauncherPreferences.PREF_CUSTOM_JAVA_ARGS;
+        if (Tools.isValidString(minecraftProfile.javaArgs)) args = minecraftProfile.javaArgs;
+        // Snapshot-backed compatibility detection: scan /mods once per launch. Filename matching
+        // is not mod/version certification; historic workarounds now require visible opt-in.
         boolean hasSodiumMod = hasMods(sodiumMods);
-        if (hasSodiumMod) {
-            for (String modName : sodiumMods) {
-                File mixinPropertiesConfigFile = new File(getGameDir(), "config/" + modName + "-mixins.properties");
-                if (!mixinPropertiesConfigFile.isFile()) continue;
-                String[] propertiesToAdd = {
-                        "mixin.features.buffer_builder.intrinsics=false",
-                        "mixin.features.chunk_rendering=false"
-                };
-                List<String> lines;
-                try { lines = org.apache.commons.io.FileUtils.readLines(mixinPropertiesConfigFile, "UTF-8"); }
-                catch (IOException ignored) { continue; }
-                boolean changed = false;
-                for (String required : propertiesToAdd) {
-                    if (!lines.contains(required)) { lines.add(required); changed = true; }
-                }
-                if (changed) {
-                    try { org.apache.commons.io.FileUtils.writeLines(mixinPropertiesConfigFile, lines); }
-                    catch (IOException ignored) {}
-                }
+        boolean modWorkarounds = LauncherPreferences.PREF_EXPERIMENTAL_MOD_WORKAROUNDS && hasSodiumMod;
+        for (String modName : sodiumMods) {
+            File mixinConfig = new File(gamedir, "config/" + modName + "-mixins.properties");
+            try {
+                net.kdt.pojavlaunch.performance.RuntimeModWorkarounds.applyMixinConfig(mixinConfig, modWorkarounds);
+            } catch (IOException e) {
+                Log.w("ModWorkarounds", "Cannot apply/restore owned mixin edits: " + mixinConfig, e);
             }
         }
-        // We use a janky lwjgl setup. We don't want more people complaining it crashes.
-        if (hasSodiumMod) javaArgList.add("-Dsodium.checks.issue2561=false");
+        net.kdt.pojavlaunch.performance.RuntimeModWorkarounds.addJvmDefault(
+                javaArgList, JREUtils.parseJavaArguments(args), modWorkarounds);
+        if (modWorkarounds) Logger.appendToLog("Experimental mod workarounds enabled explicitly; "
+                + "existing mixin keys and explicit Sodium JVM property preserved. Mod support unverified.");
         javaArgList.add(versionInfo.mainClass);
         javaArgList.addAll(Arrays.asList(launchArgs));
         // ctx.appendlnToLog("full args: "+javaArgList.toString());
-        String args = LauncherPreferences.PREF_CUSTOM_JAVA_ARGS;
-        if(Tools.isValidString(minecraftProfile.javaArgs)) args = minecraftProfile.javaArgs;
         FFmpegPlugin.discover(activity);
         try {
             JREUtils.launchJavaVM(activity, runtime, gamedir, javaArgList, args, minecraftAccount);
@@ -1350,11 +1341,10 @@ public final class Tools {
         // essential .so files. If it doesn't, throw a clear error so the user knows
         // to restart the launcher (which triggers AsyncAssetManager re-extraction).
         File lwjglNativesFile = new File(lwjglNativesDir);
-        if (!lwjglNativesFile.isDirectory() || !new File(lwjglNativesFile, "liblwjgl.so").exists()) {
-            Logger.appendToLog("CRITICAL: LWJGL native library directory " + lwjglNativesDir
-                    + " is missing or incomplete. Restart the launcher to trigger re-extraction.");
-            // We can't recover here (no Context to re-extract), but at least log clearly.
-        }
+        File lwjglCore = new File(lwjglNativesFile, "liblwjgl.so");
+        if (!lwjglNativesFile.isDirectory() || !lwjglCore.isFile() || lwjglCore.length() == 0)
+            throw new IllegalStateException("LWJGL native library directory " + lwjglNativesDir
+                    + " is missing or incomplete for the running process ABI. Restart the launcher to trigger re-extraction.");
         return libDir.toArray(new String[0]);
     }
 
@@ -1573,7 +1563,7 @@ public final class Tools {
      */
     public static int getMaximumRamAllocation(Context ctx) {
         int deviceRam = getTotalDeviceMemory(ctx);
-        if (Architecture.is32BitsDevice() || deviceRam < 2048) {
+        if (Architecture.is32BitProcess() || deviceRam < 2048) {
             return Math.max(256, Math.min(1024, deviceRam));
         }
         return Math.max(256, deviceRam - (deviceRam < 3064 ? 800 : 1024));
@@ -1769,7 +1759,7 @@ public final class Tools {
         String runtime = getSelectedRuntime(minecraftProfile);
         String profileRuntime = getRuntimeName(minecraftProfile.javaDir);
         Runtime pickedRuntime = MultiRTUtils.forceReread(runtime);
-        if(runtime == null || pickedRuntime.javaVersion == 0 || pickedRuntime.javaVersion < targetJavaVersion) {
+        if(runtime == null || !MultiRTUtils.isCompatible(pickedRuntime) || pickedRuntime.javaVersion < targetJavaVersion) {
             String preferredRuntime = MultiRTUtils.getNearestJreName(targetJavaVersion);
             if(preferredRuntime == null) throw new RuntimeException("Failed to autopick runtime!");
             if(profileRuntime != null) minecraftProfile.javaDir = Tools.LAUNCHERPROFILES_RTPREFIX+preferredRuntime;

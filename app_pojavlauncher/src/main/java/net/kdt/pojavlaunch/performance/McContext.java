@@ -118,9 +118,11 @@ public final class McContext {
             r = new java.io.BufferedReader(new java.io.FileReader(f));
             String line;
             String prefix = key + ":";
+            String value = null;
             while ((line = r.readLine()) != null) {
-                if (line.startsWith(prefix)) return line.substring(prefix.length()).trim();
+                if (line.startsWith(prefix)) value = line.substring(prefix.length()).trim();
             }
+            return value; // Minecraft uses the last duplicate; reading never rewrites options.txt.
         } catch (Throwable ignored) {
             return null;
         } finally {
@@ -131,7 +133,6 @@ public final class McContext {
                 }
             }
         }
-        return null;
     }
 
     /** True only when the player's own options say vsync is on. Unknown counts as "not on". */

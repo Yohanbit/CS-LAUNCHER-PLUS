@@ -4,6 +4,7 @@
 #include <android/dlext.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdint.h>
 // Silence the warnings about using reserved identifiers (we need to link to these to not pollute the global symtab)
 //NOLINTBEGIN
 static void* (*android_dlopen_ext_p)(const char* filename,
@@ -21,29 +22,33 @@ static const char *sphal_namespaces[3] = {
 
 __attribute__((visibility("default"), used)) void app__pojav_linkerhook_pass_handles(void* data, void* android_dlopen_ext,
                                                                                     void* android_get_exported_namespace) {
+    if (data == NULL || android_dlopen_ext == NULL || android_get_exported_namespace == NULL) return;
     ready_handle = data;
     android_dlopen_ext_p = android_dlopen_ext;
     android_get_exported_namespace_p = android_get_exported_namespace;
 }
 
 __attribute__((visibility("default"), used)) void *android_dlopen_ext(const char *filename, int flags, const android_dlextinfo *extinfo) {
+    if (filename == NULL || android_dlopen_ext_p == NULL) return NULL;
     if(!strstr(filename, "vulkan."))
         return android_dlopen_ext_p(filename, flags, extinfo, &android_dlopen_ext);
     return ready_handle;
 }
 
 __attribute__((visibility("default"), used)) void *android_load_sphal_library(const char *filename, int flags) {
+    if (filename == NULL || android_dlopen_ext_p == NULL || android_get_exported_namespace_p == NULL) return NULL;
     if(strstr(filename, "vulkan.")) {
         return ready_handle;
     }
     //printf("__loader_android_get_exported_namespace = %p\n__loader_android_dlopen_ext = %p\n", __loader_android_get_exported_namespace,
     //       __loader_android_dlopen_ext);
-    struct android_namespace_t* androidNamespace;
+    struct android_namespace_t* androidNamespace = NULL;
     for(int i = 0; i < 3; i++) {
         androidNamespace = android_get_exported_namespace_p(sphal_namespaces[i]);
         if(androidNamespace != NULL) break;
     }
-    android_dlextinfo info;
+    if (androidNamespace == NULL) return android_dlopen_ext_p(filename, flags, NULL, &android_dlopen_ext);
+    android_dlextinfo info = {0};
     info.flags = ANDROID_DLEXT_USE_NAMESPACE;
     info.library_namespace = androidNamespace;
     return android_dlopen_ext_p(filename, flags, &info, &android_dlopen_ext);

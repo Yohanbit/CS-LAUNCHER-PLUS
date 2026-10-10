@@ -926,16 +926,12 @@ public class MainActivity extends BaseActivity implements ControlButtonMenuListe
                     || "1.17".equals(assetVersion) || "1.18".equals(assetVersion)
                     || "1.19".equals(assetVersion) || "1.20".equals(assetVersion)
                     || "1.21".equals(assetVersion);
-            String safeRenderer = null;
-            if (modernVersion && renderersList.rendererIds.contains("opengles_mobileglues"))
-                safeRenderer = "opengles_mobileglues";
-            else if (renderersList.rendererIds.contains("opengles3_ltw"))
-                safeRenderer = "opengles3_ltw";
-            else if (renderersList.rendererIds.contains("opengles3_KW"))
-                safeRenderer = "opengles3_KW";
-            else if (renderersList.rendererIds.contains("opengles2"))
-                safeRenderer = "opengles2";
-            else safeRenderer = renderersList.rendererIds.get(0);
+            String safeRenderer = net.kdt.pojavlaunch.performance.RuntimeRendererSelection
+                    .initialFallback(renderersList.rendererIds, modernVersion);
+            if (safeRenderer == null) {
+                throw new IllegalStateException("No automatic renderer fallback is available. "
+                        + "Zink requires an explicit user selection; its backend requirements are unverified.");
+            }
             Log.w("runCraft","Incompatible renderer "+Tools.LOCAL_RENDERER+ " will be replaced with "+safeRenderer);
             Tools.LOCAL_RENDERER = safeRenderer;
             runOnUiThread(() -> Toast.makeText(this, R.string.autorendererselectfailed, Toast.LENGTH_LONG).show());

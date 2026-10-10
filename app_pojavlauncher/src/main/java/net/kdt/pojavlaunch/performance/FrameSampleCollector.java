@@ -36,6 +36,7 @@ public final class FrameSampleCollector {
         final FpsCounter.Window window = new FpsCounter.Window(1_000_000_000L);
         final int[] samples = new int[WINDOW_SECONDS];
         int size, next;
+        int peakThermalLevel;
         long observedNanos;
         Session(String rendererId, String modeKey, String versionId) {
             this.rendererId = rendererId; this.modeKey = modeKey; this.versionId = versionId;
@@ -83,6 +84,11 @@ public final class FrameSampleCollector {
     public static synchronized void pause() {
         SamplingRun run = active;
         active = null;
+        // Capture before PerformanceEngine stops the governor or the next resume resets its peak.
+        if (run != null && session == run.owner) {
+            session.peakThermalLevel = Math.max(session.peakThermalLevel,
+                    ThermalGovernor.peakLevelOrdinal());
+        }
         if (session != null) session.window.reset();
         if (run != null) {
             if (run.handler != null) run.handler.removeCallbacksAndMessages(null);
@@ -137,6 +143,8 @@ public final class FrameSampleCollector {
             synchronized (FrameSampleCollector.class) {
                 if (active != this || session != owner) return;
                 if (!enabled()) { pause(); return; }
+                owner.peakThermalLevel = Math.max(owner.peakThermalLevel,
+                        ThermalGovernor.peakLevelOrdinal());
                 // Read the volatile policy first so its publication also makes
                 // the preceding loader assignment to LOCAL_RENDERER visible.
                 PerformancePolicy policy = PerformancePolicy.current();
@@ -179,7 +187,7 @@ public final class FrameSampleCollector {
         float inverseMedianRateMs = median > 0 ? 1000f / median : Float.NaN;
         SessionStats.append(ctx, new SessionStats.Entry(finished.startedAt, finished.rendererId,
                 finished.modeKey, finished.versionId, median, worst, inverseMedianRateMs,
-                durationMs, ThermalGovernor.peakLevelOrdinal()));
+                durationMs, finished.peakThermalLevel));
         Log.i("CSPerf", "descriptive submission-rate session (" + finished.modeKey + ", "
                 + finished.rendererId + ", " + finished.versionId + "): median " + median
                 + " fps, lowest sampled window " + worst + " fps, "

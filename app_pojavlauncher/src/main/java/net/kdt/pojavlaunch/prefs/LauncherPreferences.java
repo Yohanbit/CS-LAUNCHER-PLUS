@@ -3,7 +3,7 @@ package net.kdt.pojavlaunch.prefs;
 import static android.os.Build.VERSION.SDK_INT;
 import static android.os.Build.VERSION_CODES.P;
 
-import static net.kdt.pojavlaunch.Architecture.is32BitsDevice;
+import static net.kdt.pojavlaunch.Architecture.is32BitProcess;
 
 import android.app.Activity;
 import android.content.*;
@@ -68,6 +68,8 @@ public class LauncherPreferences {
     public static boolean PREF_GYRO_INVERT_Y = false;
 
     public static boolean PREF_FORCE_VSYNC = false;
+    /** Explicit compatibility experiment; never inferred from a performance mode or mod filename. */
+    public static boolean PREF_EXPERIMENTAL_MOD_WORKAROUNDS = false;
 
     public static boolean PREF_BUTTON_ALL_CAPS = true;
     public static boolean PREF_DUMP_SHADERS = false;
@@ -140,6 +142,7 @@ public class LauncherPreferences {
         // default). Previously this fell back to isDevicePowerful, which
         // silently force-locked powerful devices to their screen refresh.
         PREF_FORCE_VSYNC = DEFAULT_PREF.getBoolean("force_vsync", false);
+        PREF_EXPERIMENTAL_MOD_WORKAROUNDS = DEFAULT_PREF.getBoolean("experimentalModWorkarounds", false);
         PREF_BUTTON_ALL_CAPS = DEFAULT_PREF.getBoolean("buttonAllCaps", true);
         PREF_DUMP_SHADERS = DEFAULT_PREF.getBoolean("dump_shaders", false);
         PREF_DEADZONE_SCALE = ((float) DEFAULT_PREF.getInt("gamepad_deadzone_scale", 100))/100f;
@@ -163,12 +166,18 @@ public class LauncherPreferences {
         PREF_MOUSE_GRAB_FORCE = DEFAULT_PREF.getBoolean("always_grab_mouse", false);
  
         String argLwjglLibname = "-Dorg.lwjgl.opengl.libname=";
+        try {
         for (String arg : JREUtils.parseJavaArguments(PREF_CUSTOM_JAVA_ARGS)) {
             if (arg.startsWith(argLwjglLibname)) {
                 // purge arg
                 DEFAULT_PREF.edit().putString("javaArgs",
                     PREF_CUSTOM_JAVA_ARGS.replace(arg, "")).apply();
             }
+        }
+        } catch (IllegalArgumentException malformed) {
+            // Keep malformed saved text editable. The actual launch parser will reject it clearly;
+            // a settings read must not prevent the user opening the editor to correct the quote.
+            Log.w("LauncherPreferences", "Malformed Java arguments; correct quoting before launch", malformed);
         }
         if(DEFAULT_PREF.contains("defaultRuntime")) {
             PREF_DEFAULT_RUNTIME = DEFAULT_PREF.getString("defaultRuntime","");
@@ -206,8 +215,8 @@ public class LauncherPreferences {
         if (deviceRam < 1024) return 296;
         if (deviceRam < 1536) return 448;
         if (deviceRam < 2048) return 656;
-        // Limit the max for 32 bits devices more harshly
-        if (is32BitsDevice()) return 696;
+        // JNI/JVM address space belongs to the process, even on 64-bit-capable hardware.
+        if (is32BitProcess()) return 696;
 
         if (deviceRam < 3064) return 936;
         if (deviceRam < 4096) return 1144;

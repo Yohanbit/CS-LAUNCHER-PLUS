@@ -15,29 +15,8 @@ static def getDate() { return new Date().format('yyyyMMdd') }
 
 def getVersionName = {
     if (project.hasProperty("extremeVersion")) return project.property("extremeVersion")
-    // Original builds retain their tag-derived version name.
-    String semVer = "3.1.0"
-    
-    // Try to get a git tag for the full version
-    ByteArrayOutputStream TAG = new ByteArrayOutputStream()
-    exec {
-        try {
-            commandLine 'git', 'describe', '--tags'
-            ignoreExitValue true
-            standardOutput = TAG
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-    
-    String tagStr = TAG.toString().trim()
-    if (!tagStr.isEmpty()) {
-        if (tagStr ==~ /^v?\d+(?:\.\d+)*.*/) {
-            return tagStr
-        }
-    }
-    
-    return "v" + semVer
+    // A clean checkout and CI use the same consolidated version, independent of tags.
+    return "1.5.0"
 }
 
 def getCFApiKey = {
@@ -97,7 +76,7 @@ android {
         }
         minSdkVersion 21
         targetSdkVersion 34
-        versionCode = (project.findProperty("verifiedVersionCode") ?: "10010000").toInteger()
+        versionCode = (project.findProperty("verifiedVersionCode") ?: "10015000").toInteger()
         versionName getVersionName()
         multiDexEnabled true //important
         resValue 'string', 'curseforge_api_key', getCFApiKey()
@@ -202,6 +181,20 @@ afterEvaluate {
     // Explicit dependencies for which the apk relies on
     tasks.mergeDebugAssets.dependsOn(":forge_installer:jar", ":arc_dns_injector:jar", ":methods_injector_agent:jar", ":jre_lwjgl3glfw:jar")
     tasks.mergeReleaseAssets.dependsOn(":forge_installer:jar", ":arc_dns_injector:jar", ":methods_injector_agent:jar", ":jre_lwjgl3glfw:jar")
+}
+
+// Resolve the same archive dependencies used by Android before host regressions run.
+// A fresh CI cache must not silently substitute newer system libraries.
+tasks.register("resolveConsolidationArchiveTestDependencies") {
+    doLast {
+        def archiveTests = configurations.detachedConfiguration(
+                dependencies.create('org.apache.commons:commons-compress:1.24.0'),
+                dependencies.create('org.tukaani:xz:1.8'),
+                dependencies.create('commons-io:commons-io:2.14.0'))
+        def report = new File(rootProject.projectDir, 'verification/runtime-archive-classpath.txt')
+        report.parentFile.mkdirs()
+        report.text = archiveTests.resolve().collect { it.absolutePath }.sort().join(File.pathSeparator) + '\n'
+    }
 }
 
 dependencies {
