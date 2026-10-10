@@ -363,7 +363,7 @@ public final class Tools {
                                        MinecraftProfile minecraftProfile, String versionId, int versionJavaRequirement) throws Throwable {
         int freeDeviceMemory = getFreeDeviceMemory(activity);
         int localeString;
-        int freeAddressSpace = Architecture.is32BitsDevice() ? getMaxContinuousAddressSpaceSize() : -1;
+        int freeAddressSpace = Architecture.is32BitProcess() ? getMaxContinuousAddressSpaceSize() : -1;
         Log.i("MemStat", "Free RAM: " + freeDeviceMemory + " Addressable: " + freeAddressSpace);
         int warningMemory = freeDeviceMemory;
         if(freeDeviceMemory > freeAddressSpace && freeAddressSpace != -1) {
@@ -1933,6 +1933,12 @@ public final class Tools {
         String[] defaultRenderers = resources.getStringArray(R.array.renderer_values);
         String[] defaultRendererNames = resources.getStringArray(R.array.renderer);
         boolean deviceHasVulkan = checkVulkanSupport(context.getPackageManager());
+        int reportedVulkanVersion = net.kdt.pojavlaunch.performance.DeviceCapability
+                .reportedVulkanVersion(context.getPackageManager());
+        // A manual attempt is allowed on reported Vulkan 1.0+, including 1.1. No feature flag,
+        // GLES level or GPU name proves this Mesa binary's required device extensions/features.
+        boolean canAttemptZink = net.kdt.pojavlaunch.performance.RuntimeVulkanSupport
+                .canAttemptZink(deviceHasVulkan, reportedVulkanVersion);
         boolean deviceHasOpenGLES3 = JREUtils.getDetectedVersion() >= 3;
         File nativeDir = new File(Tools.NATIVE_LIB_DIR);
         boolean appHasZink = new File(nativeDir, "libOSMesa.so").exists()
@@ -1954,14 +1960,16 @@ public final class Tools {
                     || "opengles3_desktopgl_zink".equals(rendererId)) {
                 rendererId = "opengles3_desktopgl_zink_kopper";
             }
-            if (rendererId.contains("zink") && (!deviceHasVulkan || !appHasZink)) continue;
+            if (rendererId.contains("zink") && (!canAttemptZink || !appHasZink)) continue;
             if (rendererId.equals("opengles_mobileglues") && (!appHasMobileGlues || !deviceHasOpenGLES3)) continue;
             if (rendererId.contains("ltw") && (!deviceHasOpenGLES3 || !appHasLtw)) continue;
             if (rendererId.equals("opengles3_KW") && !appHasKrypton) continue;
             if (rendererId.equals("opengles2") && !appHasGl4es) continue;
             if (rendererId.equals("gallium_freedreno") || rendererId.equals("gallium_panfrost")) continue;
             rendererIds.add(rendererId);
-            rendererNames.add(defaultRendererNames[i]);
+            rendererNames.add(defaultRendererNames[i] + (rendererId.contains("zink")
+                    ? " (Vulkan " + net.kdt.pojavlaunch.performance.RuntimeVulkanSupport
+                    .versionText(reportedVulkanVersion) + "; backend requirements unverified)" : ""));
         }
         sCompatibleRenderers = new RenderersList(rendererIds,
                 rendererNames.toArray(new String[0]));

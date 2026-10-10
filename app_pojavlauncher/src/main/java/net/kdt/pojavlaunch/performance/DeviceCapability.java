@@ -2,9 +2,12 @@ package net.kdt.pojavlaunch.performance;
 
 import android.app.ActivityManager;
 import android.content.Context;
+import android.content.pm.FeatureInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 
+import net.kdt.pojavlaunch.Architecture;
+import net.kdt.pojavlaunch.BuildConfig;
 import net.kdt.pojavlaunch.Tools;
 import net.kdt.pojavlaunch.utils.GLInfoUtils;
 
@@ -53,9 +56,12 @@ public final class DeviceCapability {
     public final boolean lowMemoryNow;
     public final boolean is64Bit;
     public final boolean vulkanSupported;
+    /** Declared Android feature version, not a vkGetPhysicalDeviceProperties result; 0 is unknown. */
+    public final int vulkanApiVersion;
     public final int glesMajorVersion;
 
-    /** Renderer ids the app can actually load on this device, in launcher order. */
+    /** Installed routes eligible for attempts, not certified context/mod compatibility.
+     * Zink is manual-only until build-specific Vulkan extensions/features are validated. */
     public final List<String> availableRenderers;
 
     /** True until the background build replaces it — the policy then runs on real numbers. */
@@ -72,15 +78,16 @@ public final class DeviceCapability {
         totalRamMb = 0;
         availRamMb = 0;
         lowMemoryNow = false;
-        is64Bit = abi.contains("64");
+        is64Bit = Architecture.is64BitProcess();
         vulkanSupported = false;
+        vulkanApiVersion = 0;
         glesMajorVersion = 0;
         availableRenderers = Collections.emptyList();
         partial = true;
     }
 
     private DeviceCapability(String soc, String vendor, String renderer, String abi, int cores,
-                             int totalRam, int availRam, boolean lowMem, boolean vulkan, int glesMajor,
+                             int totalRam, int availRam, boolean lowMem, boolean vulkan, int vulkanVersion, int glesMajor,
                              List<String> renderers) {
         this.socModel = soc;
         this.gpuVendor = vendor;
@@ -91,8 +98,9 @@ public final class DeviceCapability {
         this.totalRamMb = totalRam;
         this.availRamMb = availRam;
         this.lowMemoryNow = lowMem;
-        this.is64Bit = abi.contains("64");
+        this.is64Bit = Architecture.is64BitProcess();
         this.vulkanSupported = vulkan;
+        this.vulkanApiVersion = vulkanVersion;
         this.glesMajorVersion = glesMajor;
         this.availableRenderers = Collections.unmodifiableList(new ArrayList<>(renderers));
         this.partial = false;
@@ -110,9 +118,11 @@ public final class DeviceCapability {
         return gpuRenderer != null && gpuRenderer.toLowerCase().contains("mali");
     }
 
-    /** Vulkan is only worth asking about where the driver is known to be usable for Zink. */
+    /** Kept for compatibility. GPU names/GLES and Android feature flags cannot certify Zink.
+     * There is currently no physical-device extension/feature probe or versioned Mesa contract. */
+    @Deprecated
     public boolean hasMatureVulkan() {
-        return vulkanSupported && (isAdreno() || isMali()) && glesMajorVersion >= 3;
+        return false;
     }
 
     /** A "low-end" device for policy purposes: little RAM and/or a narrow, 32-bit core set. */
@@ -165,7 +175,7 @@ public final class DeviceCapability {
             return new DeviceCapability(socModel, gpuVendor, gpuRenderer, abi, cores,
                     Math.max(totalRamMb, (int) (mi.totalMem / 1048576L)),
                     (int) (mi.availMem / 1048576L), mi.lowMemory, vulkanSupported,
-                    glesMajorVersion, availableRenderers);
+                    vulkanApiVersion, glesMajorVersion, availableRenderers);
         } catch (Throwable ignored) {
             return this;
         }
@@ -207,7 +217,7 @@ public final class DeviceCapability {
             return new DeviceCapability(socModel(), vendor, renderer, primaryAbi(),
                     Math.max(1, Runtime.getRuntime().availableProcessors()),
                     (int) (mi.totalMem / 1048576L), (int) (mi.availMem / 1048576L), mi.lowMemory,
-                    vulkan, gles, renderers);
+                    vulkan, reportedVulkanVersion(app.getPackageManager()), gles, renderers);
         } catch (Throwable ignored) {
             return null;
         }
@@ -229,18 +239,33 @@ public final class DeviceCapability {
     }
 
     private static String primaryAbi() {
+        int arch = Architecture.getProcessArchitecture();
+        return arch == Architecture.UNSUPPORTED_ARCH ? "unknown" : Architecture.archAsStringAndroid(arch);
+    }
+
+    /** The PackageManager API has no Vulkan extension enumeration; never imply otherwise. */
+    public static int reportedVulkanVersion(PackageManager pm) {
+        if (pm == null || Build.VERSION.SDK_INT < 24) return 0;
         try {
-            String[] abis = Build.SUPPORTED_ABIS;
-            if (abis != null && abis.length > 0) return abis[0];
+            FeatureInfo[] features = pm.getSystemAvailableFeatures();
+            if (features == null) return 0;
+            int[] versions = new int[features.length];
+            for (int i = 0; i < features.length; i++) {
+                FeatureInfo info = features[i];
+                if (info != null && PackageManager.FEATURE_VULKAN_HARDWARE_VERSION.equals(info.name))
+                    versions[i] = info.version;
+            }
+            return RuntimeVulkanSupport.highestReportedVersion(versions);
         } catch (Throwable ignored) {
+            return 0;
         }
-        return Build.CPU_ABI != null ? Build.CPU_ABI : "unknown";
     }
 
     /** A cache is only valid for the device it was measured on. */
     private static String deviceKey() {
         return Build.FINGERPRINT + "|" + Build.BOARD + "|"
-                + Runtime.getRuntime().availableProcessors() + "|" + Build.VERSION.SDK_INT;
+                + Runtime.getRuntime().availableProcessors() + "|" + Build.VERSION.SDK_INT
+                + "|profile3|" + primaryAbi() + "|" + BuildConfig.VERSION_CODE;
     }
 
     private static File cacheFile(Context ctx) {
@@ -261,6 +286,7 @@ public final class DeviceCapability {
             o.put("cores", cap.cores);
             o.put("totalRamMb", cap.totalRamMb);
             o.put("vulkan", cap.vulkanSupported);
+            o.put("vulkanApiVersion", cap.vulkanApiVersion);
             o.put("glesMajor", cap.glesMajorVersion);
             o.put("renderers", cap.availableRenderers);
             o.put("writtenAt", System.currentTimeMillis());
@@ -284,7 +310,7 @@ public final class DeviceCapability {
                     o.optString("vendor", "unknown"), o.optString("renderer", "unknown"),
                     o.optString("abi", primaryAbi()), o.optInt("cores", 1),
                     o.optInt("totalRamMb", 0), 0, false, o.optBoolean("vulkan", false),
-                    o.optInt("glesMajor", 0), renderers).withLiveMemory(app);
+                    o.optInt("vulkanApiVersion", 0), o.optInt("glesMajor", 0), renderers).withLiveMemory(app);
         } catch (Throwable ignored) {
             return null;
         }
@@ -300,9 +326,10 @@ public final class DeviceCapability {
                 .append(" · ").append(totalRamMb).append(" MB RAM");
         if (!"unknown".equals(gpuRenderer)) b.append(" · ").append(gpuRenderer);
         if (glesMajorVersion > 0) b.append(" · GLES ").append(glesMajorVersion);
-        b.append(vulkanSupported ? " · Vulkan" : " · no Vulkan");
+        b.append(vulkanSupported ? " · Vulkan " + RuntimeVulkanSupport.versionText(vulkanApiVersion)
+                + " reported (backend requirements unverified)" : " · no reported Vulkan");
         if (availRamMb > 0) b.append(" · ").append(availRamMb).append(" MB free");
-        if (!availableRenderers.isEmpty()) b.append("\nRenderers present: ").append(
+        if (!availableRenderers.isEmpty()) b.append("\nInstalled renderer attempts: ").append(
                 Arrays.toString(availableRenderers.toArray(new String[0]))
                         .replace("[", "").replace("]", ""));
         return b.toString();

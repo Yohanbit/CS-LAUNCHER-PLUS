@@ -34,7 +34,11 @@ public final class RuntimeRendererRules {
         return "opengles3_desktopgl_zink_kopper".equals(canonical(renderer));
     }
 
-    /** Selected compatible renderer first, then install order. This is not an FPS ranking. */
+    /** Explicit selection first, then install order. Unverified Vulkan routes are manual-only:
+     * Android's Vulkan feature/version metadata cannot certify physical-device extensions or
+     * requirements of this bundled Mesa build. Never promote Zink via a GL wrapper's fallback.
+     * This is not an FPS ranking or a claim that Vulkan 1.1 is incompatible with every Zink build.
+     */
     public static List<String> candidates(String selected, List<String> compatible) {
         List<String> out = new ArrayList<>();
         if (selected == null || compatible == null) return out;
@@ -48,6 +52,7 @@ public final class RuntimeRendererRules {
         }
         for (String id : compatible) {
             String candidate = canonical(id);
+            if (isMesa(candidate) && !candidate.equals(wanted)) continue;
             if (library(candidate) != null && !out.contains(candidate)) out.add(candidate);
         }
         return out;

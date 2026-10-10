@@ -1,6 +1,8 @@
 package net.kdt.pojavlaunch;
 
 import android.os.Build;
+import android.os.Process;
+import java.util.Locale;
 
 /**
  * This class aims at providing a simple and easy way to deal with the device architecture.
@@ -25,7 +27,36 @@ public class Architecture {
 	 * @return the highest byte accessible within the process's address space.
 	 */
 	public static long getAddressSpaceLimit() {
-		return is64BitsDevice() ? ADDRESS_SPACE_LIMIT_64_BIT : ADDRESS_SPACE_LIMIT_32_BIT;
+		return is64BitProcess() ? ADDRESS_SPACE_LIMIT_64_BIT : ADDRESS_SPACE_LIMIT_32_BIT;
+	}
+
+	/** The address space and JNI libraries belong to this process, not to the phone's ABI list. */
+	public static boolean is64BitProcess() {
+		if (Build.VERSION.SDK_INT >= 23) return Process.is64Bit();
+		// API 21-22 has no public Process.is64Bit(). ART's os.arch describes its running VM.
+		// Unknown values fail narrow; never upgrade a 32-bit process from SUPPORTED_64_BIT_ABIS.
+		int arch = archAsInt(System.getProperty("os.arch"));
+		return arch == ARCH_ARM64 || arch == ARCH_X86_64;
+	}
+
+	public static boolean is32BitProcess() { return !is64BitProcess(); }
+
+	/** Active VM instruction family + actual process width. Unknown VM ABI stays unsupported. */
+	public static int getProcessArchitecture() {
+		int arch = archAsInt(System.getProperty("os.arch"));
+		if (arch == ARCH_ARM || arch == ARCH_ARM64)
+			return is64BitProcess() ? ARCH_ARM64 : ARCH_ARM;
+		if (arch == ARCH_X86 || arch == ARCH_X86_64)
+			return is64BitProcess() ? ARCH_X86_64 : ARCH_X86;
+		return UNSUPPORTED_ARCH;
+	}
+
+	/** Refuse an incompatible/unknown embedded JVM before changing paths or loading JNI. */
+	public static void requireCompatibleRuntimeArchitecture(String runtimeAbi) {
+		int processArch = getProcessArchitecture();
+		if (processArch == UNSUPPORTED_ARCH || archAsInt(runtimeAbi) != processArch)
+			throw new IllegalArgumentException("Java runtime ABI " + runtimeAbi
+					+ " does not match running process ABI " + archAsString(processArch));
 	}
 
 	/**
@@ -46,16 +77,14 @@ public class Architecture {
 	}
 
 	/**
-	 * Tells the device supported architecture.
-	 * Since mips(/64) has been phased out long ago, is isn't checked here.
+	 * Legacy selector used by runtime downloads, native extraction and Tools.DEVICE_ARCHITECTURE.
+	 * Despite its historical name this must select the running process ABI, not the highest ABI
+	 * the device supports: a 32-bit APK cannot dlopen a 64-bit JVM or native library.
 	 *
 	 * @return ARCH_ARM || ARCH_ARM64 || ARCH_X86 || ARCH_86_64
 	 */
 	public static int getDeviceArchitecture(){
-		if(isx86Device()){
-			return is64BitsDevice() ? ARCH_X86_64 : ARCH_X86;
-		}
-		return is64BitsDevice() ? ARCH_ARM64 : ARCH_ARM;
+		return getProcessArchitecture();
 	}
 
 	/**
@@ -82,7 +111,8 @@ public class Architecture {
 	 * @return The architecture as an int, can be UNSUPPORTED_ARCH if unknown.
 	 */
 	public static int archAsInt(String arch){
-		arch = arch.toLowerCase().trim().replace(" ", "");
+		if (arch == null) return UNSUPPORTED_ARCH;
+		arch = arch.toLowerCase(Locale.ROOT).trim().replace(" ", "");
 		if(arch.contains("arm64") || arch.equals("aarch64")) return ARCH_ARM64;
 		if(arch.contains("arm") || arch.equals("aarch32")) return ARCH_ARM;
 		if(arch.contains("x86_64") || arch.contains("amd64")) return ARCH_X86_64;

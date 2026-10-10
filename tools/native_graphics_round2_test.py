@@ -184,7 +184,8 @@ static void (*br_make_current)(basic_render_window_t*);
 static basic_render_window_t *(*br_init_context)(basic_render_window_t*);
 static basic_render_window_t *(*br_get_current)(void);
 static bool (*br_swap_buffers)(void);
-static int coverage, inits, setups, vulkan_loads, incomplete, init_fail, dispatches;
+static int coverage, inits, setups, vulkan_loads, vulkan_fail, incomplete, init_fail, dispatches;
+static uint32_t native_counter_mode;
 static int acquires, releases, attach_fail;
 static void pojav_frame_set_coverage(int value) { coverage=value; }
 static bool init(void) { inits++; return !init_fail; }
@@ -200,7 +201,7 @@ static void set_gl_bridge_tbl(void) {
     br_get_current=current; br_swap_buffers=swap;
 }
 static void set_osm_bridge_tbl(void) { set_gl_bridge_tbl(); }
-static void load_vulkan(void) { vulkan_loads++; }
+static void *maybe_load_vulkan(void) { vulkan_loads++; return vulkan_fail?NULL:(void *)1; }
 static void *get_attached_env(void *vm) { (void)vm; return attach_fail?NULL:(void *)1; }
 static void ANativeWindow_acquire(void *w) { assert(w); acquires++; }
 static int ANativeWindow_getWidth(void *w) { assert(w); return 800; }
@@ -212,7 +213,7 @@ static void updateMonitorSize(int x, int y) { assert(x==800&&y==600); }
 BRIDGE_SUFFIX = r'''
 static void reset(const char *renderer) {
     memset(&state,0,sizeof(state)); state.pojavWindow=(void *)1;
-    inits=setups=vulkan_loads=incomplete=init_fail=dispatches=acquires=releases=attach_fail=0;
+    inits=setups=vulkan_loads=vulkan_fail=incomplete=init_fail=dispatches=acquires=releases=attach_fail=0;
     coverage=1;
     /* Deliberately stale table: rejected init must clear every entry. */
     set_gl_bridge_tbl();
@@ -241,6 +242,10 @@ int main(void) {
     pojavMakeCurrent(&window); pojavSwapInterval(0); assert(dispatches==4);
     reset("opengles3_desktopgl_zink_kopper"); assert(pojavInitOpenGL()); assert(vulkan_loads==1);
     reset("vulkan_zink"); assert(pojavInitOpenGL()); assert(vulkan_loads==1);
+    reset("vulkan_zink"); vulkan_fail=1;
+    assert(!pojavInitOpenGL()); assert_failed(); assert(vulkan_loads==1&&!inits&&!setups);
+    reset("opengles3_desktopgl_zink_kopper"); vulkan_fail=1;
+    assert(!pojavInitOpenGL()); assert_failed(); assert(vulkan_loads==1&&!inits&&!setups);
     /* Real GLFW consumer ordering: never send hints/create after failed Init.
      * A broken unused GL backend must not block platform init or NO_API. */
     reset("opengles_mobileglues"); init_fail=1;

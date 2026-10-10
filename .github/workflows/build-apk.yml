@@ -1,9 +1,9 @@
-name: Build Unamed launcher runtime prerelease
+name: Build Unamed launcher Vulkan 1.1 safety prerelease
 
 on:
   workflow_dispatch:
   push:
-    branches: [fix/mali-runtime-round2]
+    branches: [fix/vulkan11-native-round3]
     paths:
       - '**'
       - '!README.md'
@@ -107,7 +107,7 @@ jobs:
       - name: Build signed test APK
         run: |
           chmod +x gradlew
-          ./gradlew :app_pojavlauncher:assembleDebug :app_pojavlauncher:testDebugUnitTest -PallowMissingFirebase=true -PextremeVersion=1.4.2-runtime-test -PverifiedVersionCode="$((10010000 + GITHUB_RUN_NUMBER))" --no-daemon --stacktrace
+          ./gradlew :app_pojavlauncher:assembleDebug :app_pojavlauncher:testDebugUnitTest -PallowMissingFirebase=true -PextremeVersion=1.4.3-vulkan11-test -PverifiedVersionCode="$((10010000 + GITHUB_RUN_NUMBER))" --no-daemon --stacktrace
       - name: Verify renderer is included in every APK
         shell: bash
         run: |
@@ -142,7 +142,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Unamed-launcher-runtime-APK
+          name: Unamed-launcher-vulkan11-APK
           path: app_pojavlauncher/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
@@ -172,7 +172,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: Unamed-launcher-runtime-APK
+          name: Unamed-launcher-vulkan11-APK
           path: apk
       - uses: actions/checkout@v4
         with:
@@ -189,9 +189,9 @@ jobs:
           BUILD_SHA: ${{ github.sha }}
           BUILD_RUN: ${{ github.run_id }}
         run: |
-          gh release create "runtime-1.4.2-$BUILD_RUN" apk/*.apk verification/apk-inspection.txt verification/tests.txt verification/commit.txt verification/previous-apk.json \
+          gh release create "vulkan11-1.4.3-$BUILD_RUN" apk/*.apk verification/apk-inspection.txt verification/tests.txt verification/commit.txt verification/previous-apk.json \
             --target "$BUILD_SHA" \
-            --title "Unamed launcher 1.4.2 — prerelease de prueba $BUILD_RUN" \
+            --title "Unamed launcher 1.4.3 — prerelease de prueba $BUILD_RUN" \
             --prerelease \
-            --notes-file source/docs/ROUND2-RELEASE-NOTES.md
-          gh release view "runtime-1.4.2-$BUILD_RUN" --json name,url,assets --jq '{name,url,assets:[.assets[]|{name,size,url}]}'
+            --notes-file source/docs/ROUND3-RELEASE-NOTES.md
+          gh release view "vulkan11-1.4.3-$BUILD_RUN" --json name,url,assets --jq '{name,url,assets:[.assets[]|{name,size,url}]}'

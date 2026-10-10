@@ -13,6 +13,11 @@ public final class FpsCounter {
 
     private static native int nativeGetFps();
     private static native long nativeGetTotalPresents();
+    private static native int nativeGetCounterCoverage();
+
+    public static final int COVERAGE_UNREADY = 0;
+    public static final int COVERAGE_COUNTED = 1;
+    public static final int COVERAGE_NATIVE_VULKAN_UNSUPPORTED = 2;
     private static final ThreadLocal<Window> LEGACY_WINDOW = new ThreadLocal<Window>() {
         @Override protected Window initialValue() { return new Window(); }
     };
@@ -39,8 +44,8 @@ public final class FpsCounter {
 
     /**
      * Cumulative successful swap submissions since process start, counted inside every
-     * software/GL bridge (egl + osmesa). Used to latch the loading video onto
-     * the FIRST real frame ("release exactly when the game renders"). -1 when
+     * software/GL bridge (egl + osmesa). This is a submission signal, not proof
+     * of GPU completion or display presentation. -1 when
      * native is not linked yet or coverage is unknown (including native Vulkan).
      */
     public static long getTotalPresents() {
@@ -48,6 +53,22 @@ public final class FpsCounter {
             return nativeGetTotalPresents();
         } catch (UnsatisfiedLinkError t) {
             return -1;
+        }
+    }
+
+    /**
+     * Distinguishes GL startup/failure from an explicitly uncounted native Vulkan
+     * window. Zink over GL/OSMesa is COUNTED, not native Vulkan. An older native
+     * library without this optional entry point remains UNREADY: never certify
+     * either coverage or a first submission from renderer names alone.
+     */
+    public static int getCounterCoverage() {
+        try {
+            int coverage = nativeGetCounterCoverage();
+            return coverage == COVERAGE_COUNTED || coverage == COVERAGE_NATIVE_VULKAN_UNSUPPORTED
+                    ? coverage : COVERAGE_UNREADY;
+        } catch (UnsatisfiedLinkError t) {
+            return COVERAGE_UNREADY;
         }
     }
 }
