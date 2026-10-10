@@ -1094,9 +1094,9 @@ public class LauncherPreferenceFragment extends Fragment {
 
     private void addDynamicResolutionSettings(List<SettingItem> items) {
         items.add(new SettingItem("extremeDynamicResolution", SettingItem.TYPE_SWITCH,
-                "Dynamic resolution (opt-in)", "May lower image quality toward the target; off by default. Disable to restore the initial scale.", false));
+                "Resolución dinámica (opcional)", "Reduce la resolución del juego al jugar. Inventario y menús recuperan la resolución manual. El HUD del mundo aún puede cambiar de escala. Desactívala para restaurar la calidad.", false));
         items.add(new SettingItem("extremeMinResolution", SettingItem.TYPE_SLIDER,
-                "Dynamic resolution floor", "Percentage scale; never exceeds the initial scale. Used only when dynamic resolution is enabled.", 60)
+                "Resolución mínima dinámica", "Porcentaje de la pantalla, no de la resolución manual: 60% manual y 30% mínimo significa entre 60% y 30%, no 18%. Nunca aumenta el valor manual.", 60)
                 .setSliderConfig(30, 100, 5, " %"));
         items.add(new SettingItem("extremeTargetFps", SettingItem.TYPE_SLIDER,
                 "Dynamic resolution target", "Controller target, not an FPS cap or guaranteed frame rate. Used only when dynamic resolution is enabled.", 60)

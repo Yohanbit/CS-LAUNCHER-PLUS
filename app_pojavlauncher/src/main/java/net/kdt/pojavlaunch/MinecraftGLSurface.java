@@ -120,6 +120,8 @@ public class MinecraftGLSurface extends View implements GrabListener, DirectGame
     private boolean mHostResumed, mResolutionSurfaceReady, mResolutionReleased;
     private boolean mDynamicResolutionActive, mApplyingDynamicResolution;
     private float mOriginalResolution;
+    // While a menu is open the framebuffer uses the user's scale, not this saved world scale.
+    private float mPausedWorldResolution = Float.NaN;
     private float mLastAppliedResolution = LauncherPreferences.PREF_SCALE_FACTOR;
     private int mDynamicMinimum, mDynamicTarget;
     private long mLastResolutionPresents = -1L, mLastResolutionSampleAt, mLastValidResolutionSampleAt;
@@ -135,8 +137,10 @@ public class MinecraftGLSurface extends View implements GrabListener, DirectGame
                     float selected = prefs.getInt("resolutionRatio", Math.round(mOriginalResolution * 100f)) / 100f;
                     mOriginalResolution = selected;
                     mResolutionController.configure(selected, mDynamicMinimum, mDynamicTarget, SystemClock.uptimeMillis());
+                    mPausedWorldResolution = Float.NaN;
                     mLastResolutionPresents = -1L;
                     applyDynamicResolution(selected);
+                    updateResolutionGrabState(CallbackBridge.isGrabbing());
                 } catch (Throwable error) {
                     restoreDynamicResolution();
                     Log.w(TAG, "Invalid manual resolution setting", error);
@@ -164,8 +168,9 @@ public class MinecraftGLSurface extends View implements GrabListener, DirectGame
                     restoreDynamicResolution();
                     return; // Default-off has no polling heartbeat; the preference listener wakes it.
                 } else if (!CallbackBridge.isGrabbing()) {
-                    restoreDynamicResolution();
+                    updateResolutionGrabState(false);
                 } else {
+                    updateResolutionGrabState(true);
                     long now = SystemClock.uptimeMillis();
                     int minimum = prefs.getInt("extremeMinResolution", 60);
                     int target = prefs.getInt("extremeTargetFps", 60);
@@ -225,6 +230,7 @@ public class MinecraftGLSurface extends View implements GrabListener, DirectGame
     }
 
     private void restoreDynamicResolution() {
+        mPausedWorldResolution = Float.NaN;
         if (!mDynamicResolutionActive) return;
         mDynamicResolutionActive = false;
         mLastResolutionPresents = -1L;
@@ -248,6 +254,27 @@ public class MinecraftGLSurface extends View implements GrabListener, DirectGame
         }
         mResolutionHandler.removeCallbacks(mResolutionTick);
         mResolutionHandler.post(mResolutionTick);
+    }
+
+    /** Menus keep the manually selected size; returning to play restores the saved world scale.
+     * This is a menu safeguard, not separate world/HUD render targets. UI-thread only.
+     */
+    private void updateResolutionGrabState(boolean grabbing) {
+        if (!mDynamicResolutionActive || mResolutionReleased || !mHostResumed || !mResolutionSurfaceReady) return;
+        long now = SystemClock.uptimeMillis();
+        if (!grabbing && Float.isNaN(mPausedWorldResolution)) {
+            mPausedWorldResolution = mResolutionController.getScale();
+            mResolutionController.pause(now);
+            mLastResolutionPresents = -1L;
+            applyDynamicResolution(mOriginalResolution);
+        } else if (grabbing && !Float.isNaN(mPausedWorldResolution)) {
+            float world = mPausedWorldResolution;
+            mPausedWorldResolution = Float.NaN;
+            mResolutionController.pause(now);
+            mLastResolutionPresents = -1L;
+            mLastValidResolutionSampleAt = now;
+            applyDynamicResolution(world);
+        }
     }
 
     private void stopResolutionTicker() {
@@ -755,7 +782,18 @@ public class MinecraftGLSurface extends View implements GrabListener, DirectGame
 
     @Override
     public void onGrabState(boolean isGrabbing) {
-        post(()->updateGrabState(isGrabbing));
+        post(() -> {
+            // Bridge callbacks are deferred. Ignore a queued event superseded by a newer one.
+            boolean current = CallbackBridge.isGrabbing();
+            if (current != isGrabbing) return;
+            try {
+                updateResolutionGrabState(current);
+            } catch (Throwable error) {
+                restoreDynamicResolution();
+                Log.w(TAG, "Menu resolution safeguard unavailable", error);
+            }
+            updateGrabState(current);
+        });
     }
 
     private TouchEventProcessor pickEventProcessor(boolean isGrabbing) {

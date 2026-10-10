@@ -43,7 +43,7 @@ public class CallbackBridge {
     }
 
     public static final Choreographer sChoreographer = Choreographer.getInstance();
-    private static boolean isGrabbing = false;
+    private static volatile boolean isGrabbing = false;
     private static final ArrayList<GrabListener> grabListeners = new ArrayList<>();
     // Use a weak reference here to avoid possibly statically referencing a Context.
     private static @Nullable WeakReference<DirectGamepadEnableHandler> sDirectGamepadEnableHandler;
