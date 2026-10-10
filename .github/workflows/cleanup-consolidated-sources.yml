@@ -1,0 +1,98 @@
+name: Retire verified consolidated source prereleases
+on:
+  push:
+    branches: [release/consolidated-1.5.0]
+    paths: [.github/workflows/cleanup-consolidated-sources.yml]
+permissions:
+  contents: write
+concurrency:
+  group: consolidated-1.5.0-cleanup
+  cancel-in-progress: false
+jobs:
+  cleanup:
+    if: ${{ contains(github.event.head_commit.message, '[release-cleanup]') }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify normal release and every source identity before deletion
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p cleanup verified
+          gh api "repos/$GH_REPO/releases/tags/consolidated-1.5.0" > cleanup/final.json
+          gh api "repos/$GH_REPO/git/ref/tags/consolidated-1.5.0" > cleanup/final-ref.json
+          gh release download consolidated-1.5.0 --dir verified
+          python3 - <<'PY'
+          import hashlib,json,pathlib,subprocess,zipfile,os
+          final=json.load(open('cleanup/final.json'))
+          ref=json.load(open('cleanup/final-ref.json'))
+          if final['draft'] or final['prerelease'] or ref['object']['type']!='commit' or ref['object']['sha']!='b2c85c59472e54bd7e5a3f45582cf32ec02a5017':
+              raise SystemExit('Consolidated release identity/type changed; no deletion')
+          root=pathlib.Path('verified')
+          rows=json.loads((root/'assets.json').read_text())
+          for row in rows:
+              if pathlib.Path(row['name']).name != row['name']: raise SystemExit('Unsafe asset name')
+              path=root/row['name']
+              with path.open('rb') as f: digest=hashlib.file_digest(f,'sha256').hexdigest()
+              if digest!=row['sha256'] or path.stat().st_size!=row['size']: raise SystemExit('Published asset mismatch: '+row['name'])
+          apk=root/'Unamed.launcher.apk'
+          with apk.open('rb') as f: digest=hashlib.file_digest(f,'sha256').hexdigest()
+          if digest!='227e9a3ff2a3c67d9e6eb5e84cf42613cdb4e81c7c6d562a3ede630fa49557bb': raise SystemExit('Consolidated APK changed; no deletion')
+          with zipfile.ZipFile(apk) as z:
+              if z.testzip() is not None: raise SystemExit('Corrupt published APK')
+          if (root/'commit.txt').read_text().strip()!='b2c85c59472e54bd7e5a3f45582cf32ec02a5017': raise SystemExit('Published commit mismatch')
+          identity=json.loads((root/'apk-identity.json').read_text())
+          if identity['sha256']!=digest or identity['versionName']!='1.5.0' or identity['versionCode']!=10015000 or not identity['updateMatched']:
+              raise SystemExit('Published identity mismatch')
+          origins=json.load(open('docs/CONSOLIDATION-FILE-MATRIX.json'))['origins']
+          if len(origins)!=3: raise SystemExit('Expected exactly three audited sources')
+          tags=[]
+          for origin in origins:
+              res=subprocess.run(['gh','api','repos/'+os.environ['GH_REPO']+'/releases/tags/'+origin['tag']],capture_output=True,text=True)
+              if res.returncode:
+                  if '(HTTP 404)' in res.stderr: continue
+                  raise SystemExit(res.stderr)
+              release=json.loads(res.stdout)
+              if release['id']!=origin['id'] or not release['prerelease'] or release['draft'] or release['tag_name']!=origin['tag']:
+                  raise SystemExit('Source release identity/type changed; no deletion')
+              old=next(a for a in origin['assets'] if a['name']=='Unamed.launcher.apk')
+              current=[a for a in release['assets'] if a['name']==old['name']]
+              if len(current)!=1 or current[0]['id']!=old['id'] or current[0]['size']!=old['size'] or current[0].get('digest')!=old['digest']:
+                  raise SystemExit('Source APK identity changed; no deletion')
+              tags.append(origin['tag'])
+          pathlib.Path('cleanup/tags.txt').write_text(''.join(t+'\n' for t in tags))
+          pathlib.Path('cleanup/preflight.json').write_text(json.dumps({'final':final['html_url'],'commit':'b2c85c59472e54bd7e5a3f45582cf32ec02a5017','apkSha256':digest,'sourcePublications':tags,'tagsAndCodeRetained':True},indent=2))
+          PY
+      - name: Delete only the audited source publications, retaining their Git tags
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r tag; do
+            gh release delete "$tag" --yes
+            printf '%s\n' "$tag" >> cleanup/deleted.txt
+          done < cleanup/tags.txt
+          gh api --paginate --slurp "repos/$GH_REPO/releases?per_page=100" > cleanup/releases-after.json
+          python3 - <<'PY'
+          import json
+          origins=json.load(open('docs/CONSOLIDATION-FILE-MATRIX.json'))['origins']
+          old={o['tag'] for o in origins}
+          releases=[r for page in json.load(open('cleanup/releases-after.json')) for r in page]
+          if any(r['tag_name'] in old for r in releases): raise SystemExit('Source publication remains')
+          final=[r for r in releases if r['tag_name']=='consolidated-1.5.0' and not r['draft'] and not r['prerelease']]
+          if len(final)!=1: raise SystemExit('Normal consolidated release missing')
+          print('Three source publications retired; consolidated normal release and unrelated releases retained')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: consolidation-source-cleanup-evidence
+          path: cleanup/
+          retention-days: 30
