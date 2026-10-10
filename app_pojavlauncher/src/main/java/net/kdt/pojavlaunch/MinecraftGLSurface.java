@@ -171,6 +171,12 @@ public class MinecraftGLSurface extends View implements GrabListener, DirectGame
                     updateResolutionGrabState(false);
                 } else {
                     updateResolutionGrabState(true);
+                    if (!Float.isNaN(mPausedWorldResolution)) {
+                        // Surface recovery has not accepted the resume resize; retry without
+                        // treating menu-resolution swaps as world-performance samples.
+                        mResolutionHandler.postDelayed(this, 1000L);
+                        return;
+                    }
                     long now = SystemClock.uptimeMillis();
                     int minimum = prefs.getInt("extremeMinResolution", 60);
                     int target = prefs.getInt("extremeTargetFps", 60);
@@ -215,11 +221,11 @@ public class MinecraftGLSurface extends View implements GrabListener, DirectGame
         }
     };
 
-    private void applyDynamicResolution(float scale) {
-        if (Math.abs(LauncherPreferences.PREF_SCALE_FACTOR - scale) < 0.0001f) return;
-        if (getWidth() < 2 || getHeight() < 2 || mNativeSurface == null || !mNativeSurface.isValid()) return;
+    private boolean applyDynamicResolution(float scale) {
+        if (Math.abs(LauncherPreferences.PREF_SCALE_FACTOR - scale) < 0.0001f) return true;
+        if (getWidth() < 2 || getHeight() < 2 || mNativeSurface == null || !mNativeSurface.isValid()) return false;
         if (Tools.getDisplayFriendlyRes(getWidth(), scale) < 2
-                || Tools.getDisplayFriendlyRes(getHeight(), scale) < 2) return;
+                || Tools.getDisplayFriendlyRes(getHeight(), scale) < 2) return false;
         mApplyingDynamicResolution = true;
         try {
             LauncherPreferences.PREF_SCALE_FACTOR = scale; // Input coordinates use the same live scale.
@@ -227,6 +233,7 @@ public class MinecraftGLSurface extends View implements GrabListener, DirectGame
         } finally {
             mApplyingDynamicResolution = false;
         }
+        return true;
     }
 
     private void restoreDynamicResolution() {
@@ -263,22 +270,23 @@ public class MinecraftGLSurface extends View implements GrabListener, DirectGame
         if (!mDynamicResolutionActive || mResolutionReleased || !mHostResumed || !mResolutionSurfaceReady) return;
         long now = SystemClock.uptimeMillis();
         if (!grabbing && Float.isNaN(mPausedWorldResolution)) {
-            mPausedWorldResolution = mResolutionController.getScale();
+            float world = mResolutionController.getScale();
+            if (!applyDynamicResolution(mOriginalResolution)) return; // Ticker retries after surface recovery.
+            mPausedWorldResolution = world;
             mResolutionController.pause(now);
             mLastResolutionPresents = -1L;
-            applyDynamicResolution(mOriginalResolution);
         } else if (grabbing && !Float.isNaN(mPausedWorldResolution)) {
             float world = mPausedWorldResolution;
+            if (!applyDynamicResolution(world)) return;
             mPausedWorldResolution = Float.NaN;
             mResolutionController.pause(now);
             mLastResolutionPresents = -1L;
             mLastValidResolutionSampleAt = now;
-            applyDynamicResolution(world);
         }
     }
 
     private void stopResolutionTicker() {
-        mResolutionHandler.removeCallbacksAndMessages(null);
+        mResolutionHandler.removeCallbacks(mResolutionTick);
         restoreDynamicResolution();
     }
 
