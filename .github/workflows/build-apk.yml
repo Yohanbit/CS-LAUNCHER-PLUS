@@ -43,10 +43,46 @@ jobs:
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             printf '%s' "$GOOGLE_SERVICES_JSON" > app_pojavlauncher/google-services.json
           fi
+      - name: Package verified MobileGlues 2.0.0 renderer
+        shell: bash
+        run: |
+          set -euo pipefail
+          mg_apk="$RUNNER_TEMP/MobileGlues_2.0.0.apk"
+          curl --fail --location --retry 3 --output "$mg_apk" \
+            'https://github.com/MobileGL-Dev/MobileGlues-release/releases/download/V2.0.0/MobileGlues_2.0.0.apk'
+          echo "a7e1eb29731fdece7ab3af7fb00692b856f1808a7544436e7b3eb6c08355581a  $mg_apk" | sha256sum --check --strict
+          for abi in arm64-v8a armeabi-v7a; do
+            out="app_pojavlauncher/src/main/jniLibs/$abi"
+            mkdir -p "$out"
+            unzip -p "$mg_apk" "lib/$abi/libmobileglues.so" > "$out/libmobileglues.so"
+            test -s "$out/libmobileglues.so"
+            readelf -h "$out/libmobileglues.so"
+            readelf -d "$out/libmobileglues.so" | grep NEEDED
+          done
       - name: Build signed test APK
         run: |
           chmod +x gradlew
           ./gradlew :app_pojavlauncher:assembleDebug -PallowMissingFirebase=true --no-daemon --stacktrace
+      - name: Verify renderer is included in every APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import glob, zipfile
+          apks = glob.glob('app_pojavlauncher/build/outputs/apk/debug/*.apk')
+          if not apks:
+              raise SystemExit('No APK was built')
+          for apk in apks:
+              with zipfile.ZipFile(apk) as z:
+                  abis = {p.split('/')[1] for p in z.namelist() if p.startswith('lib/') and p.endswith('.so')}
+                  if not abis:
+                      raise SystemExit('APK contains no native libraries')
+                  for abi in abis:
+                      path = f'lib/{abi}/libmobileglues.so'
+                      if path not in z.namelist() or z.getinfo(path).file_size == 0:
+                          raise SystemExit(f'Missing MobileGlues for {abi} in {apk}')
+                  print(f'Verified MobileGlues in {apk}: {sorted(abis)}')
+          PY
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
@@ -75,4 +111,4 @@ jobs:
             --target "$BUILD_SHA" \
             --title "CS Launcher Plus — test build $BUILD_RUN" \
             --prerelease \
-            --notes 'APK de prueba compilada desde este repositorio. Sin GOOGLE_SERVICES_JSON, las notificaciones y la sincronización Firebase quedan inactivas. No es una versión oficial; no ha sido probada en un dispositivo. Usa el identificador de aplicación debug y la firma de prueba del proyecto.'
+            --notes 'APK de prueba compilada desde este repositorio. Incluye MobileGlues 2.0.0 (MobileGL-Dev, LGPL-2.1), obtenido del paquete oficial con SHA-256 verificado. Fuentes y licencia: https://github.com/MobileGL-Dev/MobileGlues y https://github.com/MobileGL-Dev/MobileGlues-release/releases/tag/V2.0.0 . Sin GOOGLE_SERVICES_JSON, las notificaciones y la sincronización Firebase quedan inactivas. No es una versión oficial; no ha sido probada en un dispositivo. Usa el identificador de aplicación debug y la firma de prueba del proyecto.'

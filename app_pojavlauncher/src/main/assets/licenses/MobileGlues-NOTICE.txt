@@ -1,0 +1,28 @@
+MobileGlues 2.0.0
+Copyright (c) 2025-2026 MobileGL-Dev
+License: GNU LGPL 2.1; see MobileGlues-LICENSE.txt in this directory.
+
+This launcher packages the unmodified, dynamically loaded libmobileglues.so
+from the official MobileGlues 2.0.0 plugin APK for ARM32 and ARM64.
+The plugin UI and its unrelated libraries are not included.
+ANGLE is not included by this integration. Use the native GLES driver.
+Minimum renderer requirement reported by upstream: OpenGL ES 3.0.
+
+Official binary release and checksum:
+https://github.com/MobileGL-Dev/MobileGlues-release/releases/tag/V2.0.0
+SHA-256: a7e1eb29731fdece7ab3af7fb00692b856f1808a7544436e7b3eb6c08355581a
+
+Library source and build instructions:
+https://github.com/MobileGL-Dev/MobileGlues
+Plugin source:
+https://github.com/MobileGL-Dev/MobileGlues-plugin
+Third-party acknowledgements:
+https://github.com/MobileGL-Dev/MobileGlues-release#third-party-components
+
+The launcher source and packaging workflow are available in this fork.
+To test an interface-compatible modified library, replace the CI download step
+with your built libmobileglues.so in src/main/jniLibs/<abi>/ and rebuild the APK.
+No additional restrictions on modification or reverse engineering for debugging
+changes to this LGPL-covered library are imposed by this integration.
+
+Packaging verification is not an on-device compatibility or performance test.
