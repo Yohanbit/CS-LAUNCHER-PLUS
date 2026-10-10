@@ -1,0 +1,76 @@
+name: Build downloadable APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-apk.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install Android build dependencies
+        run: sdkmanager 'platforms;android-34' 'build-tools;34.0.0' 'ndk;27.3.13750724'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Load Firebase configuration if supplied
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > app_pojavlauncher/google-services.json
+          fi
+      - name: Build signed test APK
+        run: |
+          chmod +x gradlew
+          ./gradlew :app_pojavlauncher:assembleDebug --no-daemon --stacktrace
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CS-Launcher-Plus-test-APK
+          path: app_pojavlauncher/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: CS-Launcher-Plus-test-APK
+          path: apk
+      - name: Publish public test download
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BUILD_SHA: ${{ github.sha }}
+          BUILD_RUN: ${{ github.run_id }}
+        run: |
+          gh release create "test-build-$BUILD_RUN" apk/*.apk \
+            --target "$BUILD_SHA" \
+            --title "CS Launcher Plus — test build $BUILD_RUN" \
+            --prerelease \
+            --notes 'APK de prueba compilada desde este repositorio. No es una versión oficial; no ha sido probada en un dispositivo. Usa el identificador de aplicación debug y la firma de prueba del proyecto.'
